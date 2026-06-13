@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "composite": true,
+    "outDir": "dist-electron",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["electron"]
+}
