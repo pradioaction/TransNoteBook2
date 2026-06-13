@@ -158,6 +158,27 @@ export interface WorkspaceStore {
   refreshFiles: () => Promise<void>
 }
 
+interface RecitationAPI {
+  init(workspacePath: string): Promise<boolean>
+  addBook(book: { name: string; path: string; count: number }): Promise<unknown>
+  getBookById(bookId: number): Promise<unknown>
+  getAllBooks(): Promise<unknown[]>
+  deleteBook(bookId: number): Promise<boolean>
+  getBookProgress(bookId: number): Promise<{ total: number; studied: number; review_due: number }>
+  getAllBooksWithProgress(): Promise<unknown[]>
+  importBookFromFile(filePath: string): Promise<unknown>
+  getWordsByBook(bookId: number): Promise<unknown[]>
+  getUnstudiedWords(bookId: number, limit?: number): Promise<unknown[]>
+  getWordsForReview(bookId: number, limit?: number): Promise<unknown[]>
+  searchWords(searchText: string, bookId?: number): Promise<unknown[]>
+  startStudyWord(bookId: number, wordId: number): Promise<unknown>
+  reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<unknown>
+  getConfig(): Promise<Record<string, unknown>>
+  setConfig(key: string, value: unknown): Promise<boolean>
+  getTodayWords(bookId: number, forceRefresh?: boolean): Promise<{ newWords: unknown[]; reviewWords: unknown[] }>
+  refreshTodayWords(bookId: number): Promise<{ newWords: unknown[]; reviewWords: unknown[] }>
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -175,6 +196,7 @@ declare global {
       getSettings: () => Promise<Record<string, unknown>>
       setSettings: (settings: Record<string, unknown>) => Promise<boolean>
       onMenuAction: (callback: (action: string) => void) => void
+      recitationAPI?: RecitationAPI
     }
   }
 }

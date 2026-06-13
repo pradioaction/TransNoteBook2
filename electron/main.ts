@@ -1,9 +1,48 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import { PathManager, DatabaseManager } from './recitation/database'
+import { RecitationDAL } from './recitation/recitationDAL'
+import { StudyService } from './recitation/studyService'
+import { BookService } from './recitation/bookService'
 
 const isDev = !app.isPackaged
 let mainWindow: BrowserWindow | null = null
+
+// ==================== 背诵模式服务 ====================
+const _pathManager = new PathManager()
+let _dbManager: DatabaseManager | null = null
+let _recitationDAL: RecitationDAL | null = null
+let _studyService: StudyService | null = null
+let _bookService: BookService | null = null
+
+function ensureRecitationServices(workspacePath: string): boolean {
+  _pathManager.setWorkspace(workspacePath)
+
+  if (!_dbManager) {
+    _dbManager = new DatabaseManager(_pathManager)
+  }
+
+  if (!_dbManager.isInitialized()) {
+    if (!_dbManager.initialize()) return false
+  }
+
+  if (!_recitationDAL) {
+    _recitationDAL = new RecitationDAL(_dbManager)
+  }
+
+  if (!_studyService) {
+    _studyService = new StudyService(_recitationDAL, _pathManager)
+  }
+
+  if (!_bookService) {
+    _bookService = new BookService(_recitationDAL, _pathManager)
+  }
+
+  return true
+}
+
+// ==================== 设置管理 ====================
 
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json')
 
@@ -212,6 +251,98 @@ function registerIpcHandlers() {
   ipcMain.handle('set-settings', async (_event, settings: Record<string, unknown>) => {
     saveSettings(settings)
     return true
+  })
+
+  // ==================== 背诵模式 IPC ====================
+
+  ipcMain.handle('recitation:init', async (_event, workspacePath: string) => {
+    return ensureRecitationServices(workspacePath)
+  })
+
+  ipcMain.handle('recitation:add-book', async (_event, book: { name: string; path: string; count: number }) => {
+    if (!_recitationDAL) return null
+    return _recitationDAL.addBook(book)
+  })
+
+  ipcMain.handle('recitation:get-book-by-id', async (_event, bookId: number) => {
+    if (!_recitationDAL) return null
+    return _recitationDAL.getBookById(bookId)
+  })
+
+  ipcMain.handle('recitation:get-all-books', async () => {
+    if (!_recitationDAL) return []
+    return _recitationDAL.getAllBooks()
+  })
+
+  ipcMain.handle('recitation:delete-book', async (_event, bookId: number) => {
+    if (!_bookService) return false
+    return _bookService.deleteBook(bookId)
+  })
+
+  ipcMain.handle('recitation:get-book-progress', async (_event, bookId: number) => {
+    if (!_recitationDAL) return { total: 0, studied: 0, review_due: 0 }
+    return _recitationDAL.getBookProgress(bookId)
+  })
+
+  ipcMain.handle('recitation:get-all-books-with-progress', async () => {
+    if (!_bookService) return []
+    return _bookService.getAllBooksWithProgress()
+  })
+
+  ipcMain.handle('recitation:import-book-from-file', async (_event, filePath: string) => {
+    if (!_bookService) return null
+    return _bookService.importBook(filePath)
+  })
+
+  ipcMain.handle('recitation:get-words-by-book', async (_event, bookId: number) => {
+    if (!_recitationDAL) return []
+    return _recitationDAL.getWordsByBookId(bookId)
+  })
+
+  ipcMain.handle('recitation:get-unstudied-words', async (_event, bookId: number, limit?: number) => {
+    if (!_recitationDAL) return []
+    return _recitationDAL.getUnstudiedWords(bookId, limit)
+  })
+
+  ipcMain.handle('recitation:get-words-for-review', async (_event, bookId: number, limit?: number) => {
+    if (!_recitationDAL) return []
+    return _recitationDAL.getWordsForReview(bookId, limit)
+  })
+
+  ipcMain.handle('recitation:search-words', async (_event, searchText: string, bookId?: number) => {
+    if (!_recitationDAL) return []
+    return _recitationDAL.searchWords(searchText, bookId)
+  })
+
+  ipcMain.handle('recitation:start-study-word', async (_event, bookId: number, wordId: number) => {
+    if (!_studyService) return null
+    return _studyService.startStudyWord(bookId, wordId)
+  })
+
+  ipcMain.handle('recitation:review-word', async (_event, bookId: number, wordId: number, isCorrect: boolean) => {
+    if (!_studyService) return null
+    return _studyService.reviewWord(bookId, wordId, isCorrect)
+  })
+
+  ipcMain.handle('recitation:get-config', async () => {
+    if (!_studyService) return {}
+    return _studyService.getConfig()
+  })
+
+  ipcMain.handle('recitation:set-config', async (_event, key: string, value: unknown) => {
+    if (!_studyService) return false
+    _studyService.setConfig(key, value)
+    return true
+  })
+
+  ipcMain.handle('recitation:get-today-words', async (_event, bookId: number, forceRefresh?: boolean) => {
+    if (!_studyService) return { newWords: [], reviewWords: [] }
+    return _studyService.getTodayWords(bookId, forceRefresh)
+  })
+
+  ipcMain.handle('recitation:refresh-today-words', async (_event, bookId: number) => {
+    if (!_studyService) return { newWords: [], reviewWords: [] }
+    return _studyService.refreshTodayWords(bookId)
   })
 }
 

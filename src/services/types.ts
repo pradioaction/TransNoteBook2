@@ -60,3 +60,23 @@ export interface TranslationService {
   /** 预留接口：供背诵模块生成场景文章 */
   generateSceneText(words: string[], promptTemplate?: string): Promise<string>
 }
+
+export interface RecitationService {
+  init(workspacePath: string): Promise<boolean>
+  getBooks(): Promise<import('@/recitation/types').Book[]>
+  getBookById(bookId: number): Promise<import('@/recitation/types').Book | null>
+  importBook(filePath: string): Promise<import('@/recitation/types').Book | null>
+  deleteBook(bookId: number): Promise<boolean>
+  getBookProgress(bookId: number): Promise<import('@/recitation/types').BookProgress>
+  getAllBooksWithProgress(): Promise<import('@/recitation/types').BookWithProgress[]>
+  getWordsByBook(bookId: number): Promise<import('@/recitation/types').Word[]>
+  getUnstudiedWords(bookId: number, limit?: number): Promise<import('@/recitation/types').Word[]>
+  getWordsForReview(bookId: number, limit?: number): Promise<import('@/recitation/types').Word[]>
+  searchWords(searchText: string, bookId?: number): Promise<import('@/recitation/types').Word[]>
+  startStudyWord(bookId: number, wordId: number): Promise<import('@/recitation/types').UserStudy | null>
+  reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<import('@/recitation/types').UserStudy | null>
+  getConfig(): Promise<Record<string, unknown>>
+  setConfig(key: string, value: unknown): Promise<boolean>
+  getTodayWords(bookId: number, forceRefresh?: boolean): Promise<import('@/recitation/types').TodayWordsResult>
+  refreshTodayWords(bookId: number): Promise<import('@/recitation/types').TodayWordsResult>
+}

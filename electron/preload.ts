@@ -43,4 +43,35 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMenuAction: (callback: (action: string) => void) => {
     ipcRenderer.on('menu-action', (_event, action) => callback(action))
   },
+
+  // ==================== 背诵模式 API ====================
+  recitationAPI: {
+    init: (workspacePath: string) => ipcRenderer.invoke('recitation:init', workspacePath),
+    addBook: (book: { name: string; path: string; count: number }) =>
+      ipcRenderer.invoke('recitation:add-book', book),
+    getBookById: (bookId: number) => ipcRenderer.invoke('recitation:get-book-by-id', bookId),
+    getAllBooks: () => ipcRenderer.invoke('recitation:get-all-books'),
+    deleteBook: (bookId: number) => ipcRenderer.invoke('recitation:delete-book', bookId),
+    getBookProgress: (bookId: number) => ipcRenderer.invoke('recitation:get-book-progress', bookId),
+    getAllBooksWithProgress: () => ipcRenderer.invoke('recitation:get-all-books-with-progress'),
+    importBookFromFile: (filePath: string) => ipcRenderer.invoke('recitation:import-book-from-file', filePath),
+    getWordsByBook: (bookId: number) => ipcRenderer.invoke('recitation:get-words-by-book', bookId),
+    getUnstudiedWords: (bookId: number, limit?: number) =>
+      ipcRenderer.invoke('recitation:get-unstudied-words', bookId, limit),
+    getWordsForReview: (bookId: number, limit?: number) =>
+      ipcRenderer.invoke('recitation:get-words-for-review', bookId, limit),
+    searchWords: (searchText: string, bookId?: number) =>
+      ipcRenderer.invoke('recitation:search-words', searchText, bookId),
+    startStudyWord: (bookId: number, wordId: number) =>
+      ipcRenderer.invoke('recitation:start-study-word', bookId, wordId),
+    reviewWord: (bookId: number, wordId: number, isCorrect: boolean) =>
+      ipcRenderer.invoke('recitation:review-word', bookId, wordId, isCorrect),
+    getConfig: () => ipcRenderer.invoke('recitation:get-config'),
+    setConfig: (key: string, value: unknown) =>
+      ipcRenderer.invoke('recitation:set-config', key, value),
+    getTodayWords: (bookId: number, forceRefresh?: boolean) =>
+      ipcRenderer.invoke('recitation:get-today-words', bookId, forceRefresh),
+    refreshTodayWords: (bookId: number) =>
+      ipcRenderer.invoke('recitation:refresh-today-words', bookId),
+  },
 })
