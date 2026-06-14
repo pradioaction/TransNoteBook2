@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
@@ -7,6 +8,7 @@ import { FloatingOptions } from './FloatingOptions'
 import { IconCelebrate } from '@/components/icons'
 
 export function QuizPanel() {
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const recitationService = useRecitationService()
   const quizState = useRecitationStore((s) => s.quizState)
@@ -44,7 +46,7 @@ export function QuizPanel() {
           color: colors.foreground,
         }}
       >
-        暂无检测题目
+        {t('quizPanel.noQuestions')}
       </div>
     )
   }
@@ -106,9 +108,9 @@ export function QuizPanel() {
         }}
       >
         <div style={{ fontSize: 48 }}><IconCelebrate size={48} /></div>
-        <div style={{ fontSize: 20, fontWeight: 600 }}>检测完成！</div>
+        <div style={{ fontSize: 20, fontWeight: 600 }}>{t('quizPanel.complete')}</div>
         <div style={{ fontSize: 14, opacity: 0.7 }}>
-          共 {total} 道题，已答 {answeredCount} 题
+          {t('quizPanel.summary', { total, answered: answeredCount })}
         </div>
         <button
           onClick={completeQuiz}
@@ -122,7 +124,7 @@ export function QuizPanel() {
             cursor: 'pointer',
           }}
         >
-          查看结果
+          {t('quizPanel.viewResult')}
         </button>
       </div>
     )
@@ -152,7 +154,7 @@ export function QuizPanel() {
         }}
       >
         <span style={{ flexShrink: 0 }}>
-          单词检测
+          {t('quizPanel.title')}
           <span style={{ opacity: 0.6, marginLeft: 8 }}>
             {quizState.currentIndex + 1}/{total}
           </span>
@@ -161,7 +163,7 @@ export function QuizPanel() {
         {/* 居中调参滑轨 */}
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, fontSize: 11, opacity: 0.8 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            阻尼
+            {t('quizPanel.damping')}
             <input
               type="range"
               min={0.99}
@@ -178,7 +180,7 @@ export function QuizPanel() {
             <span style={{ minWidth: 36 }}>{damping.toFixed(4)}</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            冲量
+            {t('quizPanel.impulse')}
             <input
               type="range"
               min={1}
@@ -197,7 +199,7 @@ export function QuizPanel() {
         </div>
 
         <span style={{ opacity: 0.6, flexShrink: 0 }}>
-          已答: {answeredCount}/{total}
+          {t('quizPanel.answered', { answered: answeredCount, total })}
         </span>
       </div>
 
@@ -233,7 +235,7 @@ export function QuizPanel() {
           flexShrink: 0,
         }}
       >
-        <ToolButton label="退出" onClick={() => {
+        <ToolButton label={t('quizPanel.exit')} onClick={() => {
           if (isArticleQuiz) {
             useRecitationStore.setState({ articleQuizSource: false })
             useRecitationStore.getState().reset()
@@ -243,18 +245,18 @@ export function QuizPanel() {
           }
         }} colors={colors} />
         <ToolButton
-          label="上一题"
+          label={t('quizPanel.prev')}
           onClick={prevQuestion}
           disabled={quizState.currentIndex === 0}
           colors={colors}
         />
         <ToolButton
-          label={floatingAnimationEnabled ? '浮动' : '集合'}
+          label={t(floatingAnimationEnabled ? 'quizPanel.floating' : 'quizPanel.gather')}
           onClick={toggleFloatingAnimation}
           colors={colors}
         />
         <ToolButton
-          label="下一题"
+          label={t('quizPanel.next')}
           onClick={nextQuestion}
           disabled={quizState.currentIndex >= total - 1}
           colors={colors}
@@ -272,7 +274,7 @@ export function QuizPanel() {
           flexShrink: 0,
         }}
       >
-        1/2/3/4 选择 · ←/→/Enter 切换 · Space 集合/浮动
+        {t('quizPanel.shortcutHint')}
       </div>
     </div>
   )

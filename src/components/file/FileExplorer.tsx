@@ -6,6 +6,7 @@ import { useFileService } from '@/hooks/useFileService'
 import type { FileEntry } from '@/types/notebook'
 import { ImportDialog } from '@/components/import/ImportDialog'
 import { IconFolder, IconFolderOpen, IconFile, IconChevronRight, IconChevronDown, IconImport, IconRefresh, IconEdit, IconClose, IconDot, IconSave, IconSearch } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 export function FileExplorer() {
   const {
@@ -16,6 +17,7 @@ export function FileExplorer() {
     setModified, setFilePath,
   } = useNotebookStore()
   const { colors } = useTheme()
+  const { t } = useTranslation()
   const fileService = useFileService()
 
   const [collapsedEditors, setCollapsedEditors] = useState(false)
@@ -201,15 +203,15 @@ export function FileExplorer() {
       <div style={{ padding: '8px 12px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: '#999', backgroundColor: colors.sidebarHeader, borderBottom: `1px solid ${colors.sidebarBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>Explorer</span>
         <div style={{ display: 'flex', gap: 2 }}>
-          <button onClick={handleNewFile} title="New File" style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconFile size={14} /></span></button>
-          <button onClick={handleImportText} title="Import Text" style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconImport size={14} /></span></button>
-          <button onClick={() => refreshFiles()} title="Refresh" style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconRefresh size={14} /></span></button>
+          <button onClick={handleNewFile} title={t('fileExplorer.newFile')} style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconFile size={14} /></span></button>
+          <button onClick={handleImportText} title={t('fileExplorer.importText')} style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconImport size={14} /></span></button>
+          <button onClick={() => refreshFiles()} title={t('fileExplorer.refresh')} style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconRefresh size={14} /></span></button>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
         <div style={sectionStyle} onClick={() => setCollapsedEditors(!collapsedEditors)}>
-          <span><span style={{ display: 'inline-flex', verticalAlign: 'middle', fontSize: 10 }}>{collapsedEditors ? <IconChevronRight size={12} /> : <IconChevronDown size={12} />}</span> OPEN EDITORS</span>
+          <span><span style={{ display: 'inline-flex', verticalAlign: 'middle', fontSize: 10 }}>{collapsedEditors ? <IconChevronRight size={12} /> : <IconChevronDown size={12} />}</span> {t('fileExplorer.openEditors')}</span>
           <span style={{ fontSize: 10, fontWeight: 400 }}>{openEditors.length}</span>
         </div>
         {!collapsedEditors && (openEditors.length > 0 ? (
@@ -231,7 +233,7 @@ export function FileExplorer() {
                   <span
                     onClick={(e) => { e.stopPropagation(); closeFile(key) }}
                     style={{ cursor: 'pointer', opacity: 0.5, fontSize: 14, padding: '0 2px' }}
-                    title="Close"
+                    title={t('fileExplorer.close')}
                   ><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconClose size={12} /></span></span>
                 )}
               </div>
@@ -239,20 +241,20 @@ export function FileExplorer() {
           })
         ) : (
           <div style={{ padding: '2px 24px', fontSize: 13, color: colors.foreground, opacity: 0.5, fontStyle: 'italic' }}>
-            No files open
+            {t('fileExplorer.noFiles')}
           </div>
         ))}
 
         <div style={{ ...sectionStyle, marginTop: 12 }} onClick={() => setCollapsedWorkspace(!collapsedWorkspace)}>
-          <span><span style={{ display: 'inline-flex', verticalAlign: 'middle', fontSize: 10 }}>{collapsedWorkspace ? <IconChevronRight size={12} /> : <IconChevronDown size={12} />}</span> WORKSPACE</span>
-          <button onClick={(e) => { e.stopPropagation(); handleSelectFolder() }} title="Open Folder" style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconFolderOpen size={14} /></span></button>
+          <span><span style={{ display: 'inline-flex', verticalAlign: 'middle', fontSize: 10 }}>{collapsedWorkspace ? <IconChevronRight size={12} /> : <IconChevronDown size={12} />}</span> {t('fileExplorer.workspace')}</span>
+          <button onClick={(e) => { e.stopPropagation(); handleSelectFolder() }} title={t('fileExplorer.openFolder')} style={actionBtn}><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconFolderOpen size={14} /></span></button>
         </div>
 
         {!collapsedWorkspace && (!workspacePath ? (
           <div style={{ padding: '16px 24px', fontSize: 12, color: '#999', textAlign: 'center' }}>
-            <div style={{ marginBottom: 8 }}>No workspace opened</div>
+            <div style={{ marginBottom: 8 }}>{t('fileExplorer.noWorkspace')}</div>
             <button onClick={handleSelectFolder} style={{ padding: '4px 12px', fontSize: 12, backgroundColor: colors.primaryButton, color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
-              Open Folder
+              {t('fileExplorer.openFolder')}
             </button>
           </div>
         ) : workspaceFiles.length === 0 ? (
@@ -260,7 +262,7 @@ export function FileExplorer() {
             <div style={{ marginBottom: 4, fontSize: 11 }} title={workspacePath}>
               <span style={{ display: 'inline-flex', verticalAlign: 'middle', marginRight: 4 }}><IconFolder size={14} /></span> {workspacePath.split(/[/\\]/).pop()}
             </div>
-            <div style={{ marginBottom: 8 }}>No .transnb files</div>
+            <div style={{ marginBottom: 8 }}>{t('fileExplorer.noTransnbFiles')}</div>
             <button onClick={handleNewFile} style={{ padding: '4px 12px', fontSize: 12, backgroundColor: colors.primaryButton, color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>
               + New File
             </button>
@@ -276,7 +278,7 @@ export function FileExplorer() {
       </div>
 
       <div style={{ borderTop: `1px solid ${colors.sidebarBorder}`, padding: '6px 12px', fontSize: 11, color: '#999', display: 'flex', justifyContent: 'space-between' }}>
-        <span>{notebook?.cells.length ?? 0} cell{notebook?.cells.length !== 1 ? 's' : ''}</span>
+        <span>{t('fileExplorer.cellCount', { count: notebook?.cells.length ?? 0 })}</span>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={handleSave} style={{ ...actionBtn, fontSize: 11 }} title="Save (Ctrl+S)"><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconSave size={14} /></span></button>
           <button onClick={handleSaveAs} style={{ ...actionBtn, fontSize: 11 }} title="Save As">Save As</button>

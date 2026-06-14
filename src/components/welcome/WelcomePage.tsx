@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { useFileService } from '@/hooks/useFileService'
 import { useSettingStore } from '@/store/settingStore'
@@ -8,6 +9,7 @@ interface WelcomePageProps {
 }
 
 export function WelcomePage({ onFileOpened }: WelcomePageProps) {
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const fileService = useFileService()
   const { recentFiles } = useSettingStore()
@@ -52,28 +54,28 @@ export function WelcomePage({ onFileOpened }: WelcomePageProps) {
       }}
     >
       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 1 }}>
-        TSBook2
+        {t('welcome.title')}
       </div>
       <div style={{ fontSize: 13, color: '#999' }}>
-        Translation Notebook
+        {t('welcome.subtitle')}
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
         <button style={btnStyle} onClick={handleOpenFile}>
-          Open File
+          {t('welcome.openFile')}
         </button>
         <button
           style={{ ...btnStyle, backgroundColor: colors.toolbarBackground, color: colors.foreground, border: `1px solid ${colors.border}` }}
           onClick={handleNewFile}
         >
-          New File
+          {t('welcome.newFile')}
         </button>
       </div>
 
       {recentFiles.length > 0 && (
         <div style={{ width: '100%', maxWidth: 400, marginTop: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: 8, letterSpacing: 1 }}>
-            Recent Files
+            {t('welcome.recentFiles')}
           </div>
           {recentFiles.slice(0, 10).map((path) => (
             <div
@@ -91,11 +93,12 @@ export function WelcomePage({ onFileOpened }: WelcomePageProps) {
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.toolbarBackground)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <span style={{ fontSize: 14, display: 'inline-flex', alignItems: 'center' }}><IconFile size={14} /></span>
+              <span style={{ fontSize: 14, display: 'inline-flex', alignItems: 'center' }}><IconFile size={14} /></span>    
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {path.split(/[/\\]/).pop()}
               </span>
-              <span style={{ fontSize: 11, color: '#666', marginLeft: 'auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }} title={path}>
+              <span style={{ fontSize: 11, color: '#666', marginLeft: 'auto', overflow: 'hidden', textOverflow: 'ellipsis', 
+whiteSpace: 'nowrap', maxWidth: 200 }} title={path}>
                 {path}
               </span>
             </div>

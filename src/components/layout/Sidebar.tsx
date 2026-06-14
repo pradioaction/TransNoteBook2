@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useTheme } from '@/hooks/useTheme'
 import { FileExplorer } from '@/components/file/FileExplorer'
 import { IconSettings } from '@/components/icons'
 
 export function Sidebar() {
+  const { t } = useTranslation()
   const { sidebarVisible, sidebarActiveTab } = useWorkspaceStore()
   const { colors } = useTheme()
 
@@ -34,10 +36,10 @@ export function Sidebar() {
       {sidebarActiveTab === 'search' && (
         <div style={{ padding: 16, color: colors.foreground }}>
           <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>
-            Search
+            {t('sidebar.search')}
           </div>
           <input
-            placeholder="Search..."
+            placeholder={t('sidebar.searchPlaceholder')}
             style={{
               width: '100%', padding: '6px 8px', fontSize: 13,
               backgroundColor: colors.inputBackground, color: colors.foreground,
@@ -47,58 +49,64 @@ export function Sidebar() {
           />
         </div>
       )}
-      {sidebarActiveTab === 'settings' && (
+      {sidebarActiveTab === 'issues' && (
         <div style={{ padding: 16, color: colors.foreground }}>
           <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>
-            Settings
+            {t('sidebar.keyboardShortcuts')}
           </div>
-          <div style={{ fontSize: 13, color: '#999' }}>
-            Click <IconSettings size={14} /> in the toolbar to open full settings dialog.
-          </div>
-          <div style={{ marginTop: 16, fontSize: 12, color: colors.foreground }}>
-            <p style={{ fontWeight: 600, marginBottom: 8 }}>Keyboard Shortcuts</p>
+          <div style={{ fontSize: 12, color: colors.foreground }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', lineHeight: 2.2 }}>
               <thead>
                 <tr style={{ opacity: 0.6, fontSize: 11 }}>
-                  <th style={{ textAlign: 'left', paddingRight: 8 }}>Keys</th>
-                  <th style={{ textAlign: 'left' }}>Action</th>
+                  <th style={{ textAlign: 'left', paddingRight: 8 }}>{t('sidebar.keys')}</th>
+                  <th style={{ textAlign: 'left' }}>{t('sidebar.action')}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td><kbd style={kbd}>Ctrl+N</kbd></td><td>Insert cell below</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Shift+A</kbd></td><td>Insert cell above</td></tr>
-                <tr><td><kbd style={kbd}>Delete</kbd></td><td>Delete selected cells</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+D</kbd></td><td>Copy cell</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+M</kbd></td><td>Merge selected cells</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+F</kbd></td><td>Toggle cell dependency</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+E</kbd></td><td>Toggle cell collapse</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Q</kbd></td><td>Toggle input collapse</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Shift+Q</kbd></td><td>Toggle all input collapse</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+W</kbd></td><td>Toggle output collapse</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Shift+W</kbd></td><td>Toggle all output collapse</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+N</kbd></td><td>{t('sidebar.insertCellBelow')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Shift+A</kbd></td><td>{t('sidebar.insertCellAbove')}</td></tr>
+                <tr><td><kbd style={kbd}>Delete</kbd></td><td>{t('sidebar.deleteCells')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+D</kbd></td><td>{t('sidebar.copyCell')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+M</kbd></td><td>{t('sidebar.mergeCells')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+F</kbd></td><td>{t('sidebar.toggleDependency')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+E</kbd></td><td>{t('sidebar.toggleCollapse')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Q</kbd></td><td>{t('sidebar.toggleInputCollapse')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Shift+Q</kbd></td><td>{t('sidebar.toggleAllInputCollapse')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+W</kbd></td><td>{t('sidebar.toggleOutputCollapse')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Shift+W</kbd></td><td>{t('sidebar.toggleAllOutputCollapse')}</td></tr>
                 <tr style={{ borderTop: `1px solid ${colors.border}` }}>
-                  <td colSpan={2} style={{ padding: '4px 0', opacity: 0.6, fontSize: 11 }}>Translation</td>
+                  <td colSpan={2} style={{ padding: '4px 0', opacity: 0.6, fontSize: 11 }}>{t('sidebar.sectionTranslation')}</td>
                 </tr>
-                <tr><td><kbd style={kbd}>Ctrl+Enter</kbd></td><td>Translate selected cell</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Shift+Enter</kbd></td><td>Translate all cells</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Enter</kbd></td><td>{t('sidebar.translateSelected')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Shift+Enter</kbd></td><td>{t('sidebar.translateAll')}</td></tr>
                 <tr style={{ borderTop: `1px solid ${colors.border}` }}>
-                  <td colSpan={2} style={{ padding: '4px 0', opacity: 0.6, fontSize: 11 }}>File</td>
+                  <td colSpan={2} style={{ padding: '4px 0', opacity: 0.6, fontSize: 11 }}>{t('sidebar.sectionFile')}</td>
                 </tr>
-                <tr><td><kbd style={kbd}>Ctrl+S</kbd></td><td>Save file</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Shift+S</kbd></td><td>Save file as</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+O</kbd></td><td>Open file</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+Shift+I</kbd></td><td>Import text</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+S</kbd></td><td>{t('sidebar.saveFile')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Shift+S</kbd></td><td>{t('sidebar.saveFileAs')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+O</kbd></td><td>{t('sidebar.openFile')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+Shift+I</kbd></td><td>{t('sidebar.importText')}</td></tr>
                 <tr style={{ borderTop: `1px solid ${colors.border}` }}>
-                  <td colSpan={2} style={{ padding: '4px 0', opacity: 0.6, fontSize: 11 }}>Navigation</td>
+                  <td colSpan={2} style={{ padding: '4px 0', opacity: 0.6, fontSize: 11 }}>{t('sidebar.sectionNavigation')}</td>
                 </tr>
-                <tr><td><kbd style={kbd}>↑</kbd></td><td>Move to previous cell</td></tr>
-                <tr><td><kbd style={kbd}>↓</kbd></td><td>Move to next cell</td></tr>
-                <tr><td><kbd style={kbd}>Shift+↑</kbd></td><td>Select previous cell</td></tr>
-                <tr><td><kbd style={kbd}>Shift+↓</kbd></td><td>Select next cell</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+B</kbd></td><td>Toggle sidebar</td></tr>
-                <tr><td><kbd style={kbd}>Ctrl+J</kbd></td><td>Toggle bottom panel</td></tr>
+                <tr><td><kbd style={kbd}>↑</kbd></td><td>{t('sidebar.movePrev')}</td></tr>
+                <tr><td><kbd style={kbd}>↓</kbd></td><td>{t('sidebar.moveNext')}</td></tr>
+                <tr><td><kbd style={kbd}>Shift+↑</kbd></td><td>{t('sidebar.selectPrev')}</td></tr>
+                <tr><td><kbd style={kbd}>Shift+↓</kbd></td><td>{t('sidebar.selectNext')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+B</kbd></td><td>{t('sidebar.toggleSidebar')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+J</kbd></td><td>{t('sidebar.togglePanel')}</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+      {sidebarActiveTab === 'settings' && (
+        <div style={{ padding: 16, color: colors.foreground }}>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>
+            {t('sidebar.settingsTitle')}
+          </div>
+          <div style={{ fontSize: 13, color: '#999' }}>
+            {t('sidebar.settingsHint', { icon: <IconSettings size={14} /> })}
           </div>
         </div>
       )}

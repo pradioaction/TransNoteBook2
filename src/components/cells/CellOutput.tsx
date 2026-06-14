@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { marked } from 'marked'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
+import { useTranslation } from 'react-i18next'
 
 interface CellOutputProps {
   content: string
@@ -13,6 +14,7 @@ marked.setOptions({ breaks: true, gfm: true })
 export function CellOutput({ content, onContentChange }: CellOutputProps) {
   const { colors } = useTheme()
   const { readingFontSize } = useSettingStore()
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -127,8 +129,8 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
           color: '#999', fontSize: 13, fontStyle: 'italic',
           cursor: 'pointer', userSelect: 'none',
         }}
-        title="Double-click to edit translation"
-      >Translation output will appear here... (double-click to edit)</div>
+        title={t('cellOutput.editTranslation')}
+      >{t('cellOutput.emptyHint')}</div>
     )
   }
 
@@ -150,7 +152,7 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
           borderTop: `1px solid ${colors.cellOutputBorder}`,
           color: colors.foreground, cursor: 'pointer',
         }}
-        title="Double-click to edit translation"
+        title={t('cellOutput.editTranslation')}
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
       <style>{`

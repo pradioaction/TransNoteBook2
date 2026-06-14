@@ -1,6 +1,7 @@
 import { useRef, useLayoutEffect, useState } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useTheme } from '@/hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 import { useCellService } from '@/hooks/useCellService'
 import { CellContainer } from '@/components/cells/CellContainer'
 import { useSettingStore } from '@/store/settingStore'
@@ -9,6 +10,7 @@ export function NotebookEditor() {
   const { notebook, selectedIndices, selectCell } = useNotebookStore()
   const cellService = useCellService()
   const { colors } = useTheme()
+  const { t } = useTranslation()
   if (!notebook) return null
   const { cells } = notebook
   const { cellWidthRatio } = useSettingStore()

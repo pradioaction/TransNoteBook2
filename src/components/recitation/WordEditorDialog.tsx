@@ -3,6 +3,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import type { Word } from '@/recitation/types'
 import { IconClose } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 interface WordEditorDialogProps {
   mode: 'add' | 'edit'
@@ -13,6 +14,7 @@ interface WordEditorDialogProps {
 
 export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditorDialogProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
   const recitationService = useRecitationService()
   const [word, setWord] = useState(wordData?.word ?? '')
   const [phonetic, setPhonetic] = useState(wordData?.phonetic ?? '')
@@ -25,7 +27,7 @@ export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditor
 
   const handleSave = async () => {
     if (!isValid) {
-      setError('英文和释义为必填项')
+      setError(t('wordEditor.errorRequired'))
       return
     }
 
@@ -38,14 +40,14 @@ export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditor
       if (mode === 'add') {
         const result = await recitationService.addWord(bookId, wordPayload)
         if (!result) {
-          setError('添加失败，单词可能已存在')
+          setError(t('wordEditor.errorExists'))
           setSaving(false)
           return
         }
       } else {
         const ok = await recitationService.updateWord(wordData!.id!, wordPayload)
         if (!ok) {
-          setError('保存失败')
+          setError(t('wordEditor.errorSave'))
           setSaving(false)
           return
         }
@@ -53,7 +55,7 @@ export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditor
 
       onClose(true)
     } catch {
-      setError('操作失败，请检查网络或数据库连接')
+      setError(t('wordEditor.errorOperation'))
     } finally {
       setSaving(false)
     }
@@ -100,47 +102,47 @@ export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditor
           fontSize: 14, fontWeight: 600, color: colors.foreground,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span>{mode === 'add' ? '新增单词' : '编辑单词'}</span>
+          <span>{mode === 'add' ? t('wordEditor.add') : t('wordEditor.edit')}</span>
           <button onClick={() => onClose()} style={{ background: 'none', border: 'none', color: colors.foreground, cursor: 'pointer', fontSize: 16, display: 'inline-flex', alignItems: 'center' }}><IconClose size={14} /></button>
         </div>
 
         {/* 表单 */}
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <label style={labelStyle}>英文 *</label>
+            <label style={labelStyle}>{t('wordEditor.english')}</label>
             <input
               style={inputStyle}
               value={word}
               onChange={(e) => setWord(e.target.value)}
-              placeholder="输入英文单词"
+              placeholder={t('wordEditor.placeholderEnglish')}
               autoFocus
             />
           </div>
           <div>
-            <label style={labelStyle}>音标</label>
+            <label style={labelStyle}>{t('wordEditor.phonetic')}</label>
             <input
               style={inputStyle}
               value={phonetic}
               onChange={(e) => setPhonetic(e.target.value)}
-              placeholder="如 /ˈeksəmpəl/"
+              placeholder={t('wordEditor.placeholderPhonetic')}
             />
           </div>
           <div>
-            <label style={labelStyle}>释义 *</label>
+            <label style={labelStyle}>{t('wordEditor.definition')}</label>
             <input
               style={inputStyle}
               value={definition}
               onChange={(e) => setDefinition(e.target.value)}
-              placeholder="输入中文释义"
+              placeholder={t('wordEditor.placeholderDefinition')}
             />
           </div>
           <div>
-            <label style={labelStyle}>例句</label>
+            <label style={labelStyle}>{t('wordEditor.example')}</label>
             <textarea
               style={textareaStyle}
               value={example}
               onChange={(e) => setExample(e.target.value)}
-              placeholder="可选，输入包含该单词的例句"
+              placeholder={t('wordEditor.placeholderExample')}
             />
           </div>
 
@@ -169,7 +171,7 @@ export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditor
               cursor: 'pointer',
             }}
           >
-            取消
+            {t('wordEditor.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -181,7 +183,7 @@ export function WordEditorDialog({ mode, bookId, wordData, onClose }: WordEditor
               opacity: saving || !isValid ? 0.6 : 1,
             }}
           >
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('wordEditor.saving') : t('wordEditor.save')}
           </button>
         </div>
       </div>

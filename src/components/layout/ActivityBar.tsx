@@ -1,24 +1,26 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { IconFolder, IconSearch, IconBook, IconIssues, IconSettings } from '@/components/icons'
 
-const activityIcons: { id: string; icon: React.ReactNode; label: string }[] = [
-  { id: 'explorer', icon: <span style={{ display: 'flex' }}><IconFolder size={18} /></span>, label: 'Explorer' },
-  { id: 'search', icon: <span style={{ display: 'flex' }}><IconSearch size={18} /></span>, label: 'Search' },
-  { id: 'recitation', icon: <span style={{ display: 'flex' }}><IconBook size={18} /></span>, label: 'Recitation' },
-  { id: 'issues', icon: <span style={{ display: 'flex' }}><IconIssues size={18} /></span>, label: 'Issues' },
-]
-
 export function ActivityBar() {
+  const { t } = useTranslation()
   const { sidebarActiveTab, setSidebarTab } = useWorkspaceStore()
   const { colors } = useTheme()
   const recitationActive = useRecitationStore((s) => s.active)
   const activateRecitation = useRecitationStore((s) => s.activate)
   const deactivateRecitation = useRecitationStore((s) => s.deactivate)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const activityIcons: { id: string; icon: React.ReactNode; label: string }[] = [
+    { id: 'explorer', icon: <span style={{ display: 'flex' }}><IconFolder size={18} /></span>, label: t('activityBar.explorer') },
+    { id: 'search', icon: <span style={{ display: 'flex' }}><IconSearch size={18} /></span>, label: t('activityBar.search') },
+    { id: 'recitation', icon: <span style={{ display: 'flex' }}><IconBook size={18} /></span>, label: t('activityBar.recitation') },
+    { id: 'issues', icon: <span style={{ display: 'flex' }}><IconIssues size={18} /></span>, label: t('activityBar.issues') },
+  ]
 
   const iconBtn: React.CSSProperties = {
     width: 48,
@@ -93,7 +95,7 @@ export function ActivityBar() {
 
         {/* 设置按钮 — 位于 ActivityBar 底部 */}
         <button
-          title="Settings"
+          title={t('activityBar.settings')}
           onClick={() => setSettingsOpen(true)}
           style={{
             ...iconBtn,

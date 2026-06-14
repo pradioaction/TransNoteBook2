@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
 import type { QuizQuestion } from '@/recitation/quizTypes'
@@ -40,6 +41,7 @@ function overlap(
 }
 
 export function FloatingOptions({ question, onSelect, selectedOptionId, disabled, questionKey, damping = 0.9985, impulse = 8 }: FloatingOptionsProps) {
+  const { t } = useTranslation()
   const gather = !useRecitationStore((s) => s.floatingAnimationEnabled)
   const { colors } = useTheme()
 
@@ -209,13 +211,13 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
         }}
       >
         <div style={{ fontSize: 11, color: colors.foreground, opacity: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
-          {question.type === 'word-to-meaning' ? '单词选释义' : '释义选单词'}
+          {question.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
         </div>
         <div style={{ fontSize: 22, fontWeight: 600, color: colors.foreground, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {question.word}
         </div>
         <div style={{ fontSize: 13, color: colors.foreground, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {question.type === 'word-to-meaning' ? '请选择正确的释义' : '请选择对应的单词'}
+          {question.type === 'word-to-meaning' ? t('floatingOptions.selectDefinition') : t('floatingOptions.selectWord')}
         </div>
       </div>
 

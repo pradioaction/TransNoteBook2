@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 import { useRecitationStore } from '@/store/recitationStore'
 import { WordListItem } from './WordListItem'
 import type { ReviewBatchColor } from '@/recitation/wordSidebarTypes'
@@ -18,6 +19,7 @@ const STAGE_COLOR_MAP: Record<number, ReviewBatchColor> = {
 }
 
 export function WordSidebar() {
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const sidebarData = useRecitationStore((s) => s.sidebarData)
   const sidebarMode = useRecitationStore((s) => s.sidebarMode)
@@ -41,7 +43,7 @@ export function WordSidebar() {
           opacity: 0.5,
         }}
       >
-        请选择词书
+        {t('wordSidebar.placeholder')}
       </div>
     )
   }
@@ -87,7 +89,7 @@ export function WordSidebar() {
           borderBottom: `1px solid ${colors.recitationSidebarBorder}`,
         }}
       >
-        单词面板
+        {t('wordSidebar.title')}
       </div>
 
       {/* 全局选择控制 */}
@@ -102,11 +104,11 @@ export function WordSidebar() {
           }}
         >
           <span style={{ fontSize: 11, color: colors.foreground, opacity: 0.6, marginRight: 4 }}>
-            全部:
+            {t('wordSidebar.selectAll')}:
           </span>
-          <ToolbarButton label="全选" onClick={handleSelectAll} colors={colors} />
-          <ToolbarButton label="取消" onClick={handleDeselectAll} colors={colors} />
-          <ToolbarButton label="反选" onClick={handleInvert} colors={colors} />
+          <ToolbarButton label={t('wordSidebar.selectAll')} onClick={handleSelectAll} colors={colors} />
+          <ToolbarButton label={t('wordSidebar.deselect')} onClick={handleDeselectAll} colors={colors} />
+          <ToolbarButton label={t('wordSidebar.invert')} onClick={handleInvert} colors={colors} />
         </div>
       )}
 
@@ -122,13 +124,13 @@ export function WordSidebar() {
           borderBottom: `1px solid ${colors.recitationSidebarBorder}`,
         }}
       >
-        <span>新学: {sidebarData.newWords.length}</span>
-        <span>复习: {sidebarData.reviewWordBatches.flatMap((b) => b.words).length}</span>
-        <span>已学: {sidebarData.studiedCount}</span>
-        <span>待复习: {sidebarData.pendingReviewCount}</span>
+        <span>{t('wordSidebar.newCount', { count: sidebarData.newWords.length })}</span>
+        <span>{t('wordSidebar.reviewCount', { count: sidebarData.reviewWordBatches.flatMap((b) => b.words).length })}</span>
+        <span>{t('wordSidebar.studiedCount', { count: sidebarData.studiedCount })}</span>
+        <span>{t('wordSidebar.pendingReviewCount', { count: sidebarData.pendingReviewCount })}</span>
         {sidebarMode === 'full' && (
           <span style={{ gridColumn: '1 / -1', fontSize: 11, opacity: 0.7 }}>
-            已选: {selectedNewCount} 新学 + {selectedReviewCount} 复习
+            {t('wordSidebar.selectedInfo', { newCount: selectedNewCount, reviewCount: selectedReviewCount })}
           </span>
         )}
       </div>
@@ -155,19 +157,19 @@ export function WordSidebar() {
                 textTransform: 'uppercase',
               }}
             >
-              新学单词 ({sidebarData.newWords.length})
+              {t('wordSidebar.newWordsTitle', { count: sidebarData.newWords.length })}
             </span>
             {sidebarMode === 'full' && (
               <span style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
-                <ToolbarButton label="全选" onClick={() => selectAllWords('new')} colors={colors} />
-                <ToolbarButton label="取消" onClick={() => deselectAllWords('new')} colors={colors} />
-                <ToolbarButton label="反选" onClick={() => invertWordSelection('new')} colors={colors} />
+                <ToolbarButton label={t('wordSidebar.selectAll')} onClick={() => selectAllWords('new')} colors={colors} />
+                <ToolbarButton label={t('wordSidebar.deselect')} onClick={() => deselectAllWords('new')} colors={colors} />
+                <ToolbarButton label={t('wordSidebar.invert')} onClick={() => invertWordSelection('new')} colors={colors} />
               </span>
             )}
           </div>
           {sidebarData.newWords.length === 0 ? (
             <div style={{ padding: '4px 8px', fontSize: 12, opacity: 0.4, color: colors.foreground }}>
-              暂无新学单词
+              {t('wordSidebar.noNewWords')}
             </div>
           ) : (
             sidebarData.newWords.map((w) => (
@@ -203,13 +205,13 @@ export function WordSidebar() {
                   textTransform: 'uppercase',
                 }}
               >
-                复习 stage {batch.stage} ({batch.words.length})
+                {t('wordSidebar.reviewStageTitle', { stage: batch.stage, count: batch.words.length })}
               </span>
               {sidebarMode === 'full' && (
                 <span style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
-                  <ToolbarButton label="全选" onClick={() => selectAllWords('review')} colors={colors} />
-                  <ToolbarButton label="取消" onClick={() => deselectAllWords('review')} colors={colors} />
-                  <ToolbarButton label="反选" onClick={() => invertWordSelection('review')} colors={colors} />
+                  <ToolbarButton label={t('wordSidebar.selectAll')} onClick={() => selectAllWords('review')} colors={colors} />
+                  <ToolbarButton label={t('wordSidebar.deselect')} onClick={() => deselectAllWords('review')} colors={colors} />
+                  <ToolbarButton label={t('wordSidebar.invert')} onClick={() => invertWordSelection('review')} colors={colors} />
                 </span>
               )}
             </div>

@@ -3,6 +3,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useOutputStore } from '@/store/outputStore'
 import type { TranslationStatus } from '@/services/types'
 import { IconCheck, IconCross } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 interface PanelProps {
   children?: ReactNode
@@ -10,6 +11,7 @@ interface PanelProps {
 }
 
 export function Panel({ children, translationStatus }: PanelProps) {
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const logs = useOutputStore((s) => s.logs)
   const clearLogs = useOutputStore((s) => s.clearLogs)
@@ -31,7 +33,7 @@ export function Panel({ children, translationStatus }: PanelProps) {
       <div style={{ marginBottom: 8, padding: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 4 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, color: colors.foreground }}>
           <span>
-            {state === 'translating' ? 'Translating...' : 'Translation Error'}
+            {state === 'translating' ? t('panel.translating') : t('panel.translationError')}
           </span>
           <span>
             {doneCount + errorCount}/{totalCount} cells ({state === 'translating' ? `${progress}%` : ''})
@@ -46,12 +48,12 @@ export function Panel({ children, translationStatus }: PanelProps) {
         )}
         {currentContent && state === 'translating' && (
           <div style={{ fontSize: 11, color: '#999', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Current: {currentContent}
+            {t('panel.current')}{currentContent}
           </div>
         )}
         <div style={{ fontSize: 11, color: '#999', display: 'flex', gap: 12 }}>
-          <span style={{ color: '#4caf50' }}><IconCheck size={14} /> {doneCount} done</span>
-          {errorCount > 0 && <span style={{ color: '#e06c75' }}><IconCross size={14} /> {errorCount} failed</span>}
+          <span style={{ color: '#4caf50' }}><IconCheck size={14} /> {t('panel.doneCount', { count: doneCount })}</span>
+          {errorCount > 0 && <span style={{ color: '#e06c75' }}><IconCross size={14} /> {t('panel.errorCount', { count: errorCount })}</span>}
         </div>
         {error && (
           <div style={{ marginTop: 4, fontSize: 11, color: '#e06c75' }}>{error}</div>
@@ -59,7 +61,7 @@ export function Panel({ children, translationStatus }: PanelProps) {
         {Object.entries(cellErrors).length > 0 && (
           <div style={{ marginTop: 4 }}>
             {Object.entries(cellErrors).map(([idx, err]) => (
-              <div key={idx} style={{ fontSize: 11, color: '#e06c75', marginTop: 2 }}>Cell {idx}: {err}</div>
+              <div key={idx} style={{ fontSize: 11, color: '#e06c75', marginTop: 2 }}>{t('panel.cellError', { idx, err })}</div>
             ))}
           </div>
         )}
@@ -100,7 +102,7 @@ export function Panel({ children, translationStatus }: PanelProps) {
           alignItems: 'center',
         }}
       >
-        <span>Output / Problems</span>
+        <span>{t('panel.title')}</span>
         {logs.length > 0 && (
           <button
             onClick={clearLogs}
@@ -132,7 +134,7 @@ export function Panel({ children, translationStatus }: PanelProps) {
         {/* 没有日志和翻译状态时显示 */}
         {logs.length === 0 && (!translationStatus || translationStatus.state === 'idle') && !children && (
           <div style={{ color: '#999', fontSize: 13, fontStyle: 'italic', fontFamily: 'sans-serif', padding: 4 }}>
-            No output
+            {t('panel.noOutput')}
           </div>
         )}
         {children}

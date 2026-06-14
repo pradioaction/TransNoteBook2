@@ -1,4 +1,5 @@
 import { useTheme } from '@/hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 
 interface CellCollapseIndicatorProps {
   onCollapse: () => void
@@ -8,12 +9,13 @@ interface CellCollapseIndicatorProps {
 
 export function CellCollapseIndicator({ onCollapse, isCollapsed, label }: CellCollapseIndicatorProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <div
       onClick={onCollapse}
       onDoubleClick={onCollapse}
-      title={`Double-click to ${isCollapsed ? 'expand' : 'collapse'} ${label}`}
+      title={t('cellCollapse.title', { label })}
       style={{
         height: 4,
         cursor: 'pointer',

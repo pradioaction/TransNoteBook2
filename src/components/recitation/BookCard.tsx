@@ -1,6 +1,7 @@
 import { useTheme } from '@/hooks/useTheme'
 import type { BookWithProgress } from '@/recitation/types'
 import { IconBook } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 interface BookCardProps {
   book: BookWithProgress
@@ -16,6 +17,7 @@ export function BookCard({
   onViewWords,
 }: BookCardProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
   const { book: bookInfo, total, studied, review_due, progress } = book
 
   const handleSelect = () => {
@@ -71,8 +73,8 @@ export function BookCard({
 
       {/* 统计行 */}
       <div style={{ display: 'flex', gap: 16, fontSize: 12, color: colors.foreground, opacity: 0.7, marginBottom: 10 }}>
-        <span>{studied}/{total} 已学</span>
-        <span>待复习: {review_due}</span>
+        <span>{t('bookCard.studied', { studied, total })}</span>
+        <span>{t('bookCard.pendingReview', { count: review_due })}</span>
       </div>
 
       {/* 操作按钮 */}
@@ -89,7 +91,7 @@ export function BookCard({
             cursor: 'pointer',
           }}
         >
-          查看单词
+          {t('bookCard.viewWords')}
         </button>
       </div>
     </div>

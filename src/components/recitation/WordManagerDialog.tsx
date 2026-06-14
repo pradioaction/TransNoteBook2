@@ -5,6 +5,7 @@ import { useRecitationService } from '@/hooks/useRecitationService'
 import { WordEditorDialog } from './WordEditorDialog'
 import type { Word } from '@/recitation/types'
 import { IconClose } from '@/components/icons'
+import { useTranslation } from 'react-i18next'
 
 interface WordManagerDialogProps {
   bookId: number
@@ -20,6 +21,7 @@ const PAGE_SIZE = 50
 
 export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDialogProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
   const recitationService = useRecitationService()
   const [words, setWords] = useState<Word[]>([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +133,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexShrink: 0,
         }}>
-          <span>{bookName} - 单词管理 ({words.length})</span>
+          <span>{t('wordManager.title', { bookName, count: words.length })}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={refresh}
@@ -140,7 +142,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
                 backgroundColor: 'transparent', color: colors.foreground, cursor: 'pointer',
               }}
             >
-              刷新
+              {t('wordManager.refresh')}
             </button>
             <button
               onClick={handleAdd}
@@ -149,7 +151,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
                 backgroundColor: colors.primaryButton, color: '#fff', cursor: 'pointer',
               }}
             >
-              + 新增单词
+              {t('wordManager.addWord')}
             </button>
             <button
               onClick={onClose}
@@ -167,11 +169,11 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
         <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}>
           {loading ? (
             <div style={{ padding: 24, textAlign: 'center', color: colors.foreground, opacity: 0.5 }}>
-              加载中...
+              {t('wordManager.loading')}
             </div>
           ) : words.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center', color: colors.foreground, opacity: 0.5 }}>
-              暂无单词，点击"+ 新增单词"添加
+              {t('wordManager.empty')}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -181,11 +183,11 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
                 color: colors.foreground, opacity: 0.5, fontWeight: 600,
                 borderBottom: `1px solid ${colors.border}`, textTransform: 'uppercase',
               }}>
-                <span style={{ width: 130 }}>英文</span>
-                <span style={{ width: 100 }}>音标</span>
-                <span style={{ width: 150 }}>释义</span>
-                <span style={{ flex: 1 }}>例句</span>
-                <span style={{ width: 80, textAlign: 'right' }}>操作</span>
+                <span style={{ width: 130 }}>{t('wordManager.colEnglish')}</span>
+                <span style={{ width: 100 }}>{t('wordManager.colPhonetic')}</span>
+                <span style={{ width: 150 }}>{t('wordManager.colDefinition')}</span>
+                <span style={{ flex: 1 }}>{t('wordManager.colExample')}</span>
+                <span style={{ width: 80, textAlign: 'right' }}>{t('wordManager.colActions')}</span>
               </div>
               {pageWords.map((w) => (
                 <div
@@ -216,7 +218,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
                         cursor: 'pointer',
                       }}
                     >
-                      编辑
+                      {t('wordManager.edit')}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(w.id!) }}
@@ -226,7 +228,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
                         cursor: 'pointer',
                       }}
                     >
-                      删除
+                      {t('wordManager.delete')}
                     </button>
                   </div>
                 </div>
@@ -273,7 +275,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
                   outline: 'none',
                 }}
               />
-              <span style={{ opacity: 0.6 }}>/ {totalPages}</span>
+              <span style={{ opacity: 0.6 }}>{t('wordManager.pageOf', { total: totalPages })}</span>
             </span>
             <PageButton
               label="›"
@@ -292,7 +294,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
           padding: '6px 16px', fontSize: 11, color: colors.foreground, opacity: 0.4,
           borderTop: `1px solid ${colors.border}`, flexShrink: 0,
         }}>
-          双击单词进入编辑 · 每页 {PAGE_SIZE} 条 · 共 {words.length} 个单词
+          {t('wordManager.footerHint', { pageSize: PAGE_SIZE, total: words.length })}
         </div>
       </div>
 

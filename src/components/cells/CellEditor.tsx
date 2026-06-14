@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import { marked } from 'marked'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
 import type { NotebookCell } from '@/types/notebook'
@@ -24,17 +25,18 @@ export function CellEditor({
   cell,
   onContentChange,
   onFocus,
-  placeholder = 'Start writing...',
+  placeholder: placeholderProp,
 }: CellEditorProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
   const { readingFontSize } = useSettingStore()
   const [editing, setEditing] = useState(false)
   const isUpdatingRef = useRef(false)
 
   const extensions = useMemo(() => [
     StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
-    Placeholder.configure({ placeholder }),
-  ], [])
+    Placeholder.configure({ placeholder: placeholderProp }),
+  ], [placeholderProp])
 
   const editor = useEditor({
     extensions,
@@ -94,7 +96,7 @@ export function CellEditor({
           borderBottom: `1px solid ${colors.border}`,
         }}>
           <span style={{ flex: 1, fontSize: 11, color: '#999', alignSelf: 'center' }}>
-            Editing — press Escape to finish
+            Editing 鈥?press Escape to finish
           </span>
           <button
             onClick={() => setEditing(false)}
@@ -105,7 +107,7 @@ export function CellEditor({
               backgroundColor: colors.primaryButton, color: '#fff',
               cursor: 'pointer',
             }}
-          >Done</button>
+          >{t('cellEditor.done')}</button>
         </div>
       )}
 
@@ -129,10 +131,11 @@ export function CellEditor({
             backgroundColor: colors.editorBackground,
             color: colors.editorForeground,
           }}
-          title="Double-click to edit"
+          title={t('cellEditor.doubleClickHint')}
           dangerouslySetInnerHTML={{ __html: renderedHtml }}
         />
       )}
     </div>
   )
 }
+

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
@@ -6,6 +7,7 @@ import { useRecitationService } from '@/hooks/useRecitationService'
 import { useNotebookStore } from '@/store/notebookStore'
 
 export function ReviewPanel() {
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const quizState = useRecitationStore((s) => s.quizState)
   const setPhase = useRecitationStore((s) => s.setPhase)
@@ -193,7 +195,7 @@ export function ReviewPanel() {
           borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        检测回顾
+        {t('reviewPanel.title')}
       </div>
 
       {/* 总结区域 */}
@@ -260,7 +262,7 @@ export function ReviewPanel() {
               marginBottom: 8,
             }}
           >
-            答错单词 ({wrongWordSet.size})
+            {t('reviewPanel.wrongWords', { count: wrongWordSet.size })}
           </div>
           {[...wrongWordSet.entries()].map(([wordId, { word, definition }]) => (
             <div
@@ -320,7 +322,7 @@ export function ReviewPanel() {
             cursor: 'pointer',
           }}
         >
-          {isArticleQuiz ? '返回阅读' : '返回词书管理'}
+          {isArticleQuiz ? t('reviewPanel.backToReading') : t('reviewPanel.backToBookManager')}
         </button>
         <button
           onClick={handleRestartQuiz}
@@ -334,7 +336,7 @@ export function ReviewPanel() {
             cursor: 'pointer',
           }}
         >
-          重新检测
+          {t('reviewPanel.restartQuiz')}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useRecitationStore } from '@/store/recitationStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
@@ -11,6 +12,7 @@ import { ResizeHandle } from './ResizeHandle'
 import { Panel } from '@/components/layout/Panel'
 
 export function RecitationShell() {
+  const { t } = useTranslation()
   const phase = useRecitationStore((s) => s.phase)
   const { colors } = useTheme()
   const [sidebarWidth, setSidebarWidth] = useState(300)
@@ -70,7 +72,7 @@ export function RecitationShell() {
           fontSize: 14,
         }}
       >
-        正在初始化背诵数据库...
+        {t('recitationShell.initializing')}
       </div>
     )
   }
@@ -89,9 +91,9 @@ export function RecitationShell() {
           gap: 12,
         }}
       >
-        <span>请先打开一个工作区</span>
+        <span>{t('recitationShell.noWorkspace')}</span>
         <span style={{ opacity: 0.6, fontSize: 12 }}>
-          使用文件浏览器中的"打开文件夹"功能设置工作区路径
+          {t('recitationShell.noWorkspaceHint')}
         </span>
       </div>
     )
@@ -113,7 +115,7 @@ export function RecitationShell() {
           textAlign: 'center',
         }}
       >
-        <span>初始化背诵数据库失败</span>
+        <span>{t('recitationShell.initError')}</span>
         {initError && (
           <span style={{ opacity: 0.7, fontSize: 12, maxWidth: 400, wordBreak: 'break-all' }}>
             {initError}

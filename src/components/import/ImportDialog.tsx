@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '@/hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 import { splitTextIntoParagraphs } from '@/utils/fileUtils'
 import type { SplitMode } from '@/utils/fileUtils'
 import { IconClose } from '@/components/icons'
@@ -20,6 +21,7 @@ const DEFAULT_FILENAME = 'imported'
 
 export function ImportDialog({ open, onClose, onImport }: ImportDialogProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
   const [text, setText] = useState('')
   const [filename, setFilename] = useState(DEFAULT_FILENAME)
   const [splitMode, setSplitMode] = useState<SplitMode>('singleNewline')
@@ -133,7 +135,7 @@ export function ImportDialog({ open, onClose, onImport }: ImportDialogProps) {
 
           {/* 拆分模式 */}
           <div>
-            <label style={labelStyle}>段落拆分方式</label>
+            <label style={labelStyle}>{t('importDialog.splitMode')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => setSplitMode('singleNewline')}
@@ -145,7 +147,7 @@ export function ImportDialog({ open, onClose, onImport }: ImportDialogProps) {
                   flex: 1,
                 }}
               >
-                按单个换行符拆分
+                {t('importDialog.splitSingle')}
               </button>
               <button
                 onClick={() => setSplitMode('doubleNewline')}
@@ -157,7 +159,7 @@ export function ImportDialog({ open, onClose, onImport }: ImportDialogProps) {
                   flex: 1,
                 }}
               >
-                按空行拆分
+                {t('importDialog.splitDouble')}
               </button>
             </div>
           </div>
@@ -176,7 +178,7 @@ export function ImportDialog({ open, onClose, onImport }: ImportDialogProps) {
               style={textareaStyle}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="输入或粘贴文本内容，剪贴板内容已自动加载..."
+              placeholder={t('importDialog.placeholder')}
             />
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { IconPlay, IconCheck, IconCross, IconArrowUp, IconArrowDown, IconTrash, IconChevronDown, IconChevronRight } from '@/components/icons'
 import { useTheme } from '@/hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 
 interface CellToolbarProps {
   onTranslate: () => void
@@ -27,6 +28,7 @@ export function CellToolbar({
   translationState,
 }: CellToolbarProps) {
   const { colors } = useTheme()
+  const { t } = useTranslation()
 
   const stateColor = translationState === 'done' ? '#4caf50' : 
                    translationState === 'error' ? '#e06c75' : 
@@ -63,7 +65,7 @@ export function CellToolbar({
       }}
     >
       <button
-        title={translationState === 'translating' ? 'Translating...' : 'Translate (Ctrl+Enter)'}
+        title={translationState === 'translating' ? t('cellToolbar.translating') : 'Translate (Ctrl+Enter)'}
         style={{
           ...btnStyle,
           cursor: translationState === 'translating' ? 'wait' : 'pointer',
@@ -73,7 +75,7 @@ export function CellToolbar({
         onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
         onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
       >
-        {translationState === 'translating' ? '⏳' : 
+        {translationState === 'translating' ? <span style={{ opacity: 0.5 }}>...</span> : 
          translationState === 'done' ? <IconCheck size={12} /> : 
          translationState === 'error' ? <IconCross size={12} /> : 
          <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
@@ -81,17 +83,16 @@ export function CellToolbar({
          </span>}
       </button>
       <button
-        title="Copy cell (Ctrl+D)"
+        title={t('cellToolbar.copyCell')}
         style={btnStyle}
         onClick={onCopy}
         onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
         onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
       >
-        ⧉
-      </button>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>      </button>
       {!isFirst && (
         <button
-          title="Move up"
+          title={t('cellToolbar.moveUp')}
           style={btnStyle}
           onClick={onMoveUp}
           onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
@@ -102,7 +103,7 @@ export function CellToolbar({
       )}
       {!isLast && (
         <button
-          title="Move down"
+          title={t('cellToolbar.moveDown')}
           style={btnStyle}
           onClick={onMoveDown}
           onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
@@ -122,7 +123,7 @@ export function CellToolbar({
       </button>
       <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
         <button
-          title="Collapse/Expand cell (Ctrl+E)"
+          title={t('cellToolbar.collapseCell')}
           style={{ ...btnStyle, fontSize: 12, marginTop: 'auto', marginBottom: 4 }}
           onClick={onCollapse}
           onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
@@ -134,3 +135,4 @@ export function CellToolbar({
     </div>
   )
 }
+

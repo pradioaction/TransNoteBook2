@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useTheme } from '@/hooks/useTheme'
+import { useTranslation } from 'react-i18next'
 import { useRecitationStore } from '@/store/recitationStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { useTranslationService } from '@/hooks/useTranslationService'
@@ -47,6 +48,7 @@ function computeReviewBatches(
 }
 
 export function BookManagerPanel() {
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const recitationService = useRecitationService()
   const translationService = useTranslationService()
@@ -170,7 +172,7 @@ export function BookManagerPanel() {
 
       if (selectedWords.length < 4) {
         // 少于 4 个无法生成足够干扰项，提示用户
-        alert('请至少选择 4 个单词进行检测（可在右侧侧边栏勾选）')
+        alert(t('bookManager.alertFewWords'))
         return
       }
 
@@ -229,7 +231,7 @@ export function BookManagerPanel() {
       const shuffled = questions.flat().sort(() => Math.random() - 0.5)
       startQuiz(shuffled)
     },
-    [startQuiz]
+    [startQuiz, t]
   )
 
   // 生成文章
@@ -388,7 +390,7 @@ export function BookManagerPanel() {
           borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        词书管理
+        {t('bookManager.title')}
       </div>
 
       {/* 工具栏 */}
@@ -413,7 +415,7 @@ export function BookManagerPanel() {
             cursor: 'pointer',
           }}
         >
-          导入词书
+          {t('bookManager.import')}
         </button>
         <button
           onClick={loadBooks}
@@ -427,7 +429,7 @@ export function BookManagerPanel() {
             cursor: 'pointer',
           }}
         >
-          刷新
+          {t('bookManager.refresh')}
         </button>
         {selectedBookId && (
           <button
@@ -460,7 +462,7 @@ export function BookManagerPanel() {
               cursor: 'pointer',
             }}
           >
-            刷新今日单词
+            {t('bookManager.refreshToday')}
           </button>
         )}
         {selectedBookId && (
@@ -476,7 +478,7 @@ export function BookManagerPanel() {
               cursor: 'pointer',
             }}
           >
-            开始检测
+            {t('bookManager.startQuiz')}
           </button>
         )}
         {selectedBookId && (
@@ -492,7 +494,7 @@ export function BookManagerPanel() {
               cursor: 'pointer',
             }}
           >
-            生成文章
+            {t('bookManager.generateArticle')}
           </button>
         )}
         {selectedBookId && (
@@ -508,17 +510,17 @@ export function BookManagerPanel() {
               cursor: 'pointer',
             }}
           >
-            删除词书
+            {t('bookManager.delete')}
           </button>
         )}
         {generating && (
           <span style={{ fontSize: 12, color: colors.foreground, opacity: 0.7 }}>
-            正在生成文章...
+            {t('bookManager.generating')}
           </span>
         )}
         <div style={{ flex: 1 }} />
         <label style={{ fontSize: 12, color: colors.foreground, display: 'flex', alignItems: 'center', gap: 4 }}>
-          每日新学:
+          {t('bookManager.dailyNew')}:
           <input
             type="number"
             min={5}
@@ -543,7 +545,7 @@ export function BookManagerPanel() {
           />
         </label>
         <label style={{ fontSize: 12, color: colors.foreground, display: 'flex', alignItems: 'center', gap: 4 }}>
-          复习:
+          {t('bookManager.review')}:
           <input
             type="number"
             min={10}
@@ -573,7 +575,7 @@ export function BookManagerPanel() {
       <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
         {loading ? (
           <div style={{ padding: 24, textAlign: 'center', color: colors.foreground, opacity: 0.5 }}>
-            加载中...
+            {t('bookManager.loading')}
           </div>
         ) : error ? (
           <div style={{ padding: 24, textAlign: 'center', color: colors.errorText }}>
@@ -589,7 +591,7 @@ export function BookManagerPanel() {
               fontSize: 14,
             }}
           >
-            暂无词书，请点击"导入词书"添加
+            {t('bookManager.noBooks')}
           </div>
         ) : (
           books.map((b) => (
@@ -614,7 +616,7 @@ export function BookManagerPanel() {
           borderTop: `1px solid ${colors.border}`,
         }}
       >
-        共 {books.length} 本词书
+        {t('bookManager.bookCount', { count: books.length })}
       </div>
 
       {/* WordManagerDialog 弹窗 */}
