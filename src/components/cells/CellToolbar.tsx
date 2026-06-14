@@ -1,3 +1,4 @@
+import { IconPlay, IconCheck, IconCross, IconArrowUp, IconArrowDown, IconTrash, IconChevronDown, IconChevronRight } from '@/components/icons'
 import { useTheme } from '@/hooks/useTheme'
 
 interface CellToolbarProps {
@@ -73,8 +74,11 @@ export function CellToolbar({
         onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
       >
         {translationState === 'translating' ? '⏳' : 
-         translationState === 'done' ? '✓' : 
-         translationState === 'error' ? '✗' : '▶'}
+         translationState === 'done' ? <IconCheck size={12} /> : 
+         translationState === 'error' ? <IconCross size={12} /> : 
+         <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+           <IconPlay size={14} />
+         </span>}
       </button>
       <button
         title="Copy cell (Ctrl+D)"
@@ -93,7 +97,7 @@ export function CellToolbar({
           onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
           onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
         >
-          ▲
+          <IconArrowUp size={14} />
         </button>
       )}
       {!isLast && (
@@ -104,7 +108,7 @@ export function CellToolbar({
           onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
           onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
         >
-          ▼
+          <IconArrowDown size={14} />
         </button>
       )}
       <button
@@ -114,7 +118,7 @@ export function CellToolbar({
         onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
         onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
       >
-        ✕
+        <IconTrash size={14} />
       </button>
       <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
         <button
@@ -124,7 +128,7 @@ export function CellToolbar({
           onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
           onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
         >
-          {isCollapsed ? '▶' : '▼'}
+          {isCollapsed ? <IconChevronRight size={14} /> : <IconChevronDown size={14} />}
         </button>
       </div>
     </div>

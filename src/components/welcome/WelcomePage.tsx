@@ -1,6 +1,7 @@
 import { useTheme } from '@/hooks/useTheme'
 import { useFileService } from '@/hooks/useFileService'
 import { useSettingStore } from '@/store/settingStore'
+import { IconFile } from '@/components/icons'
 
 interface WelcomePageProps {
   onFileOpened: () => void
@@ -90,7 +91,7 @@ export function WelcomePage({ onFileOpened }: WelcomePageProps) {
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.toolbarBackground)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <span style={{ fontSize: 14 }}>📄</span>
+              <span style={{ fontSize: 14, display: 'inline-flex', alignItems: 'center' }}><IconFile size={14} /></span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {path.split(/[/\\]/).pop()}
               </span>

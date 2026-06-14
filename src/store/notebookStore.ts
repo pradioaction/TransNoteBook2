@@ -38,6 +38,9 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   notebook: null,
   openFileCount: 0,
 
+  _onFileOpened: null,
+  setOnFileOpened: (cb) => set({ _onFileOpened: cb }),
+
   openFile: (file) => {
     const key = fileKey(file)
     const map = new Map(get().openFiles)
@@ -49,6 +52,8 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
       notebook: { ...file },
       openFileCount: map.size,
     })
+    const fn = get()._onFileOpened
+    if (fn) fn(key)
   },
 
   closeFile: (key) => {
@@ -108,21 +113,23 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
       return { openFiles: map, activeFilePath: key, notebook: nb, openFileCount: map.size }
     }),
 
-  setFilePath: (path) =>
-    set((s) => {
-      if (!s.notebook) return s
-      const oldKey = s.activeFilePath ?? fileKey(s.notebook)
-      const nb = {
-        ...s.notebook,
-        path,
-        name: path ? path.split(/[/\\]/).pop() || s.notebook.name : s.notebook.name,
-      }
-      const newKey = fileKey(nb)
-      const map = new Map(s.openFiles)
-      map.delete(oldKey)
-      map.set(newKey, nb)
-      return { openFiles: map, activeFilePath: newKey, notebook: nb }
-    }),
+  setFilePath: (path) => {
+    const s = get()
+    if (!s.notebook) return
+    const oldKey = s.activeFilePath ?? fileKey(s.notebook)
+    const nb = {
+      ...s.notebook,
+      path,
+      name: path ? path.split(/[/\\]/).pop() || s.notebook.name : s.notebook.name,
+    }
+    const newKey = fileKey(nb)
+    const map = new Map(s.openFiles)
+    map.delete(oldKey)
+    map.set(newKey, nb)
+    set({ openFiles: map, activeFilePath: newKey, notebook: nb })
+    const fn = get()._onFileOpened
+    if (fn) fn(newKey)
+  },
 
   setModified: (modified) =>
     set((s) => {

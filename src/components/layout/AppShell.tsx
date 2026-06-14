@@ -5,9 +5,11 @@ import { Panel } from './Panel'
 import { NotebookToolbar } from '@/components/notebook/NotebookToolbar'
 import { NotebookEditor } from '@/components/notebook/NotebookEditor'
 import { WelcomePage } from '@/components/welcome/WelcomePage'
+import { RecitationShell } from '@/components/recitation/RecitationShell'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useTranslationService } from '@/hooks/useTranslationService'
 import { useNotebookStore } from '@/store/notebookStore'
+import { useRecitationStore } from '@/store/recitationStore'
 import { useState, useCallback } from 'react'
 
 export function AppShell() {
@@ -15,6 +17,7 @@ export function AppShell() {
   const { status } = useTranslationService()
   const notebookPath = useNotebookStore((s) => s.notebook?.path ?? null)
   const notebookName = useNotebookStore((s) => s.notebook?.name ?? null)
+  const isRecitationMode = useRecitationStore((s) => s.active)
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
 
   const showWelcome = !welcomeDismissed && (!notebookPath || (notebookName?.startsWith('untitled-') ?? false))
@@ -37,13 +40,19 @@ export function AppShell() {
         <ActivityBar />
         <Sidebar />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          <NotebookToolbar />
-          {showWelcome ? (
-            <WelcomePage onFileOpened={handleFileOpened} />
+          {isRecitationMode ? (
+            <RecitationShell />
           ) : (
-            <NotebookEditor />
+            <>
+              <NotebookToolbar />
+              {showWelcome ? (
+                <WelcomePage onFileOpened={handleFileOpened} />
+              ) : (
+                <NotebookEditor />
+              )}
+              <Panel translationStatus={status} />
+            </>
           )}
-          <Panel translationStatus={status} />
         </div>
       </div>
       <StatusBar />

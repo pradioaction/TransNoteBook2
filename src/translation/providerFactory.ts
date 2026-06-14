@@ -2,7 +2,7 @@ import type { TranslationProvider, CustomModelConfig } from './types'
 import { OllamaProvider } from './providers/ollama'
 import { OpenAIProvider } from './providers/openai'
 import { ArkProvider } from './providers/ark'
-import type { ProviderInfo } from '@/services/types'
+import type { ProviderInfo } from '@/translation/types'
 
 export function buildProvider(model: CustomModelConfig): TranslationProvider {
   if (model.backend === 'ark') {

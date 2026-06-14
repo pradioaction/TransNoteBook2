@@ -25,6 +25,24 @@ Electron 主进程注册的 IPC 处理器，渲染进程通过 `window.electronA
 | `read-directory-recursive` | `dirPath: string` | `Promise<DirEntry[]>` | 递归遍历目录，返回所有 .transnb 文件 |
 | `get-settings` | 无 | `Promise<Record<string, unknown>>` | 读取 `userData/settings.json` |
 | `set-settings` | `settings: Record<string, unknown>` | `Promise<boolean>` | 保存设置到 `userData/settings.json` |
+| `recitation:init` | `workspacePath: string` | `Promise<boolean>` | 初始化工作区数据库 |
+| `recitation:add-book` | `book: Book` | `Promise<Book \| null>` | 添加词书 |
+| `recitation:get-book-by-id` | `bookId: number` | `Promise<Book \| null>` | 查询单个词书 |
+| `recitation:get-all-books` | — | `Promise<Book[]>` | 获取所有词书 |
+| `recitation:delete-book` | `bookId: number` | `Promise<boolean>` | 删除词书 |
+| `recitation:get-book-progress` | `bookId: number` | `Promise<BookProgress>` | 获取词书进度 |
+| `recitation:get-all-books-with-progress` | — | `Promise<BookWithProgress[]>` | 获取所有词书及进度 |
+| `recitation:import-book-from-file` | `filePath: string` | `Promise<Book \| null>` | 从 JSON 文件导入词书 |
+| `recitation:get-words-by-book` | `bookId: number` | `Promise<Word[]>` | 获取词书所有单词 |
+| `recitation:get-unstudied-words` | `bookId, limit?` | `Promise<Word[]>` | 获取未学单词 |
+| `recitation:get-words-for-review` | `bookId, limit?` | `Promise<Word[]>` | 获取待复习单词 |
+| `recitation:search-words` | `searchText, bookId?` | `Promise<Word[]>` | 搜索单词 |
+| `recitation:start-study-word` | `bookId, wordId` | `Promise<UserStudy \| null>` | 开始学习单词 |
+| `recitation:review-word` | `bookId, wordId, isCorrect` | `Promise<UserStudy \| null>` | 复习单词 |
+| `recitation:get-config` | — | `Promise<Record<string, unknown>>` | 获取完整配置 |
+| `recitation:set-config` | `key, value` | `Promise<boolean>` | 设置配置项 |
+| `recitation:get-today-words` | `bookId, forceRefresh?` | `Promise<TodayWordsResult>` | 获取今日单词 |
+| `recitation:refresh-today-words` | `bookId` | `Promise<TodayWordsResult>` | 强制刷新今日单词 |
 
 ### 1.2 预加载桥接 (electron/preload.ts)
 
@@ -51,6 +69,27 @@ interface Window {
     setSettings(settings: Record<string, unknown>): Promise<boolean>
     
     onMenuAction(callback: (action: string) => void): void
+
+    recitationAPI: {
+      init(workspacePath: string): Promise<boolean>
+      addBook(book: Book): Promise<Book | null>
+      getBookById(bookId: number): Promise<Book | null>
+      getAllBooks(): Promise<Book[]>
+      deleteBook(bookId: number): Promise<boolean>
+      getBookProgress(bookId: number): Promise<BookProgress>
+      getAllBooksWithProgress(): Promise<BookWithProgress[]>
+      importBookFromFile(filePath: string): Promise<Book | null>
+      getWordsByBook(bookId: number): Promise<Word[]>
+      getUnstudiedWords(bookId: number, limit?: number): Promise<Word[]>
+      getWordsForReview(bookId: number, limit?: number): Promise<Word[]>
+      searchWords(searchText: string, bookId?: number): Promise<Word[]>
+      startStudyWord(bookId: number, wordId: number): Promise<UserStudy | null>
+      reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<UserStudy | null>
+      getConfig(): Promise<Record<string, unknown>>
+      setConfig(key: string, value: unknown): Promise<boolean>
+      getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
+      refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+    }
   }
 }
 ```
@@ -197,6 +236,7 @@ interface PromptTemplates {
 
 interface EnvVar {
   name: string                 // 环境变量名
+  value: string                // 环境变量值
   description: string          // 描述说明
 }
 
@@ -208,6 +248,7 @@ interface AppSettings {
   promptTemplates: PromptTemplates
   customModels: CustomModel[]
   recentFiles: string[]
+  lastOpenFilePath: string | null
   envVars: EnvVar[]
 }
 ```
@@ -220,7 +261,7 @@ interface NotebookStore {
   openFiles: Map<string, NotebookFile>
   activeFilePath: string | null
   selectedIndices: Set<number>
-  notebook: NotebookFile
+  notebook: NotebookFile | null
   openFileCount: number
 
   // 文件管理
@@ -241,9 +282,12 @@ interface NotebookStore {
   // 单元格内容操作（纯状态更新）
   updateCellContent(index: number, content: string): void
   updateCellOutput(index: number, output: string): void
+
+  // 文件创建
+  createEmptyNotebook(): void
 }
 
-> **注意**: 单元格的增/删/改/复制/合并/拆分/折叠/从属等操作已迁移到 `CellService`，通过 `useCellService()` Hook 使用。notebookStore 仅保留纯状态操作方法。
+> **注意**: 单元格的增/删/改/复制/合并/拆分/折叠/从属等操作已迁移到 `CellService`（`useCellService()` Hook），文件读写等 I/O 操作已迁移到 `FileService`（`useFileService()` Hook）。notebookStore 仅保留纯状态操作方法。
 
 interface ThemeStore {
   theme: 'light' | 'dark'
@@ -276,6 +320,8 @@ interface SettingStore {
   promptTemplates: PromptTemplates
   customModels: CustomModel[]
   envVars: EnvVar[]
+  lastOpenFilePath: string | null
+  recentFiles: string[]
 
   setReadingFontSize(size: number): void
   setCellWidthRatio(ratio: number): void
@@ -285,9 +331,72 @@ interface SettingStore {
   addCustomModel(model: CustomModel): void
   removeCustomModel(name: string): void
   setEnvVars(vars: EnvVar[]): void
+  setLastOpenFilePath(path: string | null): void
+  addRecentFile(path: string): void
 
   loadFromDisk(): Promise<void>
   saveToDisk(): Promise<void>
+}
+```
+
+---
+
+### 2.6 背诵模式数据模型
+
+```typescript
+// 定义在 src/recitation/types.ts
+
+interface Book {
+  id?: number
+  name: string
+  path: string
+  count: number
+  create_time?: string | null    // ISO datetime
+}
+
+interface Word {
+  id?: number
+  book_id: number
+  word: string
+  phonetic: string
+  definition: string
+  example: string
+  raw_data: string
+}
+
+interface UserStudy {
+  id?: number
+  book_id: number
+  word_id: number
+  stage: number                   // 艾宾浩斯阶段 (0-8)
+  weight: number                  // 复习权重
+  last_review: string | null      // ISO datetime
+  next_review: string | null      // ISO datetime
+}
+
+interface BookProgress {
+  total: number                   // 单词总数
+  studied: number                 // 已学单词数
+  review_due: number              // 待复习单词数
+}
+
+interface BookWithProgress {
+  book: Book
+  total: number
+  studied: number
+  review_due: number
+  progress: number                // 进度百分比
+}
+
+interface TodayWordsResult {
+  new_words: Word[]               // 今日新学单词
+  review_words: Word[]            // 今日复习单词
+}
+
+interface StudyConfig {
+  daily_new_words?: number
+  daily_review_words?: number
+  current_book_id?: number
 }
 ```
 
@@ -604,6 +713,47 @@ interface KeyboardShortcut {
 
 ---
 
+### 5.3 useRecitationService
+
+背诵服务 Hook，封装 IPC 调用，组件内单例。
+
+```typescript
+function useRecitationService(): RecitationService
+```
+
+**导入**:
+```typescript
+import { useRecitationService } from '@/hooks/useRecitationService'
+```
+
+**用法示例**:
+```typescript
+const Component = () => {
+  const recitationService = useRecitationService()
+
+  useEffect(() => {
+    // 1. 初始化
+    recitationService.init('/path/to/workspace')
+
+    // 2. 导入词书
+    const book = await recitationService.importBook('/path/to/book.json')
+
+    // 3. 获取今日单词
+    const { new_words, review_words } = await recitationService.getTodayWords(book.id!)
+
+    // 4. 开始学习
+    await recitationService.startStudyWord(book.id!, new_words[0].id)
+
+    // 5. 复习
+    await recitationService.reviewWord(book.id!, new_words[0].id, true)
+  }, [])
+}
+```
+
+服务接口详见 [11.4 RecitationService](#114-recitationservice)。
+
+---
+
 ## 6. 主题系统 API (styles/themes.ts)
 
 ### 6.1 主题配置
@@ -661,6 +811,7 @@ const defaultSettings = {
   },
   customModels: [],
   recentFiles: [],
+  lastOpenFilePath: null,
   envVars: [],
 }
 ```
@@ -1045,6 +1196,9 @@ interface TranslationStatus {
   totalCount: number         // 待翻译总数
   progress: number           // 进度 0-100
   error: string | null       // 错误信息
+  cellStates: Record<number, 'pending' | 'translating' | 'done' | 'error'>  // 各单元格翻译状态
+  cellErrors: Record<number, string>     // 各单元格错误信息
+  currentContent?: string    // 当前翻译内容预览（前 80 字符）
 }
 
 interface ProviderInfo {
@@ -1071,7 +1225,7 @@ interface TranslationService {
   translateCells(indices: number[]): Promise<void>
 
   /** 测试指定提供者的连接 */
-  testConnection(providerId: string): Promise<boolean>
+  testConnection(providerId: string): Promise<{ success: boolean; error?: string }>
 
   /** 获取当前翻译状态 */
   getStatus(): TranslationStatus
@@ -1087,6 +1241,69 @@ interface TranslationService {
 **实现**: `createTranslationService()` (服务层) / `useTranslationService()` (React Hook)
 **依赖**: notebookStore, settingStore, translation/providers
 **位置**: `src/services/translationService.ts` / `src/hooks/useTranslationService.ts`
+
+### 11.4 RecitationService
+
+背诵模式服务，封装所有背诵操作（词书管理、单词查询、学习流程、配置管理）。
+
+```typescript
+interface RecitationService {
+  /** 初始化工作区数据库 */
+  init(workspacePath: string): Promise<boolean>
+
+  /** 获取所有词书 */
+  getBooks(): Promise<Book[]>
+
+  /** 根据 ID 查询词书 */
+  getBookById(bookId: number): Promise<Book | null>
+
+  /** 从 JSON 文件导入词书 */
+  importBook(filePath: string): Promise<Book | null>
+
+  /** 删除词书 */
+  deleteBook(bookId: number): Promise<boolean>
+
+  /** 获取词书学习进度 */
+  getBookProgress(bookId: number): Promise<BookProgress>
+
+  /** 获取所有词书及进度 */
+  getAllBooksWithProgress(): Promise<BookWithProgress[]>
+
+  /** 获取词书所有单词 */
+  getWordsByBook(bookId: number): Promise<Word[]>
+
+  /** 获取未学习单词 */
+  getUnstudiedWords(bookId: number, limit?: number): Promise<Word[]>
+
+  /** 获取待复习单词 */
+  getWordsForReview(bookId: number, limit?: number): Promise<Word[]>
+
+  /** 搜索单词 */
+  searchWords(searchText: string, bookId?: number): Promise<Word[]>
+
+  /** 开始学习一个单词（创建学习记录） */
+  startStudyWord(bookId: number, wordId: number): Promise<UserStudy | null>
+
+  /** 复习一个单词（正确/错误） */
+  reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<UserStudy | null>
+
+  /** 获取完整配置 */
+  getConfig(): Promise<Record<string, unknown>>
+
+  /** 设置配置项 */
+  setConfig(key: string, value: unknown): Promise<boolean>
+
+  /** 获取今日单词（新学 + 复习，带缓存） */
+  getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
+
+  /** 强制刷新今日单词 */
+  refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+}
+```
+
+**实现**: `createRecitationService()` (服务层) / `useRecitationService()` (React Hook)
+**依赖**: `window.electronAPI.recitationAPI` (IPC 桥接)
+**位置**: `src/services/recitationService.ts` / `src/hooks/useRecitationService.ts`
 
 ---
 
@@ -1107,7 +1324,7 @@ interface TranslationProvider {
   translate(text: string, promptTemplate?: string, signal?: AbortSignal): Promise<string>
 
   /** 测试与后端的连接是否正常 */
-  testConnection(): Promise<boolean>
+  testConnection(): Promise<{ success: boolean; error?: string }>
 
   /** 获取提供者元信息 */
   getInfo(): ProviderInfo
@@ -1128,7 +1345,7 @@ class OllamaProvider implements TranslationProvider {
   constructor(config?: Partial<OllamaConfig>)
 
   translate(text: string, promptTemplate?: string, signal?: AbortSignal): Promise<string>
-  testConnection(): Promise<boolean>
+  testConnection(): Promise<{ success: boolean; error?: string }>
   getInfo(): ProviderInfo
 }
 ```
@@ -1155,10 +1372,11 @@ class OpenAIProvider implements TranslationProvider {
   readonly type = 'system'
   readonly backend = 'openai'
 
-  constructor(config?: Partial<OpenAIConfig>)
+  constructor(config?: Partial<OpenAIConfig>, customName?: string)
+  // customName 参数用于创建自定义 OpenAI 提供者（id = custom_{name}, type = 'custom'）
 
   translate(text: string, promptTemplate?: string, signal?: AbortSignal): Promise<string>
-  testConnection(): Promise<boolean>
+  testConnection(): Promise<{ success: boolean; error?: string }>
   getInfo(): ProviderInfo
 }
 ```
@@ -1210,7 +1428,7 @@ interface ArkConfig {
 提供者工厂函数（`src/translation/providerFactory.ts`）。
 
 ```typescript
-/** 根据自定义模型配置构建提供者（ark → ArkProvider，其他 → OllamaProvider） */
+/** 根据自定义模型配置构建提供者（ark → ArkProvider, openai → OpenAIProvider(custom), 默认 → OllamaProvider） */
 function buildProvider(model: CustomModelConfig): TranslationProvider
 
 /** 创建系统内置提供者列表（OllamaProvider + OpenAIProvider） */
@@ -1219,6 +1437,8 @@ function createSystemProviders(): TranslationProvider[]
 /** 根据用户自定义模型列表创建自定义提供者（仅包含 enabled=true 的模型） */
 function createCustomProviders(customModels: CustomModelConfig[]): TranslationProvider[]
 ```
+
+> **buildProvider 分支逻辑**: `model.backend === 'ark'` → `ArkProvider`, `model.backend === 'openai'` → `OpenAIProvider(config, model.name)`, 默认 → `OllamaProvider`。
 
 **CustomModelConfig**:
 ```typescript
@@ -1242,10 +1462,11 @@ function useTranslationService(): {
   status: TranslationStatus           // 响应式状态，通过 useState + 200ms 轮询同步
   translateCell(index: number): Promise<void>
   translateAll(): Promise<void>
-  testConnection(providerId: string): Promise<boolean>
+  testConnection(providerId: string): Promise<{ success: boolean; error?: string }>
   cancel(): void
   listProviders(): ProviderInfo[]
   setCurrentProvider(providerId: string): void
+  generateSceneText(words: string[], promptTemplate?: string): Promise<string>
 }
 ```
 

@@ -3,6 +3,7 @@ import { useSettingStore } from '@/store/settingStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useState, useCallback } from 'react'
 import { createTranslationService } from '@/services/translationService'
+import { IconCheck, IconQuestion, IconClose, IconSun, IconMoon } from '@/components/icons'
 
 interface SettingsDialogProps {
   open: boolean
@@ -37,11 +38,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     const r = testResults[providerId]
     if (r === undefined) return null
     if (r.success) {
-      return <span style={{ marginLeft: 8, fontSize: 12, color: '#4caf50' }}>✓ Connected</span>
+      return <span style={{ marginLeft: 8, fontSize: 12, color: '#4caf50' }}><IconCheck size={14} /> Connected</span>
     }
     return (
       <span style={{ marginLeft: 8, fontSize: 11, color: '#e06c75' }}>
-        ✗ {r.error || 'Failed'}
+        {r.error || 'Failed'}
       </span>
     )
   }
@@ -149,7 +150,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span>Settings</span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.foreground, cursor: 'pointer', fontSize: 16 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.foreground, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}><IconClose size={14} /></button>
         </div>
 
         <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, paddingLeft: 8 }}>
@@ -168,12 +169,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     onClick={() => { setTheme('light'); settingStore.saveToDisk() }}
-                    style={{ ...btnStyle, backgroundColor: theme === 'light' ? colors.primaryButton : colors.toolbarBackground, color: colors.foreground, border: `1px solid ${colors.border}` }}
-                  >☀ Light</button>
+                    style={{ ...btnStyle, backgroundColor: theme === 'light' ? colors.primaryButton : colors.toolbarBackground, color: colors.foreground, border: `1px solid ${colors.border}`, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  ><IconSun size={16} /> Light</button>
                   <button
                     onClick={() => { setTheme('dark'); settingStore.saveToDisk() }}
-                    style={{ ...btnStyle, backgroundColor: theme === 'dark' ? colors.primaryButton : colors.toolbarBackground, color: colors.foreground, border: `1px solid ${colors.border}` }}
-                  >☾ Dark</button>
+                    style={{ ...btnStyle, backgroundColor: theme === 'dark' ? colors.primaryButton : colors.toolbarBackground, color: colors.foreground, border: `1px solid ${colors.border}`, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  ><IconMoon size={16} /> Dark</button>
                 </div>
               </div>
 
@@ -299,7 +300,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   </button>
                   {testResults['system_Ollama'] !== undefined && (
                     <span style={{ marginLeft: 8, fontSize: 12, color: testResults['system_Ollama'] ? '#4caf50' : '#e06c75' }}>
-                      {testResults['system_Ollama'] ? '✓ Connected' : '✗ Failed'}
+                      {testResults['system_Ollama'] ? <><IconCheck size={14} /> Connected</> : <>Failed</>}
                     </span>
                   )}
                 </div>
@@ -342,7 +343,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   </button>
                   {testResults['system_OpenAI'] !== undefined && (
                     <span style={{ marginLeft: 8, fontSize: 12, color: testResults['system_OpenAI'] ? '#4caf50' : '#e06c75' }}>
-                      {testResults['system_OpenAI'] ? '✓ Connected' : '✗ Failed'}
+                      {testResults['system_OpenAI'] ? <><IconCheck size={14} /> Connected</> : <><IconQuestion size={14} /> Failed</>}
                     </span>
                   )}
                 </div>

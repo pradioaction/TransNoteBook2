@@ -8,6 +8,7 @@ import { CellToolbar } from './CellToolbar'
 import { CellEditor } from './CellEditor'
 import { CellOutput } from './CellOutput'
 import { CellCollapseIndicator } from './CellCollapseIndicator'
+import { IconChevronRight } from '@/components/icons'
 
 interface CellContainerProps {
   cell: NotebookCell
@@ -56,7 +57,7 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
           }}
           onDoubleClick={() => cellService.toggleCollapse(index)}
         >
-          <span style={{ fontSize: 10 }}>▶</span>
+          <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconChevronRight size={12} /></span>
           <span style={{ opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {cell.content ? cell.content.replace(/<[^>]*>/g, '').substring(0, 100) || '(empty)' : '(empty)'}
           </span>

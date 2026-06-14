@@ -1,6 +1,9 @@
 import { useEffect, useCallback } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useCellService } from './useCellService'
+import { useFileService } from './useFileService'
+import { useTranslationService } from './useTranslationService'
+import { useWorkspaceStore } from '@/store/workspaceStore'
 
 interface KeyboardShortcut {
   key: string
@@ -13,6 +16,9 @@ interface KeyboardShortcut {
 export function useKeyboard() {
   const store = useNotebookStore()
   const cellService = useCellService()
+  const fileService = useFileService()
+  const { translateCell, translateAll } = useTranslationService()
+  const workspaceStore = useWorkspaceStore()
   const selectedIndices = store.selectedIndices
   const getFirstSelected = () => {
     const sorted = [...selectedIndices].sort((a, b) => a - b)
@@ -20,6 +26,7 @@ export function useKeyboard() {
   }
 
   const shortcuts: KeyboardShortcut[] = [
+    // === 单元格操作 ===
     {
       key: 'n',
       ctrl: true,
@@ -90,6 +97,48 @@ export function useKeyboard() {
       description: 'Toggle all output collapse',
       action: () => cellService.toggleOutputCollapseAll(),
     },
+    // === 翻译操作 ===
+    {
+      key: 'Enter',
+      ctrl: true,
+      description: 'Translate selected cell',
+      action: () => translateCell(getFirstSelected()),
+    },
+    {
+      key: 'Enter',
+      ctrl: true,
+      shift: true,
+      description: 'Translate all cells',
+      action: () => translateAll(),
+    },
+    // === 文件操作 ===
+    {
+      key: 's',
+      ctrl: true,
+      description: 'Save file',
+      action: () => fileService.saveFile(),
+    },
+    {
+      key: 's',
+      ctrl: true,
+      shift: true,
+      description: 'Save file as',
+      action: () => fileService.saveFileAs(),
+    },
+    {
+      key: 'o',
+      ctrl: true,
+      description: 'Open file',
+      action: () => fileService.openFile(),
+    },
+    {
+      key: 'i',
+      ctrl: true,
+      shift: true,
+      description: 'Import text',
+      action: () => fileService.importText(),
+    },
+    // === 导航 ===
     {
       key: 'ArrowUp',
       description: 'Move to previous cell',
@@ -125,6 +174,19 @@ export function useKeyboard() {
         const cellsLength = store.notebook?.cells.length ?? 0
         if (idx < cellsLength - 1) store.selectCellRange(idx, idx + 1)
       },
+    },
+    // === 显示切换 ===
+    {
+      key: 'b',
+      ctrl: true,
+      description: 'Toggle sidebar',
+      action: () => workspaceStore.toggleSidebar(),
+    },
+    {
+      key: 'j',
+      ctrl: true,
+      description: 'Toggle bottom panel',
+      action: () => workspaceStore.togglePanel(),
     },
   ]
 

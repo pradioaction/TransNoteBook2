@@ -1,3 +1,10 @@
+export interface ProviderInfo {
+  id: string
+  name: string
+  type: 'system' | 'custom'
+  backend: string
+}
+
 export interface TranslationProvider {
   readonly id: string
   readonly name: string
@@ -6,7 +13,7 @@ export interface TranslationProvider {
 
   translate(text: string, promptTemplate?: string, signal?: AbortSignal): Promise<string>
   testConnection(): Promise<{ success: boolean; error?: string }>
-  getInfo(): import('@/services/types').ProviderInfo
+  getInfo(): ProviderInfo
 }
 
 export interface OllamaConfig {

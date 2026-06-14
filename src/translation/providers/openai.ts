@@ -1,6 +1,6 @@
 import type { TranslationProvider, OpenAIConfig } from '../types'
-import type { ProviderInfo } from '@/services/types'
-import { useSettingStore, type EnvVar } from '@/store/settingStore'
+import type { ProviderInfo } from '@/translation/types'
+import { useSettingStore } from '@/store/settingStore'
 
 export class OpenAIProvider implements TranslationProvider {
   readonly id: string

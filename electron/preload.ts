@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
   openImportDialog: () =>
     ipcRenderer.invoke('open-import-dialog') as Promise<ImportResult | null>,
+  openBookDialog: () =>
+    ipcRenderer.invoke('open-book-dialog') as Promise<string | null>,
+  readClipboard: () =>
+    ipcRenderer.invoke('read-clipboard') as Promise<string>,
 
   readDirectory: (dirPath: string) =>
     ipcRenderer.invoke('read-directory', dirPath) as Promise<FileEntry[]>,
@@ -73,5 +77,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('recitation:get-today-words', bookId, forceRefresh),
     refreshTodayWords: (bookId: number) =>
       ipcRenderer.invoke('recitation:refresh-today-words', bookId),
+    addWord: (bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) =>
+      ipcRenderer.invoke('recitation:add-word', bookId, word),
+    updateWord: (wordId: number, word: { word: string; phonetic: string; definition: string; example: string }) =>
+      ipcRenderer.invoke('recitation:update-word', wordId, word),
+    deleteWord: (wordId: number) =>
+      ipcRenderer.invoke('recitation:delete-word', wordId),
   },
 })

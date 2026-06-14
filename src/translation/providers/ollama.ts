@@ -1,5 +1,5 @@
 import type { TranslationProvider, OllamaConfig } from '../types'
-import type { ProviderInfo } from '@/services/types'
+import type { ProviderInfo } from '@/translation/types'
 
 export class OllamaProvider implements TranslationProvider {
   readonly id = 'system_Ollama'

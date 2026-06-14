@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, clipboard } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { PathManager, DatabaseManager } from './recitation/database'
@@ -17,14 +17,32 @@ let _studyService: StudyService | null = null
 let _bookService: BookService | null = null
 
 function ensureRecitationServices(workspacePath: string): boolean {
-  _pathManager.setWorkspace(workspacePath)
+  const resolvedPath = path.resolve(workspacePath)
+
+  // 如果工作区变了，关闭旧 DB 并重新初始化
+  if (_dbManager?.isInitialized()) {
+    const currentWs = _pathManager.getWorkspace()
+    if (currentWs && currentWs !== resolvedPath) {
+      console.log(`[Recitation] Workspace changed: ${currentWs} → ${resolvedPath}`)
+      _dbManager.close()
+      _dbManager = null
+      _recitationDAL = null
+      _studyService = null
+      _bookService = null
+    }
+  }
+
+  _pathManager.setWorkspace(resolvedPath)
 
   if (!_dbManager) {
     _dbManager = new DatabaseManager(_pathManager)
   }
 
   if (!_dbManager.isInitialized()) {
-    if (!_dbManager.initialize()) return false
+    if (!_dbManager.initialize()) {
+      console.error(`[Recitation] Database init failed for: ${resolvedPath}`)
+      return false
+    }
   }
 
   if (!_recitationDAL) {
@@ -205,6 +223,22 @@ function registerIpcHandlers() {
     return { filePath, content }
   })
 
+  ipcMain.handle('open-book-dialog', async () => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'JSON Book Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle('read-clipboard', async () => {
+    return clipboard.readText()
+  })
+
   ipcMain.handle('read-directory', async (_event, dirPath: string) => {
     try {
       const entries = fs.readdirSync(dirPath, { withFileTypes: true })
@@ -256,7 +290,13 @@ function registerIpcHandlers() {
   // ==================== 背诵模式 IPC ====================
 
   ipcMain.handle('recitation:init', async (_event, workspacePath: string) => {
-    return ensureRecitationServices(workspacePath)
+    try {
+      const ok = ensureRecitationServices(workspacePath)
+      return { success: ok, error: ok ? undefined : 'Database initialization failed (check terminal for details)' }
+    } catch (err: any) {
+      console.error('[Recitation] init threw:', err)
+      return { success: false, error: String(err?.message ?? err) }
+    }
   })
 
   ipcMain.handle('recitation:add-book', async (_event, book: { name: string; path: string; count: number }) => {
@@ -343,6 +383,21 @@ function registerIpcHandlers() {
   ipcMain.handle('recitation:refresh-today-words', async (_event, bookId: number) => {
     if (!_studyService) return { newWords: [], reviewWords: [] }
     return _studyService.refreshTodayWords(bookId)
+  })
+
+  ipcMain.handle('recitation:add-word', async (_event, bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) => {
+    if (!_recitationDAL) return null
+    return _recitationDAL.addWord({ ...word, book_id: bookId, raw_data: '' })
+  })
+
+  ipcMain.handle('recitation:update-word', async (_event, wordId: number, word: { word: string; phonetic: string; definition: string; example: string }) => {
+    if (!_recitationDAL) return false
+    return _recitationDAL.updateWord({ id: wordId, ...word, raw_data: '' })
+  })
+
+  ipcMain.handle('recitation:delete-word', async (_event, wordId: number) => {
+    if (!_recitationDAL) return false
+    return _recitationDAL.deleteWord(wordId)
   })
 }
 

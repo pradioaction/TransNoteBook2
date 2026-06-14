@@ -1,10 +1,18 @@
 import type { NotebookCell, NotebookFile, FileEntry } from '@/types/notebook'
+import type { SplitMode } from '@/utils/fileUtils'
+
+export interface ImportTextOptions {
+  text: string
+  filename: string
+  splitMode: SplitMode
+}
 
 export interface FileService {
   openFile(filePath?: string): Promise<void>
   saveFile(): Promise<boolean>
   saveFileAs(): Promise<boolean>
   importText(): Promise<void>
+  saveImportAsTransnb(options: ImportTextOptions): Promise<void>
   createFile(name?: string): Promise<void>
   deleteFile(filePath: string): Promise<void>
   renameFile(oldPath: string, newName: string): Promise<void>
@@ -41,12 +49,8 @@ export interface TranslationStatus {
   currentContent?: string
 }
 
-export interface ProviderInfo {
-  id: string
-  name: string
-  type: 'system' | 'custom'
-  backend: string
-}
+import type { ProviderInfo } from '@/translation/types'
+export type { ProviderInfo }
 
 export interface TranslationService {
   listProviders(): ProviderInfo[]

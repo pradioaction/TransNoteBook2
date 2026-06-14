@@ -56,8 +56,8 @@ export interface StudyConfig {
 }
 
 export interface TodayWordsResult {
-  new_words: Word[]
-  review_words: Word[]
+  newWords: Word[]
+  reviewWords: Word[]
 }
 
 export interface StudyWordResult {
@@ -90,4 +90,7 @@ export interface RecitationAPI {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+  addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
+  updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
+  deleteWord(wordId: number): Promise<boolean>
 }

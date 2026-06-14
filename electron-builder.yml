@@ -1,0 +1,16 @@
+appId: com.tsbook2.app
+productName: TransNoteBook2
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+icon: TN.ico
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: TSBook2-Portable-${version}.${ext}

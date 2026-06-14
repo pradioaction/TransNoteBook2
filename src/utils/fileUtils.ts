@@ -1,4 +1,4 @@
-import type { NotebookData, NotebookCell } from '@/types/notebook'
+import type { NotebookData, NotebookCell, ArticleWordMeta } from '@/types/notebook'
 
 export function parseNotebookFile(content: string): NotebookData {
   try {
@@ -18,13 +18,15 @@ export function parseNotebookFile(content: string): NotebookData {
       isOutputCollapsed: (c as { isOutputCollapsed?: boolean }).isOutputCollapsed || false,
     }))
 
-    return { version, cells }
+    const wordMeta = data.wordMeta as ArticleWordMeta | undefined
+
+    return { version, cells, wordMeta }
   } catch {
     return { version: '2.0', cells: [] }
   }
 }
 
-export function serializeNotebookFile(cells: NotebookCell[]): string {
+export function serializeNotebookFile(cells: NotebookCell[], wordMeta?: ArticleWordMeta): string {
   const data: NotebookData = {
     version: '2.0',
     cells: cells.map((c) => ({
@@ -38,14 +40,18 @@ export function serializeNotebookFile(cells: NotebookCell[]): string {
       isInputCollapsed: c.isInputCollapsed,
       isOutputCollapsed: c.isOutputCollapsed,
     } as NotebookCell)),
+    ...(wordMeta ? { wordMeta } : {}),
   }
   return JSON.stringify(data, null, 2)
 }
 
-export function splitTextIntoParagraphs(text: string): string[] {
+export type SplitMode = 'singleNewline' | 'doubleNewline'
+
+export function splitTextIntoParagraphs(text: string, mode: SplitMode = 'doubleNewline'): string[] {
+  const separator = mode === 'singleNewline' ? /\n+/ : /\n\n+/
   return text
     .replace(/\r\n/g, '\n')
-    .split(/\n\n+/)
+    .split(separator)
     .map((p) => p.trim())
     .filter(Boolean)
 }

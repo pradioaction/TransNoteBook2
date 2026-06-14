@@ -1,3 +1,7 @@
+import type { FileEntry, DirEntry, ImportResult } from './electron'
+export type { FileEntry, DirEntry, ImportResult }
+import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult } from '@/recitation/types'
+
 export interface NotebookCell {
   id: string
   type: 'markdown'
@@ -13,6 +17,14 @@ export interface NotebookCell {
 export interface NotebookData {
   version: string
   cells: NotebookCell[]
+  wordMeta?: ArticleWordMeta
+}
+
+export interface ArticleWordMeta {
+  bookId: number
+  bookName: string
+  newWords: { id: number; word: string }[]
+  reviewWords: { id: number; word: string }[]
 }
 
 export interface NotebookFile {
@@ -20,6 +32,7 @@ export interface NotebookFile {
   name: string
   isModified: boolean
   cells: NotebookCell[]
+  wordMeta?: ArticleWordMeta
 }
 
 export interface NotebookStore {
@@ -28,6 +41,8 @@ export interface NotebookStore {
   selectedIndices: Set<number>
   notebook: NotebookFile | null
   openFileCount: number
+  _onFileOpened: ((path: string) => void) | null
+  setOnFileOpened: (cb: ((path: string) => void) | null) => void
   openFile: (file: NotebookFile) => void
   closeFile: (key: string) => void
   switchToFile: (key: string) => void
@@ -77,6 +92,27 @@ export interface ThemeConfig {
   panelBorder: string
   listItemHover: string
   listItemSelected: string
+
+  // === 背诵模式 ===
+  recitationBackground: string
+  recitationSidebarBackground: string
+  recitationSidebarBorder: string
+  quizCardBackground: string
+  quizCardBorder: string
+  quizOptionBackground: string
+  quizOptionHover: string
+  quizOptionSelected: string
+  quizOptionCorrect: string
+  quizOptionWrong: string
+  wordNewColor: string
+  wordReviewBatch0: string
+  wordReviewBatch1: string
+  wordReviewBatch2: string
+  wordReviewBatch3: string
+  wordCorrectBackground: string
+  wordWrongBackground: string
+  bookProgressBarFill: string
+  bookProgressBarTrack: string
 }
 
 export interface ThemeStore {
@@ -126,57 +162,28 @@ export interface AppSettings {
   envVars: EnvVar[]
 }
 
-export interface FileEntry {
-  name: string
-  path: string
-  isDirectory: boolean
-}
-
-export interface DirEntry {
-  name: string
-  path: string
-}
-
-export interface ImportResult {
-  filePath: string
-  content: string
-}
-
-export interface WorkspaceStore {
-  workspacePath: string | null
-  workspaceFiles: FileEntry[]
-  recentFiles: string[]
-  sidebarActiveTab: string
-  sidebarVisible: boolean
-  panelVisible: boolean
-  setWorkspace: (path: string | null) => void
-  scanWorkspaceFiles: () => Promise<void>
-  addRecentFile: (path: string) => void
-  setSidebarTab: (tabId: string) => void
-  toggleSidebar: () => void
-  togglePanel: () => void
-  refreshFiles: () => Promise<void>
-}
-
 interface RecitationAPI {
   init(workspacePath: string): Promise<boolean>
-  addBook(book: { name: string; path: string; count: number }): Promise<unknown>
-  getBookById(bookId: number): Promise<unknown>
-  getAllBooks(): Promise<unknown[]>
+  addBook(book: { name: string; path: string; count: number }): Promise<Book | null>
+  getBookById(bookId: number): Promise<Book | null>
+  getAllBooks(): Promise<Book[]>
   deleteBook(bookId: number): Promise<boolean>
-  getBookProgress(bookId: number): Promise<{ total: number; studied: number; review_due: number }>
-  getAllBooksWithProgress(): Promise<unknown[]>
-  importBookFromFile(filePath: string): Promise<unknown>
-  getWordsByBook(bookId: number): Promise<unknown[]>
-  getUnstudiedWords(bookId: number, limit?: number): Promise<unknown[]>
-  getWordsForReview(bookId: number, limit?: number): Promise<unknown[]>
-  searchWords(searchText: string, bookId?: number): Promise<unknown[]>
-  startStudyWord(bookId: number, wordId: number): Promise<unknown>
-  reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<unknown>
+  getBookProgress(bookId: number): Promise<BookProgress>
+  getAllBooksWithProgress(): Promise<BookWithProgress[]>
+  importBookFromFile(filePath: string): Promise<Book | null>
+  getWordsByBook(bookId: number): Promise<Word[]>
+  getUnstudiedWords(bookId: number, limit?: number): Promise<Word[]>
+  getWordsForReview(bookId: number, limit?: number): Promise<Word[]>
+  searchWords(searchText: string, bookId?: number): Promise<Word[]>
+  startStudyWord(bookId: number, wordId: number): Promise<UserStudy | null>
+  reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<UserStudy | null>
   getConfig(): Promise<Record<string, unknown>>
   setConfig(key: string, value: unknown): Promise<boolean>
-  getTodayWords(bookId: number, forceRefresh?: boolean): Promise<{ newWords: unknown[]; reviewWords: unknown[] }>
-  refreshTodayWords(bookId: number): Promise<{ newWords: unknown[]; reviewWords: unknown[] }>
+  getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
+  refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+  addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
+  updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
+  deleteWord(wordId: number): Promise<boolean>
 }
 
 declare global {
@@ -191,6 +198,8 @@ declare global {
       saveFileDialog: () => Promise<string | null>
       openFolderDialog: () => Promise<string | null>
       openImportDialog: () => Promise<ImportResult | null>
+      openBookDialog: () => Promise<string | null>
+      readClipboard: () => Promise<string>
       readDirectory: (dirPath: string) => Promise<FileEntry[]>
       readDirectoryRecursive: (dirPath: string) => Promise<DirEntry[]>
       getSettings: () => Promise<Record<string, unknown>>

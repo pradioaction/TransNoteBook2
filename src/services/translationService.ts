@@ -1,4 +1,5 @@
-import type { TranslationService, TranslationStatus, ProviderInfo } from './types'
+import type { TranslationService, TranslationStatus } from './types'
+import type { ProviderInfo } from '@/translation/types'
 import type { TranslationProvider } from '@/translation/types'
 import { createSystemProviders, createCustomProviders } from '@/translation/providerFactory'
 import { useNotebookStore } from '@/store/notebookStore'

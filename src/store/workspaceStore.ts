@@ -4,13 +4,11 @@ import type { FileEntry } from '@/types/notebook'
 export interface WorkspaceStore {
   workspacePath: string | null
   workspaceFiles: FileEntry[]
-  recentFiles: string[]
   sidebarActiveTab: string
   sidebarVisible: boolean
   panelVisible: boolean
   setWorkspace: (path: string | null) => void
   scanWorkspaceFiles: () => Promise<void>
-  addRecentFile: (path: string) => void
   setSidebarTab: (tabId: string) => void
   toggleSidebar: () => void
   togglePanel: () => void
@@ -20,7 +18,6 @@ export interface WorkspaceStore {
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   workspacePath: null,
   workspaceFiles: [],
-  recentFiles: [],
   sidebarActiveTab: 'explorer',
   sidebarVisible: true,
   panelVisible: false,
@@ -45,11 +42,6 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       set({ workspaceFiles: [] })
     }
   },
-
-  addRecentFile: (path) =>
-    set((state) => ({
-      recentFiles: [path, ...state.recentFiles.filter((f) => f !== path)].slice(0, 10),
-    })),
 
   setSidebarTab: (tabId) => set({ sidebarActiveTab: tabId }),
   toggleSidebar: () => set((state) => ({ sidebarVisible: !state.sidebarVisible })),

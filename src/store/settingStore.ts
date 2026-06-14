@@ -1,34 +1,6 @@
 import { create } from 'zustand'
+import type { TranslationSettings, CustomModel, PromptTemplates, EnvVar } from '@/types/notebook'
 import { useThemeStore } from '@/store/themeStore'
-
-export interface TranslationSettings {
-  enabled: boolean
-  currentProvider: string
-  ollama: { baseUrl: string; model: string }
-  openai: { apiKeyEnv: string; baseUrl: string; model: string; timeout: number; proxy: string }
-}
-
-export interface CustomModel {
-  name: string
-  apiKeyEnv: string
-  endpoint: string
-  model: string
-  timeout: number
-  backend: string
-  enabled: boolean
-}
-
-export interface PromptTemplates {
-  translation: string
-  analysis: string
-  scenery: string
-}
-
-export interface EnvVar {
-  name: string
-  value: string
-  description: string
-}
 
 export interface SettingStore {
   readingFontSize: number
@@ -39,6 +11,8 @@ export interface SettingStore {
   envVars: EnvVar[]
   lastOpenFilePath: string | null
   recentFiles: string[]
+  _onThemeChange: ((theme: 'light' | 'dark') => void) | null
+  setOnThemeChange: (cb: ((theme: 'light' | 'dark') => void) | null) => void
   setReadingFontSize: (size: number) => void
   setCellWidthRatio: (ratio: number) => void
   setTranslation: (settings: TranslationSettings) => void
@@ -91,6 +65,8 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
   envVars: [],
   lastOpenFilePath: null,
   recentFiles: [],
+  _onThemeChange: null,
+  setOnThemeChange: (cb) => set({ _onThemeChange: cb }),
 
   setReadingFontSize: (size) => {
     set({ readingFontSize: size })
@@ -154,8 +130,9 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
       const promptTemplates = (raw.promptTemplates as PromptTemplates) || { ...defaultTemplates }
       const customModels = (raw.customModels as CustomModel[]) || []
       const envVars = (raw.envVars as EnvVar[]) || []
-      if (raw.theme) {
-        useThemeStore.getState().setTheme(raw.theme as 'light' | 'dark')
+      const onThemeChange = get()._onThemeChange
+      if (raw.theme && onThemeChange) {
+        onThemeChange(raw.theme as 'light' | 'dark')
       }
       const lastOpenFilePath = (raw.lastOpenFilePath as string | null) || null
       const recentFiles = (raw.recentFiles as string[]) || []
@@ -167,7 +144,9 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
     if (!window.electronAPI) return
     try {
       const state = get()
+      const currentTheme = useThemeStore.getState().theme
       await window.electronAPI.setSettings({
+        theme: currentTheme,
         readingFontSize: state.readingFontSize,
         cellWidthRatio: state.cellWidthRatio,
         translation: state.translation,
@@ -176,7 +155,6 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
         envVars: state.envVars,
         lastOpenFilePath: state.lastOpenFilePath,
         recentFiles: state.recentFiles,
-        theme: useThemeStore.getState().theme,
       } as unknown as Record<string, unknown>)
     } catch { /* ignore */ }
   },

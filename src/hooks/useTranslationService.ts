@@ -1,6 +1,7 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { createTranslationService } from '@/services/translationService'
-import type { TranslationService, TranslationStatus, ProviderInfo } from '@/services/types'
+import type { TranslationService, TranslationStatus } from '@/services/types'
+import type { ProviderInfo } from '@/translation/types'
 
 let serviceInstance: TranslationService | null = null
 
@@ -74,6 +75,13 @@ export function useTranslationService() {
     [service]
   )
 
+  const generateSceneText = useCallback(
+    async (words: string[], promptTemplate?: string): Promise<string> => {
+      return await service.generateSceneText(words, promptTemplate)
+    },
+    [service]
+  )
+
   return {
     status,
     translateCell,
@@ -82,5 +90,6 @@ export function useTranslationService() {
     cancel,
     listProviders,
     setCurrentProvider,
+    generateSceneText,
   }
 }

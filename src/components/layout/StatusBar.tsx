@@ -1,5 +1,6 @@
 import { useNotebookStore } from '@/store/notebookStore'
 import { useTheme } from '@/hooks/useTheme'
+import { IconDot } from '@/components/icons'
 
 export function StatusBar() {
   const { notebook, selectedIndices, openFileCount } = useNotebookStore()
@@ -18,7 +19,7 @@ export function StatusBar() {
       }}
     >
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-        <span>{notebook ? `${notebook.name}${notebook.isModified ? ' ●' : ''}` : 'No file'}</span>
+        <span>{notebook ? <>{notebook.name}{notebook.isModified ? <span style={{ display: 'inline-flex', alignItems: 'center' }}><IconDot size={10} /></span> : ''}</> : 'No file'}</span>
         {openFileCount > 1 && <span style={{ fontSize: 11, opacity: 0.7 }}>({openFileCount} files open)</span>}
       </div>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
