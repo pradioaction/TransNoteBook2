@@ -1,4 +1,4 @@
-import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult } from '@/recitation/types'
+import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult, StageDistribution } from '@/recitation/types'
 
 export interface RecitationService {
   init(workspacePath: string): Promise<boolean>
@@ -18,9 +18,13 @@ export interface RecitationService {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): Promise<boolean>
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>
+  getStageDistribution(bookId: number): Promise<StageDistribution>
+  getOverallStageDistribution(): Promise<StageDistribution>
+  getWordsByStage(bookId: number, minStage: number, maxStage: number): Promise<Word[]>
 }
 
 export function createRecitationService(): RecitationService {
@@ -88,11 +92,15 @@ export function createRecitationService(): RecitationService {
     },
 
     getTodayWords: async (bookId: number, forceRefresh?: boolean) => {
-      return (await api()?.getTodayWords(bookId, forceRefresh)) ?? { newWords: [], reviewWords: [] }
+      return (await api()?.getTodayWords(bookId, forceRefresh)) ?? { newWords: [], reviewWords: [], testedNewWordIds: [], testedReviewWordIds: [] }
     },
 
     refreshTodayWords: async (bookId: number) => {
-      return (await api()?.refreshTodayWords(bookId)) ?? { newWords: [], reviewWords: [] }
+      return (await api()?.refreshTodayWords(bookId)) ?? { newWords: [], reviewWords: [], testedNewWordIds: [], testedReviewWordIds: [] }
+    },
+
+    markWordsAsTested: async (bookId: number, testedNewIds: number[], testedReviewIds: number[]) => {
+      return (await api()?.markWordsAsTested(bookId, testedNewIds, testedReviewIds)) ?? false
     },
 
     addWord: async (bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) => {
@@ -105,6 +113,18 @@ export function createRecitationService(): RecitationService {
 
     deleteWord: async (wordId: number) => {
       return (await api()?.deleteWord(wordId)) ?? false
+    },
+
+    getStageDistribution: async (bookId: number) => {
+      return (await api()?.getStageDistribution(bookId)) ?? { unstudied: 0, stage0: 0, stage1: 0, stage2: 0, stage3: 0, stage4: 0, stage5: 0, stage6: 0, stage7: 0, stage8: 0 }
+    },
+
+    getOverallStageDistribution: async () => {
+      return (await api()?.getOverallStageDistribution()) ?? { unstudied: 0, stage0: 0, stage1: 0, stage2: 0, stage3: 0, stage4: 0, stage5: 0, stage6: 0, stage7: 0, stage8: 0 }
+    },
+
+    getWordsByStage: async (bookId: number, minStage: number, maxStage: number) => {
+      return (await api()?.getWordsByStage(bookId, minStage, maxStage)) ?? []
     },
   }
 }

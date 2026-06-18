@@ -77,11 +77,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('recitation:get-today-words', bookId, forceRefresh),
     refreshTodayWords: (bookId: number) =>
       ipcRenderer.invoke('recitation:refresh-today-words', bookId),
+    markWordsAsTested: (bookId: number, testedNewIds: number[], testedReviewIds: number[]) =>
+      ipcRenderer.invoke('recitation:mark-words-as-tested', bookId, testedNewIds, testedReviewIds),
     addWord: (bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) =>
       ipcRenderer.invoke('recitation:add-word', bookId, word),
     updateWord: (wordId: number, word: { word: string; phonetic: string; definition: string; example: string }) =>
       ipcRenderer.invoke('recitation:update-word', wordId, word),
     deleteWord: (wordId: number) =>
       ipcRenderer.invoke('recitation:delete-word', wordId),
+    getStageDistribution: (bookId: number) =>
+      ipcRenderer.invoke('recitation:get-stage-distribution', bookId),
+    getOverallStageDistribution: () =>
+      ipcRenderer.invoke('recitation:get-overall-stage-distribution'),
+    getWordsByStage: (bookId: number, minStage: number, maxStage: number) =>
+      ipcRenderer.invoke('recitation:get-words-by-stage', bookId, minStage, maxStage),
   },
 })

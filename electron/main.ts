@@ -385,6 +385,12 @@ function registerIpcHandlers() {
     return _studyService.refreshTodayWords(bookId)
   })
 
+  ipcMain.handle('recitation:mark-words-as-tested', async (_event, bookId: number, testedNewIds: number[], testedReviewIds: number[]) => {
+    if (!_studyService) return false
+    _studyService.markWordsAsTested(bookId, testedNewIds, testedReviewIds)
+    return true
+  })
+
   ipcMain.handle('recitation:add-word', async (_event, bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) => {
     if (!_recitationDAL) return null
     return _recitationDAL.addWord({ ...word, book_id: bookId, raw_data: '' })
@@ -398,6 +404,21 @@ function registerIpcHandlers() {
   ipcMain.handle('recitation:delete-word', async (_event, wordId: number) => {
     if (!_recitationDAL) return false
     return _recitationDAL.deleteWord(wordId)
+  })
+
+  ipcMain.handle('recitation:get-stage-distribution', async (_event, bookId: number) => {
+    if (!_recitationDAL) return { unstudied: 0, stage0: 0, stage1: 0, stage2: 0, stage3: 0, stage4: 0, stage5: 0, stage6: 0, stage7: 0, stage8: 0 }
+    return _recitationDAL.getStageDistribution(bookId)
+  })
+
+  ipcMain.handle('recitation:get-overall-stage-distribution', async () => {
+    if (!_recitationDAL) return { unstudied: 0, stage0: 0, stage1: 0, stage2: 0, stage3: 0, stage4: 0, stage5: 0, stage6: 0, stage7: 0, stage8: 0 }
+    return _recitationDAL.getOverallStageDistribution()
+  })
+
+  ipcMain.handle('recitation:get-words-by-stage', async (_event, bookId: number, minStage: number, maxStage: number) => {
+    if (!_recitationDAL) return []
+    return _recitationDAL.getWordsByStage(bookId, minStage, maxStage)
   })
 }
 
