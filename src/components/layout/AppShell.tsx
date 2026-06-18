@@ -38,7 +38,7 @@ export function AppShell() {
     >
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <ActivityBar />
-        <Sidebar />
+        {!isRecitationMode && <Sidebar />}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {isRecitationMode ? (
             <RecitationShell />

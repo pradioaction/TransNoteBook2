@@ -53,6 +53,17 @@ export function NotebookToolbar() {
       // 先在阅读模式下初始化背诵数据库（RecitationShell 未挂载，不会自动 init）
       await recitationService.init(workspacePath)
 
+      // 获取今天已检测的单词 ID
+      let todayTestedNewIds: number[] = []
+      let todayTestedReviewIds: number[] = []
+      try {
+        const todayResult = await recitationService.getTodayWords(wordMeta.bookId)
+        todayTestedNewIds = todayResult.testedNewWordIds || []
+        todayTestedReviewIds = todayResult.testedReviewWordIds || []
+      } catch {
+        // 忽略 - 默认全部未检测
+      }
+
       // 获取该词书的所有单词
       const allWords = await recitationService.getWordsByBook(wordMeta.bookId)
 
@@ -77,6 +88,10 @@ export function NotebookToolbar() {
         setTesting(false)
         return
       }
+
+      // 构建正向/反向映射，用于填充 pairText
+      const defToWord = new Map(selectedWords.map((w) => [w.definition, w.word]))
+      const wordToDef = new Map(selectedWords.map((w) => [w.word, w.definition]))
 
       // 生成题目（每个单词 2 道题：word→meaning + meaning→word）
       const questions: QuizQuestion[] = selectedWords.flatMap((w) => {
@@ -110,6 +125,7 @@ export function NotebookToolbar() {
             options: defOptions.map((text, i) => ({
               id: (['A', 'B', 'C', 'D'] as const)[i],
               text,
+              pairText: defToWord.get(text) ?? text,
             })),
           },
           {
@@ -121,6 +137,7 @@ export function NotebookToolbar() {
             options: wordOptions.map((text, i) => ({
               id: (['A', 'B', 'C', 'D'] as const)[i],
               text,
+              pairText: wordToDef.get(text) ?? text,
             })),
           },
         ]
@@ -137,12 +154,14 @@ export function NotebookToolbar() {
       // 标记为文章来源（review 面板据此返回阅读而非词书管理）
       useRecitationStore.setState({ articleQuizSource: true })
       // 填充右侧侧边栏数据，让 WordSidebar 显示文章中的单词
+      const testedNewSet = new Set(todayTestedNewIds)
+      const testedReviewSet = new Set(todayTestedReviewIds)
       const sidebarData: WordSidebarData = {
         newWords: wordMeta.newWords.map((w) => ({
           id: w.id,
           word: w.word,
           definition: selectedWords.find((sw) => sw.id === w.id)?.definition ?? '',
-          isSelected: true,
+          isSelected: !testedNewSet.has(w.id), // 未检测默认勾选
         })),
         reviewWordBatches: wordMeta.reviewWords.map((w) => ({
           stage: 0,
@@ -151,7 +170,7 @@ export function NotebookToolbar() {
             id: w.id,
             word: w.word,
             definition: selectedWords.find((sw) => sw.id === w.id)?.definition ?? '',
-            isSelected: true,
+            isSelected: !testedReviewSet.has(w.id),
           }],
         })),
         studiedCount: 0,

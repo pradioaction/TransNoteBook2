@@ -44,6 +44,7 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
   const { t } = useTranslation()
   const gather = !useRecitationStore((s) => s.floatingAnimationEnabled)
   const { colors } = useTheme()
+  const [hoveredOptionId, setHoveredOptionId] = useState<string | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const bodiesRef = useRef<Body[]>([])
@@ -234,6 +235,8 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
               localAnsweredRef.current = option.id
               onSelect(option.id)
             }}
+            onMouseEnter={() => setHoveredOptionId(option.id)}
+            onMouseLeave={() => setHoveredOptionId(null)}
             style={{
               position: 'absolute',
               left: '50%',
@@ -255,7 +258,9 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
             }}
           >
             <span style={{ fontWeight: 700, marginRight: 8, flexShrink: 0 }}>{option.id}.</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.text}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {selectedOptionId && hoveredOptionId === option.id ? option.pairText : option.text}
+            </span>
           </button>
         )
       })}

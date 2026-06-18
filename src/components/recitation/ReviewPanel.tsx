@@ -48,6 +48,21 @@ export function ReviewPanel() {
       for (const [wordId, isCorrect] of wordResults) {
         await recitationService.reviewWord(selectedBookId, wordId, isCorrect)
       }
+
+      // 标记答对的单词为"已测"，更新缓存中的 tested 数组
+      const correctWordIds = [...wordResults.entries()]
+        .filter(([, isCorrect]) => isCorrect)
+        .map(([wordId]) => wordId)
+      if (correctWordIds.length > 0) {
+        const sd = useRecitationStore.getState().sidebarData
+        if (sd) {
+          const newWordIdSet = new Set(sd.newWords.map((w) => w.id))
+          const reviewWordIdSet = new Set(sd.reviewWordBatches.flatMap((b) => b.words.map((w) => w.id)))
+          const testedNewIds = correctWordIds.filter((id) => newWordIdSet.has(id))
+          const testedReviewIds = correctWordIds.filter((id) => reviewWordIdSet.has(id))
+          await recitationService.markWordsAsTested(selectedBookId, testedNewIds, testedReviewIds)
+        }
+      }
     } catch (err) {
       console.error('[ReviewPanel] 保存检测结果失败:', err)
     }
@@ -140,10 +155,7 @@ export function ReviewPanel() {
     await saveQuizResults()
     if (isArticleQuiz) {
       // 文章来源：返回阅读界面
-      // 先等待刷新今日单词缓存，确保已学单词不会出现在今日列表中
-      if (selectedBookId) {
-        await recitationService.refreshTodayWords(selectedBookId)
-      }
+      // saveQuizResults 已通过 markWordsAsTested 更新缓存，无需再 full refresh
       useRecitationStore.setState({ articleQuizSource: false })
       reset()
       return
