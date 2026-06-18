@@ -24,9 +24,16 @@ export function WordSidebar() {
   const sidebarData = useRecitationStore((s) => s.sidebarData)
   const sidebarMode = useRecitationStore((s) => s.sidebarMode)
   const toggleWordSelection = useRecitationStore((s) => s.toggleWordSelection)
+  const selectWordRange = useRecitationStore((s) => s.selectWordRange)
   const selectAllWords = useRecitationStore((s) => s.selectAllWords)
   const deselectAllWords = useRecitationStore((s) => s.deselectAllWords)
   const invertWordSelection = useRecitationStore((s) => s.invertWordSelection)
+  const selectedBookId = useRecitationStore((s) => s.selectedBookId)
+  const quizResultsByBook = useRecitationStore((s) => s.quizResultsByBook)
+  const quizResults = selectedBookId ? (quizResultsByBook[selectedBookId] || {}) : {}
+
+  const [lastClickedNewIndex, setLastClickedNewIndex] = useState<number | null>(null)
+  const [lastClickedReviewIndex, setLastClickedReviewIndex] = useState<{ stage: number; index: number } | null>(null)
 
   if (!sidebarData) {
     return (
@@ -64,6 +71,28 @@ export function WordSidebar() {
   const handleInvert = () => {
     invertWordSelection('new')
     invertWordSelection('review')
+  }
+
+  const handleToggleWord = (wordId: number, isNewWord: boolean, index: number, ctrlKey: boolean, batchStage?: number) => {
+    if (ctrlKey) {
+      // Ctrl+click: select range from last clicked to current
+      if (isNewWord && lastClickedNewIndex !== null) {
+        selectWordRange(lastClickedNewIndex, index, true)
+      } else if (!isNewWord && lastClickedReviewIndex !== null && batchStage !== undefined && lastClickedReviewIndex.stage === batchStage) {
+        selectWordRange(lastClickedReviewIndex.index, index, false, batchStage)
+      } else {
+        // No last clicked anchor or different batch: fall back to normal toggle
+        toggleWordSelection(wordId, isNewWord)
+      }
+    } else {
+      // Regular click: toggle and update last clicked anchor
+      toggleWordSelection(wordId, isNewWord)
+      if (isNewWord) {
+        setLastClickedNewIndex(index)
+      } else if (batchStage !== undefined) {
+        setLastClickedReviewIndex({ stage: batchStage, index })
+      }
+    }
   }
 
   return (
@@ -109,6 +138,9 @@ export function WordSidebar() {
           <ToolbarButton label={t('wordSidebar.selectAll')} onClick={handleSelectAll} colors={colors} />
           <ToolbarButton label={t('wordSidebar.deselect')} onClick={handleDeselectAll} colors={colors} />
           <ToolbarButton label={t('wordSidebar.invert')} onClick={handleInvert} colors={colors} />
+          <span style={{ fontSize: 10, color: colors.foreground, opacity: 0.4, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+            {t('wordSidebar.ctrlHint')}
+          </span>
         </div>
       )}
 
@@ -172,13 +204,15 @@ export function WordSidebar() {
               {t('wordSidebar.noNewWords')}
             </div>
           ) : (
-            sidebarData.newWords.map((w) => (
+            sidebarData.newWords.map((w, index) => (
               <WordListItem
                 key={w.id}
                 word={w}
                 mode={sidebarMode}
-                onToggle={toggleWordSelection}
+                onToggle={handleToggleWord}
                 isNewWord
+                index={index}
+                quizResult={quizResults[w.id]}
               />
             ))
           )}
@@ -215,14 +249,17 @@ export function WordSidebar() {
                 </span>
               )}
             </div>
-            {batch.words.map((w) => (
+            {batch.words.map((w, wordIndex) => (
               <WordListItem
                 key={w.id}
                 word={w}
                 mode={sidebarMode}
                 batchColor={STAGE_COLOR_MAP[batch.stage] || 'green'}
-                onToggle={toggleWordSelection}
+                onToggle={handleToggleWord}
                 isNewWord={false}
+                index={wordIndex}
+                batchStage={batch.stage}
+                quizResult={quizResults[w.id]}
               />
             ))}
           </div>

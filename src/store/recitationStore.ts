@@ -33,6 +33,7 @@ export interface RecitationStore {
 
   // 侧边栏选择操作
   toggleWordSelection: (wordId: number, isNewWord: boolean) => void
+  selectWordRange: (fromIndex: number, toIndex: number, isNewWord: boolean, batchStage?: number) => void
   selectAllWords: (type: 'new' | 'review') => void
   deselectAllWords: (type: 'new' | 'review') => void
   invertWordSelection: (type: 'new' | 'review') => void
@@ -44,6 +45,15 @@ export interface RecitationStore {
   prevQuestion: () => void
   toggleFloatingAnimation: () => void
   completeQuiz: () => void
+
+  // === 批量同步追踪 ===
+  pendingSyncResults: Record<number, boolean>  // wordId -> isCorrect, 待同步的已答完单词
+  markWordsAsSynced: (wordIds: number[]) => void
+  getPendingSyncCount: () => number
+
+  // === 检测结果标记（绿/红背景，按词书分组） ===
+  quizResultsByBook: Record<number, Record<number, boolean>>  // bookId -> { wordId -> isCorrect }
+  setQuizResults: (bookId: number, results: Record<number, boolean>) => void
 
   // 重置
   reset: () => void
@@ -80,6 +90,8 @@ const initialState = {
   quizState: null,
   floatingAnimationEnabled: true,
   articleQuizSource: false,
+  pendingSyncResults: {},
+  quizResultsByBook: {},
 }
 
 export const useRecitationStore = create<RecitationStore>((set, get) => ({
@@ -109,6 +121,33 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
             w.id === wordId ? { ...w, isSelected: !w.isSelected } : w
           ),
         }))
+      }
+      return { sidebarData: newData }
+    })
+  },
+
+  selectWordRange: (fromIndex, toIndex, isNewWord, batchStage) => {
+    set((state) => {
+      if (!state.sidebarData) return state
+      const newData = { ...state.sidebarData }
+      const start = Math.min(fromIndex, toIndex)
+      const end = Math.max(fromIndex, toIndex)
+
+      if (isNewWord) {
+        newData.newWords = newData.newWords.map((w, i) =>
+          i >= start && i <= end ? { ...w, isSelected: true } : w
+        )
+      } else if (batchStage !== undefined) {
+        newData.reviewWordBatches = newData.reviewWordBatches.map((batch) =>
+          batch.stage === batchStage
+            ? {
+                ...batch,
+                words: batch.words.map((w, i) =>
+                  i >= start && i <= end ? { ...w, isSelected: true } : w
+                ),
+              }
+            : batch
+        )
       }
       return { sidebarData: newData }
     })
@@ -215,6 +254,12 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
       // 检查是否全部答完: 所有题目都有 answered 字段
       const allAnswered = updatedQuestions.every((q) => q.answered !== undefined)
 
+      // 如果该单词刚答完两道题，加入待同步队列
+      let newPendingSync = state.pendingSyncResults ? { ...state.pendingSyncResults } : {}
+      if (isFullyAnswered && !newPendingSync[question.wordId]) {
+        newPendingSync[question.wordId] = allCorrect
+      }
+
       return {
         quizState: {
           ...state.quizState,
@@ -224,6 +269,7 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
           isComplete: allAnswered,
         },
         sidebarData: newSidebar,
+        pendingSyncResults: newPendingSync,
       }
     })
   },
@@ -252,5 +298,29 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
     set({ phase: 'review', sidebarMode: 'review' })
   },
 
-  reset: () => set({ ...initialState }),
+  markWordsAsSynced: (wordIds) => {
+    set((state) => {
+      const newPending = { ...state.pendingSyncResults }
+      for (const id of wordIds) {
+        delete newPending[id]
+      }
+      return { pendingSyncResults: newPending }
+    })
+  },
+
+  getPendingSyncCount: () => {
+    return Object.keys(get().pendingSyncResults || {}).length
+  },
+
+  // 检测结果标记（按词书分组）
+  setQuizResults: (bookId, results) => {
+    set((state) => ({
+      quizResultsByBook: {
+        ...state.quizResultsByBook,
+        [bookId]: { ...(state.quizResultsByBook[bookId] || {}), ...results },
+      },
+    }))
+  },
+
+  reset: () => set({ ...initialState, pendingSyncResults: {} }),
 }))

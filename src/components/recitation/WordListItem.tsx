@@ -5,8 +5,11 @@ interface WordListItemProps {
   word: WordDisplay
   mode: WordSidebarMode
   batchColor?: ReviewBatchColor
-  onToggle?: (wordId: number, isNewWord: boolean) => void
+  onToggle?: (wordId: number, isNewWord: boolean, index: number, shiftKey: boolean, batchStage?: number) => void
   isNewWord: boolean
+  index: number
+  batchStage?: number
+  quizResult?: boolean | null
 }
 
 const BATCH_BG_LIGHT: Record<ReviewBatchColor, string> = {
@@ -25,7 +28,7 @@ const BATCH_BG_DARK: Record<ReviewBatchColor, string> = {
   red: '#5c1a1a',
 }
 
-export function WordListItem({ word, mode, batchColor, onToggle, isNewWord }: WordListItemProps) {
+export function WordListItem({ word, mode, batchColor, onToggle, isNewWord, index, batchStage, quizResult }: WordListItemProps) {
   const { colors } = useTheme()
   const isDark = colors.background === '#1e1e1e'
 
@@ -41,12 +44,17 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord }: Wo
     if (mode === 'full' && !isNewWord && batchColor) {
       return isDark ? BATCH_BG_DARK[batchColor] : BATCH_BG_LIGHT[batchColor]
     }
+    // Show quiz result background for words without batch color (新学单词)
+    if (mode === 'full' && quizResult !== undefined && quizResult !== null) {
+      if (quizResult) return isDark ? '#1a5c1a' : '#e8f5e9'       // 正确绿底
+      return isDark ? '#5c1a1a' : '#ffebee'                        // 错误红底
+    }
     return 'transparent'
   }
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (mode === 'full' && onToggle) {
-      onToggle(word.id, isNewWord)
+      onToggle(word.id, isNewWord, index, e.ctrlKey, batchStage)
     }
   }
 
@@ -65,6 +73,8 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord }: Wo
         fontSize: 13,
         color: colors.foreground,
         transition: 'background-color 0.2s, opacity 0.2s',
+        borderLeft: quizResult === false ? `3px solid ${isDark ? '#ef5350' : '#e53935'}` : undefined,
+        borderRight: quizResult === true ? `3px solid ${isDark ? '#66bb6a' : '#43a047'}` : undefined,
       }}
       title={mode === 'full' ? (word.phonetic || word.definition) : undefined}
     >
@@ -73,8 +83,10 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord }: Wo
         <input
           type="checkbox"
           checked={word.isSelected}
-          onChange={() => onToggle?.(word.id, isNewWord)}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggle?.(word.id, isNewWord, index, e.ctrlKey, batchStage)
+          }}
           style={{ margin: 0, cursor: 'pointer', flexShrink: 0 }}
         />
       )}

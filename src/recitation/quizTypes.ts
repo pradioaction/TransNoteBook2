@@ -3,6 +3,7 @@ export type QuizQuestionType = 'word-to-meaning' | 'meaning-to-word'
 export interface QuizOption {
   id: 'A' | 'B' | 'C' | 'D'
   text: string
+  pairText: string  // 悬停切换显示的对应文本
 }
 
 export interface QuizQuestion {

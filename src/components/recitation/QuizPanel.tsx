@@ -21,6 +21,9 @@ export function QuizPanel() {
   const setPhase = useRecitationStore((s) => s.setPhase)
   const setSidebarMode = useRecitationStore((s) => s.setSidebarMode)
   const isArticleQuiz = useRecitationStore((s) => s.articleQuizSource)
+  const selectedBookId = useRecitationStore((s) => s.selectedBookId)
+  const pendingSyncResults = useRecitationStore((s) => s.pendingSyncResults)
+  const markWordsAsSynced = useRecitationStore((s) => s.markWordsAsSynced)
   const [damping, setDamping] = useState(0.9985)
   const [impulse, setImpulse] = useState(8)
   const configLoaded = useRef(false)
@@ -33,6 +36,81 @@ export function QuizPanel() {
       if (typeof cfg.quiz_damping === 'number') setDamping(cfg.quiz_damping)
       if (typeof cfg.quiz_impulse === 'number') setImpulse(cfg.quiz_impulse)
     }).catch(() => {})
+  }, [recitationService])
+
+  // 后台批量同步：将已答完的单词保存到数据库和 JSON
+  const syncPendingWords = useCallback(async () => {
+    const state = useRecitationStore.getState()
+    const pending = state.pendingSyncResults
+    const wordIds = Object.keys(pending).map(Number)
+    if (wordIds.length === 0 || !selectedBookId) return
+
+    // 根据 sidebarData 区分新学/复习单词
+    const newWordIdSet = new Set(state.sidebarData?.newWords.map(w => w.id) || [])
+    const newIds: number[] = []
+    const reviewIds: number[] = []
+    for (const id of wordIds) {
+      if (newWordIdSet.has(id)) newIds.push(id)
+      else reviewIds.push(id)
+    }
+
+    try {
+      for (const wordId of wordIds) {
+        await recitationService.startStudyWord(selectedBookId, wordId)
+        await recitationService.reviewWord(selectedBookId, wordId, pending[wordId])
+      }
+      await recitationService.markWordsAsTested(selectedBookId, newIds, reviewIds)
+      markWordsAsSynced(wordIds)
+      // 保存答题结果用于侧边栏颜色标记
+      state.setQuizResults(selectedBookId!, pending)
+    } catch (err) {
+      console.error('[QuizPanel] Batch sync failed:', err)
+    }
+  }, [selectedBookId, recitationService, markWordsAsSynced])
+
+  // 监听 pending 达到 10 个时自动同步
+  useEffect(() => {
+    const pendingCount = Object.keys(pendingSyncResults).length
+    if (pendingCount >= 10) {
+      syncPendingWords()
+    }
+  }, [pendingSyncResults, syncPendingWords])
+
+  // 组件卸载时同步剩余
+  useEffect(() => {
+    return () => {
+      const state = useRecitationStore.getState()
+      if (Object.keys(state.pendingSyncResults || {}).length > 0) {
+        // 异步同步，不阻塞卸载
+        const doSync = async () => {
+          const s = useRecitationStore.getState()
+          const p = s.pendingSyncResults
+          const ids = Object.keys(p).map(Number)
+          if (ids.length === 0 || !s.selectedBookId) return
+          // 根据 sidebarData 区分新学/复习单词
+          const newWordIdSet = new Set(s.sidebarData?.newWords.map(w => w.id) || [])
+          const newIds: number[] = []
+          const reviewIds: number[] = []
+          for (const id of ids) {
+            if (newWordIdSet.has(id)) newIds.push(id)
+            else reviewIds.push(id)
+          }
+          try {
+            for (const wordId of ids) {
+              await recitationService.startStudyWord(s.selectedBookId, wordId)
+              await recitationService.reviewWord(s.selectedBookId, wordId, p[wordId])
+            }
+            await recitationService.markWordsAsTested(s.selectedBookId, newIds, reviewIds)
+            s.markWordsAsSynced(ids)
+            // 保存答题结果用于侧边栏颜色标记
+            s.setQuizResults(s.selectedBookId!, p)
+          } catch (err) {
+            console.error('[QuizPanel] Cleanup sync failed:', err)
+          }
+        }
+        doSync()
+      }
+    }
   }, [recitationService])
 
   if (!quizState || quizState.questions.length === 0) {
@@ -82,7 +160,10 @@ export function QuizPanel() {
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         if (state.quizState.currentIndex > 0) prevQuestion()
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
-        if (state.quizState.currentIndex < state.quizState.questions.length - 1) nextQuestion()
+        const cur = state.quizState.questions[state.quizState.currentIndex]
+        if (cur && cur.answered !== undefined && state.quizState.currentIndex < state.quizState.questions.length - 1) {
+          nextQuestion()
+        }
       } else if (e.key === ' ') {
         e.preventDefault()
         toggleFloatingAnimation()
@@ -113,7 +194,10 @@ export function QuizPanel() {
           {t('quizPanel.summary', { total, answered: answeredCount })}
         </div>
         <button
-          onClick={completeQuiz}
+          onClick={async () => {
+            await syncPendingWords()
+            completeQuiz()
+          }}
           style={{
             padding: '10px 32px',
             fontSize: 16,
@@ -257,7 +341,12 @@ export function QuizPanel() {
         />
         <ToolButton
           label={t('quizPanel.next')}
-          onClick={nextQuestion}
+          onClick={() => {
+            const cur = quizState.questions[quizState.currentIndex]
+            if (cur && cur.answered !== undefined) {
+              nextQuestion()
+            }
+          }}
           disabled={quizState.currentIndex >= total - 1}
           colors={colors}
         />
