@@ -53,6 +53,12 @@ export const lightTheme: ThemeConfig = {
   wordWrongBackground: '#ffebee',
   bookProgressBarFill: '#4caf50',
   bookProgressBarTrack: '#e0e0e0',
+  stageUnstudied: '#bdbdbd',
+  stageBeginner: '#66bb6a',
+  stageReview: '#42a5f5',
+  stageConsolidate: '#ffa726',
+  stageProficient: '#ab47bc',
+  stageMastered: '#ffca28',
 }
 
 export const darkTheme: ThemeConfig = {
@@ -108,4 +114,10 @@ export const darkTheme: ThemeConfig = {
   wordWrongBackground: '#5c1a1a',
   bookProgressBarFill: '#4caf50',
   bookProgressBarTrack: '#1a1a2e',
+  stageUnstudied: '#616161',
+  stageBeginner: '#388e3c',
+  stageReview: '#1976d2',
+  stageConsolidate: '#e65100',
+  stageProficient: '#7b1fa2',
+  stageMastered: '#f9a825',
 }

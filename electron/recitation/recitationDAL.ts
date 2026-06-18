@@ -167,4 +167,16 @@ export class RecitationDAL {
   getBookDetailedStats(bookId: number): { name: string; word_count: number; study_count: number } {
     return this.statDAL.getBookDetailedStats(bookId)
   }
+
+  getStageDistribution(bookId: number): import('./statDAL').StageDistribution {
+    return this.statDAL.getStageDistribution(bookId)
+  }
+
+  getOverallStageDistribution(): import('./statDAL').StageDistribution {
+    return this.statDAL.getOverallStageDistribution()
+  }
+
+  getWordsByStage(bookId: number, minStage: number, maxStage: number): (import('./wordDAL').WordRow & { stage: number })[] {
+    return this.statDAL.getWordsByStage(bookId, minStage, maxStage)
+  }
 }

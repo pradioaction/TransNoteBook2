@@ -1,6 +1,6 @@
 import type { FileEntry, DirEntry, ImportResult } from './electron'
 export type { FileEntry, DirEntry, ImportResult }
-import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult } from '@/recitation/types'
+import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult, StageDistribution } from '@/recitation/types'
 
 export interface NotebookCell {
   id: string
@@ -113,6 +113,14 @@ export interface ThemeConfig {
   wordWrongBackground: string
   bookProgressBarFill: string
   bookProgressBarTrack: string
+
+  // === 背诵阶段颜色（6 阶段） ===
+  stageUnstudied: string
+  stageBeginner: string
+  stageReview: string
+  stageConsolidate: string
+  stageProficient: string
+  stageMastered: string
 }
 
 export interface ThemeStore {
@@ -181,9 +189,13 @@ interface RecitationAPI {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): Promise<boolean>
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>
+  getStageDistribution(bookId: number): Promise<StageDistribution>
+  getOverallStageDistribution(): Promise<StageDistribution>
+  getWordsByStage(bookId: number, minStage: number, maxStage: number): Promise<Word[]>
 }
 
 declare global {

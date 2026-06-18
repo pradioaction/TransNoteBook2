@@ -48,6 +48,49 @@ export interface BookWithProgress {
   progress: number
 }
 
+/** 10 阶段原始分布（未学 + stage 0-8） */
+export interface StageDistribution {
+  unstudied: number
+  stage0: number
+  stage1: number
+  stage2: number
+  stage3: number
+  stage4: number
+  stage5: number
+  stage6: number
+  stage7: number
+  stage8: number
+}
+
+/** 合并后的 6 阶段摘要 */
+export interface StageSummary {
+  unstudied: number
+  beginner: number
+  review: number
+  consolidate: number
+  proficient: number
+  mastered: number
+}
+
+/** 按阶段过滤单词的参数 */
+export interface StageFilter {
+  min: number
+  max: number
+  label: string
+}
+
+/** 将 10 阶段原始分布合并为 6 阶段摘要 */
+export function mergeToSixStages(dist: StageDistribution): StageSummary {
+  return {
+    unstudied: dist.unstudied,
+    beginner: dist.stage0 + dist.stage1,
+    review: dist.stage2 + dist.stage3,
+    consolidate: dist.stage4 + dist.stage5,
+    proficient: dist.stage6 + dist.stage7,
+    mastered: dist.stage8,
+  }
+}
+
 export interface StudyConfig {
   daily_new_words?: number
   daily_review_words?: number
@@ -58,6 +101,8 @@ export interface StudyConfig {
 export interface TodayWordsResult {
   newWords: Word[]
   reviewWords: Word[]
+  testedNewWordIds: number[]
+  testedReviewWordIds: number[]
 }
 
 export interface StudyWordResult {
@@ -90,6 +135,7 @@ export interface RecitationAPI {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): Promise<boolean>
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>

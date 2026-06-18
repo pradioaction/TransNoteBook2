@@ -8,6 +8,7 @@ import { BookManagerPanel } from './BookManagerPanel'
 import { QuizPanel } from './QuizPanel'
 import { ReviewPanel } from './ReviewPanel'
 import { WordSidebar } from './WordSidebar'
+import { StatsPanel } from './StatsPanel'
 import { ResizeHandle } from './ResizeHandle'
 import { Panel } from '@/components/layout/Panel'
 
@@ -16,6 +17,7 @@ export function RecitationShell() {
   const phase = useRecitationStore((s) => s.phase)
   const { colors } = useTheme()
   const [sidebarWidth, setSidebarWidth] = useState(300)
+  const [statsPanelWidth, setStatsPanelWidth] = useState(280)
   const workspacePath = useWorkspaceStore((s) => s.workspacePath)
   const recitationService = useRecitationService()
   const [initState, setInitState] = useState<'loading' | 'ready' | 'no-workspace' | 'error'>('loading')
@@ -140,7 +142,22 @@ export function RecitationShell() {
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden', backgroundColor: colors.recitationBackground }}>
-      {/* 左侧主面板 */}
+      {/* 左侧统计面板（仅 book-manager 阶段） */}
+      {phase === 'book-manager' && (
+        <>
+          <div style={{ width: statsPanelWidth, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+            <StatsPanel />
+          </div>
+          <ResizeHandle
+            onResize={setStatsPanelWidth}
+            defaultWidth={statsPanelWidth}
+            minWidth={200}
+            maxWidth={400}
+          />
+        </>
+      )}
+
+      {/* 中间主面板 */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {renderMainPanel()}
         <Panel />
