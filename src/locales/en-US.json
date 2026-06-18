@@ -1,9 +1,10 @@
-﻿﻿﻿﻿{
+{
   "wordSidebar.placeholder": "Please select a book",
   "wordSidebar.title": "WORDS",
   "wordSidebar.selectAll": "All",
   "wordSidebar.deselect": "None",
   "wordSidebar.invert": "Invert",
+  "wordSidebar.ctrlHint": "Ctrl+click to select a range",
   "wordSidebar.newCount": "New: {{count}}",
   "wordSidebar.reviewCount": "Review: {{count}}",
   "wordSidebar.studiedCount": "Studied: {{count}}",

@@ -1,9 +1,10 @@
-﻿﻿﻿﻿{
+{
   "wordSidebar.placeholder": "请选择词书",
   "wordSidebar.title": "单词面板",
   "wordSidebar.selectAll": "全选",
   "wordSidebar.deselect": "取消",
   "wordSidebar.invert": "反选",
+  "wordSidebar.ctrlHint": "Ctrl+点击批量选中范围",
   "wordSidebar.newCount": "新学: {{count}}",
   "wordSidebar.reviewCount": "复习: {{count}}",
   "wordSidebar.studiedCount": "已学: {{count}}",
