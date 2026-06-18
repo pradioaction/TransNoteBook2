@@ -3,7 +3,7 @@ import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { WordEditorDialog } from './WordEditorDialog'
-import type { Word } from '@/recitation/types'
+import type { Word, StageFilter } from '@/recitation/types'
 import { IconClose } from '@/components/icons'
 import { useTranslation } from 'react-i18next'
 
@@ -11,15 +11,16 @@ interface WordManagerDialogProps {
   bookId: number
   bookName: string
   onClose: () => void
+  stageFilter?: StageFilter
 }
 
-// 模块级缓存：bookId → { words, timestamp }
+// 模块级缓存：bookId → { words, timestamp }（stage filter 不缓存）
 const CACHE_TTL = 30_000 // 30 秒
 const wordCache = new Map<number, { words: Word[]; timestamp: number }>()
 
 const PAGE_SIZE = 50
 
-export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDialogProps) {
+export function WordManagerDialog({ bookId, bookName, onClose, stageFilter }: WordManagerDialogProps) {
   const { colors } = useTheme()
   const { t } = useTranslation()
   const recitationService = useRecitationService()
@@ -32,6 +33,28 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
   pageRef.current = page
 
   const loadWords = useCallback(async (force = false) => {
+    // stage filter 模式不使用缓存
+    if (stageFilter) {
+      setLoading(true)
+      try {
+        let list: Word[]
+        if (stageFilter.min === -1 && stageFilter.max === -1) {
+          // "未学"阶段：不在 user_study 中的单词
+          list = await recitationService.getUnstudiedWords(bookId) as Word[]
+        } else {
+          list = await recitationService.getWordsByStage(bookId, stageFilter.min, stageFilter.max) as Word[]
+        }
+        setWords(list)
+        const maxPage = Math.max(0, Math.ceil(list.length / PAGE_SIZE) - 1)
+        if (pageRef.current > maxPage) setPage(maxPage)
+      } catch {
+        console.error('加载阶段单词失败')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
     const cached = wordCache.get(bookId)
     if (!force && cached && Date.now() - cached.timestamp < CACHE_TTL) {
       setWords(cached.words)
@@ -53,7 +76,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
     } finally {
       setLoading(false)
     }
-  }, [recitationService, bookId])
+  }, [recitationService, bookId, stageFilter])
 
   useEffect(() => {
     loadWords()
@@ -133,7 +156,7 @@ export function WordManagerDialog({ bookId, bookName, onClose }: WordManagerDial
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           flexShrink: 0,
         }}>
-          <span>{t('wordManager.title', { bookName, count: words.length })}</span>
+          <span>{t('wordManager.title', { bookName: stageFilter ? `${bookName} - ${stageFilter.label}` : bookName, count: words.length })}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={refresh}

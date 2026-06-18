@@ -11,15 +11,17 @@ import { BookCard } from './BookCard'
 import { WordManagerDialog } from './WordManagerDialog'
 import { processArticleText } from '@/utils/articleUtils'
 import { serializeNotebookFile } from '@/utils/fileUtils'
-import type { BookWithProgress } from '@/recitation/types'
+import type { BookWithProgress, StageSummary, StageFilter } from '@/recitation/types'
 import type { WordSidebarData, ReviewWordBatch, WordDisplay } from '@/recitation/wordSidebarTypes'
 import type { NotebookCell } from '@/types/notebook'
+import { mergeToSixStages } from '@/recitation/types'
 
 const DAILY_NEW_LIMIT = 20
 const DAILY_REVIEW_LIMIT = 50
 
 function computeReviewBatches(
-  reviewWords: { id: number; word: string; definition: string; phonetic?: string; stage: number }[]
+  reviewWords: { id: number; word: string; definition: string; phonetic?: string; stage: number }[],
+  testedReviewSet?: Set<number>
 ): ReviewWordBatch[] {
   // 按 stage 分组
   const grouped = new Map<number, typeof reviewWords>()
@@ -42,7 +44,7 @@ function computeReviewBatches(
         definition: w.definition,
         phonetic: w.phonetic,
         stage: w.stage,
-        isSelected: true, // 默认全选
+        isSelected: testedReviewSet ? !testedReviewSet.has(w.id) : true, // 未检测默认勾选
       })),
     }))
 }
@@ -67,6 +69,8 @@ export function BookManagerPanel() {
   const [dailyReview, setDailyReview] = useState(50)
   const [dialogBookId, setDialogBookId] = useState<number | null>(null)
   const [dialogBookName, setDialogBookName] = useState('')
+  const [dialogStageFilter, setDialogStageFilter] = useState<StageFilter | undefined>(undefined)
+  const [stageSummaryMap, setStageSummaryMap] = useState<Record<number, StageSummary>>({})
 
   // 加载词书列表 + studywordmode.json 配置
   const loadBooks = useCallback(async () => {
@@ -78,6 +82,19 @@ export function BookManagerPanel() {
         recitationService.getConfig(),
       ])
       setBooks(list)
+
+      // 并行获取每本词书的阶段分布
+      const distMap: Record<number, StageSummary> = {}
+      await Promise.all(list.map(async (b) => {
+        const bookId = b.book.id!
+        try {
+          const dist = await recitationService.getStageDistribution(bookId)
+          distMap[bookId] = mergeToSixStages(dist)
+        } catch {
+          console.error(`获取词书 ${bookId} 阶段分布失败`)
+        }
+      }))
+      setStageSummaryMap(distMap)
 
       if (typeof config.daily_new_words === 'number') setDailyNew(config.daily_new_words)
       if (typeof config.daily_review_words === 'number') setDailyReview(config.daily_review_words)
@@ -104,7 +121,7 @@ export function BookManagerPanel() {
 
   // 当从检测回顾返回时，重新加载当前选中词书的侧边栏数据
   useEffect(() => {
-    if (books.length > 0 && selectedBookId && selectedBookName) {
+    if (selectedBookId && selectedBookName) {
       handleSelectBook(selectedBookId, selectedBookName)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,12 +138,16 @@ export function BookManagerPanel() {
           recitationService.getBookProgress(bookId),
         ])
 
+        // Build tested ID sets
+        const testedNewSet = new Set(todayResult.testedNewWordIds || [])
+        const testedReviewSet = new Set(todayResult.testedReviewWordIds || [])
+
         const newWords: WordDisplay[] = (todayResult.newWords || []).map((w: any) => ({
           id: w.id ?? 0,
           word: w.word ?? '',
           definition: w.definition ?? '',
           phonetic: w.phonetic ?? '',
-          isSelected: true, // 默认全选
+          isSelected: !testedNewSet.has(w.id), // 未检测的默认勾选
         }))
 
         const reviewBatches = computeReviewBatches(
@@ -136,7 +157,8 @@ export function BookManagerPanel() {
             definition: w.definition ?? '',
             phonetic: w.phonetic ?? '',
             stage: w.stage ?? 0,
-          }))
+          })),
+          testedReviewSet  // Pass tested set
         )
 
         const sidebarData: WordSidebarData = {
@@ -176,6 +198,10 @@ export function BookManagerPanel() {
         return
       }
 
+      // 构建正向/反向映射，用于填充 pairText
+      const defToWord = new Map(selectedWords.map((w) => [w.definition, w.word]))
+      const wordToDef = new Map(selectedWords.map((w) => [w.word, w.definition]))
+
       // 生成题目: 每个单词 2 道题 (word→meaning + meaning→word)
       const questions = selectedWords.flatMap((w) => {
         const wordDistractors = selectedWords
@@ -211,6 +237,7 @@ export function BookManagerPanel() {
             options: defOptions.map((text, i) => ({
               id: (['A', 'B', 'C', 'D'] as const)[i],
               text,
+              pairText: defToWord.get(text) ?? text,
             })),
           },
           {
@@ -222,6 +249,7 @@ export function BookManagerPanel() {
             options: wordOptions.map((text, i) => ({
               id: (['A', 'B', 'C', 'D'] as const)[i],
               text,
+              pairText: wordToDef.get(text) ?? text,
             })),
           },
         ]
@@ -356,6 +384,23 @@ export function BookManagerPanel() {
     [recitationService, loadBooks]
   )
 
+  // 双击进度段 → 打开 WordManagerDialog 并过滤阶段
+  const handleDoubleClickSegment = useCallback(
+    (bookId: number, bookName: string, stageFilter: StageFilter) => {
+      setDialogBookId(bookId)
+      setDialogBookName(bookName)
+      setDialogStageFilter(stageFilter)
+    },
+    []
+  )
+
+  // 关闭对话框时清除 stageFilter
+  const handleCloseDialog = useCallback(() => {
+    setDialogBookId(null)
+    setDialogBookName('')
+    setDialogStageFilter(undefined)
+  }, [])
+
   // 导入词书
   const handleImport = useCallback(async () => {
     const api = window.electronAPI
@@ -439,15 +484,18 @@ export function BookManagerPanel() {
                   recitationService.refreshTodayWords(selectedBookId),
                   recitationService.getBookProgress(selectedBookId),
                 ])
+                const testedNewSet = new Set(todayResult.testedNewWordIds || [])
+                const testedReviewSet = new Set(todayResult.testedReviewWordIds || [])
                 const newWords: WordDisplay[] = (todayResult.newWords || []).map((w: any) => ({
                   id: w.id ?? 0, word: w.word ?? '', definition: w.definition ?? '',
-                  phonetic: w.phonetic ?? '', isSelected: true,
+                  phonetic: w.phonetic ?? '', isSelected: !testedNewSet.has(w.id),
                 }))
                 const reviewBatches = computeReviewBatches(
                   (todayResult.reviewWords || []).map((w: any) => ({
                     id: w.id ?? 0, word: w.word ?? '', definition: w.definition ?? '',
                     phonetic: w.phonetic ?? '', stage: w.stage ?? 0,
-                  }))
+                  })),
+                  testedReviewSet
                 )
                 setSidebarData({ newWords, reviewWordBatches: reviewBatches, studiedCount: progress.studied, pendingReviewCount: progress.review_due })
               } catch { console.error('刷新今日单词失败') }
@@ -600,7 +648,9 @@ export function BookManagerPanel() {
               book={b}
               isSelected={selectedBookId === b.book.id}
               onSelect={handleSelectBook}
-              onViewWords={(bookId, bookName) => { setDialogBookId(bookId); setDialogBookName(bookName) }}
+              onViewWords={(bookId, bookName) => { setDialogBookId(bookId); setDialogBookName(bookName); setDialogStageFilter(undefined) }}
+              stageSummary={stageSummaryMap[b.book.id!]}
+              onDoubleClickSegment={handleDoubleClickSegment}
             />
           ))
         )}
@@ -624,7 +674,8 @@ export function BookManagerPanel() {
         <WordManagerDialog
           bookId={dialogBookId}
           bookName={dialogBookName}
-          onClose={() => { setDialogBookId(null); setDialogBookName('') }}
+          onClose={handleCloseDialog}
+          stageFilter={dialogStageFilter}
         />
       )}
     </div>
