@@ -60,7 +60,12 @@ export function ReviewPanel() {
           const reviewWordIdSet = new Set(sd.reviewWordBatches.flatMap((b) => b.words.map((w) => w.id)))
           const testedNewIds = correctWordIds.filter((id) => newWordIdSet.has(id))
           const testedReviewIds = correctWordIds.filter((id) => reviewWordIdSet.has(id))
-          await recitationService.markWordsAsTested(selectedBookId, testedNewIds, testedReviewIds)
+          // 构建 quizResults map: wordId -> isCorrect
+          const quizResults: Record<number, boolean> = {}
+          for (const [wordId, isCorrect] of wordResults) {
+            quizResults[wordId] = isCorrect
+          }
+          await recitationService.markWordsAsTested(selectedBookId, testedNewIds, testedReviewIds, quizResults)
         }
       }
     } catch (err) {

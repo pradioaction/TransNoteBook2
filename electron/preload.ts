@@ -77,8 +77,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('recitation:get-today-words', bookId, forceRefresh),
     refreshTodayWords: (bookId: number) =>
       ipcRenderer.invoke('recitation:refresh-today-words', bookId),
-    markWordsAsTested: (bookId: number, testedNewIds: number[], testedReviewIds: number[]) =>
-      ipcRenderer.invoke('recitation:mark-words-as-tested', bookId, testedNewIds, testedReviewIds),
+    markWordsAsTested: (bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>) =>
+      ipcRenderer.invoke('recitation:mark-words-as-tested', bookId, testedNewIds, testedReviewIds, quizResults),
     addWord: (bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) =>
       ipcRenderer.invoke('recitation:add-word', bookId, word),
     updateWord: (wordId: number, word: { word: string; phonetic: string; definition: string; example: string }) =>

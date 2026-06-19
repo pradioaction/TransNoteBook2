@@ -100,10 +100,8 @@ export function QuizPanel() {
               await recitationService.startStudyWord(s.selectedBookId, wordId)
               await recitationService.reviewWord(s.selectedBookId, wordId, p[wordId])
             }
-            await recitationService.markWordsAsTested(s.selectedBookId, newIds, reviewIds)
+            await recitationService.markWordsAsTested(s.selectedBookId, newIds, reviewIds, p)
             s.markWordsAsSynced(ids)
-            // 保存答题结果用于侧边栏颜色标记
-            s.setQuizResults(s.selectedBookId!, p)
           } catch (err) {
             console.error('[QuizPanel] Cleanup sync failed:', err)
           }

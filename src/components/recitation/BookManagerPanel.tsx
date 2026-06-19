@@ -166,6 +166,7 @@ export function BookManagerPanel() {
           reviewWordBatches: reviewBatches,
           studiedCount: progress.studied,
           pendingReviewCount: progress.review_due,
+          quizResults: todayResult.quizResults || {},
         }
 
         setSidebarData(sidebarData)

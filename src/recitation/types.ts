@@ -103,6 +103,7 @@ export interface TodayWordsResult {
   reviewWords: Word[]
   testedNewWordIds: number[]
   testedReviewWordIds: number[]
+  quizResults: Record<number, boolean>
 }
 
 export interface StudyWordResult {

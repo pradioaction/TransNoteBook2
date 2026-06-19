@@ -18,7 +18,7 @@ export interface RecitationService {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
-  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): Promise<boolean>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): Promise<boolean>
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>
@@ -92,15 +92,15 @@ export function createRecitationService(): RecitationService {
     },
 
     getTodayWords: async (bookId: number, forceRefresh?: boolean) => {
-      return (await api()?.getTodayWords(bookId, forceRefresh)) ?? { newWords: [], reviewWords: [], testedNewWordIds: [], testedReviewWordIds: [] }
+      return (await api()?.getTodayWords(bookId, forceRefresh)) ?? { newWords: [], reviewWords: [], testedNewWordIds: [], testedReviewWordIds: [], quizResults: {} }
     },
 
     refreshTodayWords: async (bookId: number) => {
-      return (await api()?.refreshTodayWords(bookId)) ?? { newWords: [], reviewWords: [], testedNewWordIds: [], testedReviewWordIds: [] }
+      return (await api()?.refreshTodayWords(bookId)) ?? { newWords: [], reviewWords: [], testedNewWordIds: [], testedReviewWordIds: [], quizResults: {} }
     },
 
-    markWordsAsTested: async (bookId: number, testedNewIds: number[], testedReviewIds: number[]) => {
-      return (await api()?.markWordsAsTested(bookId, testedNewIds, testedReviewIds)) ?? false
+    markWordsAsTested: async (bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>) => {
+      return (await api()?.markWordsAsTested(bookId, testedNewIds, testedReviewIds, quizResults)) ?? false
     },
 
     addWord: async (bookId: number, word: { word: string; phonetic: string; definition: string; example: string }) => {

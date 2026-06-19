@@ -28,9 +28,7 @@ export function WordSidebar() {
   const selectAllWords = useRecitationStore((s) => s.selectAllWords)
   const deselectAllWords = useRecitationStore((s) => s.deselectAllWords)
   const invertWordSelection = useRecitationStore((s) => s.invertWordSelection)
-  const selectedBookId = useRecitationStore((s) => s.selectedBookId)
-  const quizResultsByBook = useRecitationStore((s) => s.quizResultsByBook)
-  const quizResults = selectedBookId ? (quizResultsByBook[selectedBookId] || {}) : {}
+  const quizResults = sidebarData?.quizResults || {}
 
   const [lastClickedNewIndex, setLastClickedNewIndex] = useState<number | null>(null)
   const [lastClickedReviewIndex, setLastClickedReviewIndex] = useState<{ stage: number; index: number } | null>(null)

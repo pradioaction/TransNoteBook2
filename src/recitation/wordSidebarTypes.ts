@@ -26,6 +26,7 @@ export interface WordSidebarData {
   reviewWordBatches: ReviewWordBatch[]  // 复习单词按批次分组
   studiedCount: number                  // 已学单词总数
   pendingReviewCount: number            // 待复习单词总数
+  quizResults?: Record<number, boolean> // 检测正确/错误结果（wordId -> isCorrect）
 }
 
 /** WordSidebar 的操作回调 */

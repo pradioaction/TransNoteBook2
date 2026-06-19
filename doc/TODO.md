@@ -51,6 +51,7 @@
 - [x] `RecitationService` 接口 + `createRecitationService()`（`src/services/recitationService.ts`）
 - [x] `useRecitationService()` React Hook（模块级单例）
 - [x] `RecitationStore`（Zustand，管理 UI 状态：模式/阶段/侧边栏数据/检测状态）
+- [ ] 词书管理欠缺很多基础功能
 
 #### UI 组件
 

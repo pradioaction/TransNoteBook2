@@ -385,9 +385,9 @@ function registerIpcHandlers() {
     return _studyService.refreshTodayWords(bookId)
   })
 
-  ipcMain.handle('recitation:mark-words-as-tested', async (_event, bookId: number, testedNewIds: number[], testedReviewIds: number[]) => {
+  ipcMain.handle('recitation:mark-words-as-tested', async (_event, bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>) => {
     if (!_studyService) return false
-    _studyService.markWordsAsTested(bookId, testedNewIds, testedReviewIds)
+    _studyService.markWordsAsTested(bookId, testedNewIds, testedReviewIds, quizResults)
     return true
   })
 

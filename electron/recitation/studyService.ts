@@ -116,7 +116,7 @@ export class StudyService {
     this._saveConfig()
   }
 
-  getTodayWords(bookId: number, forceRefresh: boolean = false): { newWords: WordRow[]; reviewWords: WordRow[]; testedNewWordIds: number[]; testedReviewWordIds: number[] } {
+  getTodayWords(bookId: number, forceRefresh: boolean = false): { newWords: WordRow[]; reviewWords: WordRow[]; testedNewWordIds: number[]; testedReviewWordIds: number[]; quizResults: Record<number, boolean> } {
     const todayKey = this._getTodayKey(bookId)
     let needRefresh = forceRefresh
 
@@ -125,11 +125,12 @@ export class StudyService {
     }
 
     if (!needRefresh) {
-      const savedData = this._config[todayKey] as { new_words: number[]; review_words: number[]; tested_new_word_ids: number[]; tested_review_word_ids: number[] }
+      const savedData = this._config[todayKey] as { new_words: number[]; review_words: number[]; tested_new_word_ids: number[]; tested_review_word_ids: number[]; quiz_results?: Record<number, boolean> }
       const newWordIds = savedData?.new_words || []
       const reviewWordIds = savedData?.review_words || []
       const testedNewWordIds = savedData?.tested_new_word_ids || []
       const testedReviewWordIds = savedData?.tested_review_word_ids || []
+      const quizResults = savedData?.quiz_results || {}
 
       const newWords: WordRow[] = []
       const reviewWords: WordRow[] = []
@@ -143,7 +144,7 @@ export class StudyService {
         if (word) reviewWords.push(word)
       }
 
-      return { newWords, reviewWords, testedNewWordIds, testedReviewWordIds }
+      return { newWords, reviewWords, testedNewWordIds, testedReviewWordIds, quizResults }
     }
 
     const dailyNew = this.getDailyNewWords()
@@ -162,10 +163,10 @@ export class StudyService {
     }
     this._saveConfig()
 
-    return { newWords, reviewWords, testedNewWordIds: [], testedReviewWordIds: [] }
+    return { newWords, reviewWords, testedNewWordIds: [], testedReviewWordIds: [], quizResults: {} }
   }
 
-  refreshTodayWords(bookId: number): { newWords: WordRow[]; reviewWords: WordRow[]; testedNewWordIds: number[]; testedReviewWordIds: number[] } {
+  refreshTodayWords(bookId: number): { newWords: WordRow[]; reviewWords: WordRow[]; testedNewWordIds: number[]; testedReviewWordIds: number[]; quizResults: Record<number, boolean> } {
     return this.getTodayWords(bookId, true)
   }
 
@@ -232,7 +233,7 @@ export class StudyService {
     this._saveConfig()
   }
 
-  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): void {
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): void {
     const todayKey = this._getTodayKey(bookId)
     if (!(todayKey in this._config)) return
 
@@ -241,6 +242,7 @@ export class StudyService {
       review_words: number[];
       tested_new_word_ids: number[];
       tested_review_word_ids: number[];
+      quiz_results?: Record<number, boolean>;
     }
     
     // Ensure tested arrays exist
@@ -255,6 +257,12 @@ export class StudyService {
     const reviewSet = new Set(savedData.tested_review_word_ids)
     for (const id of testedReviewIds) reviewSet.add(id)
     savedData.tested_review_word_ids = [...reviewSet]
+
+    // Write quiz results if provided
+    if (quizResults && Object.keys(quizResults).length > 0) {
+      if (!savedData.quiz_results) savedData.quiz_results = {}
+      Object.assign(savedData.quiz_results, quizResults)
+    }
 
     this._config[todayKey] = savedData
     this._saveConfig()
