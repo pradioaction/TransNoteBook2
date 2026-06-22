@@ -110,11 +110,26 @@ export function BookManagerPanel() {
     loadBooks()
   }, [loadBooks])
 
-  // 自动选中第一本词书
+  // 恢复上次选中的词书（优先从 config 读 current_book_id）
   useEffect(() => {
     if (books.length > 0 && !selectedBookId) {
-      const first = books[0]
-      handleSelectBook(first.book.id!, first.book.name)
+      const restoreSelection = async () => {
+        try {
+          const config = await recitationService.getConfig()
+          const savedBookId = config.current_book_id
+          if (savedBookId && books.some(b => b.book.id === savedBookId)) {
+            const book = books.find(b => b.book.id === savedBookId)!
+            handleSelectBook(book.book.id!, book.book.name)
+            return
+          }
+        } catch {
+          // ignore
+        }
+        // Fall back to first book
+        const first = books[0]
+        handleSelectBook(first.book.id!, first.book.name)
+      }
+      restoreSelection()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [books.length > 0])

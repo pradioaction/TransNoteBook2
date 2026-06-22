@@ -77,10 +77,10 @@
 
 ### 2.2 📋 待优化
 
-- [ ] **每日新词数/复习数设置**: 通过 `recitationAPI.setConfig` 配置 `daily_new_words` / `daily_review_words`
+- [x] **每日新词数/复习数设置**: 通过 `recitationAPI.setConfig` 配置 `daily_new_words` / `daily_review_words`
 - [ ] **背诵设置面板**: 在 SettingsDialog 中集成背诵模式配置
 - [ ] **文章生成器集成**: AI 生成包含今日单词的场景文章 → 保存为 .transnb 文件
-- [ ] **背诵统计可视化**: 学习时长、正确率趋势等图表
+- [x] **背诵统计可视化**: 学习时长、正确率趋势等图表
 
 ***
 
@@ -104,13 +104,14 @@
 
 #### 文件操作
 
-- [ ] `Ctrl+S` — 保存当前文件（`fileService.saveFile()`）
+- [x] `Ctrl+S` — 保存当前文件（`fileService.saveFile()`）
 - [ ] `Ctrl+Shift+S` — 另存为（`fileService.saveFileAs()`）
 - [ ] `Ctrl+O` — 打开文件（`fileService.openFile()`）
 - [ ] `Ctrl+Shift+I` — 导入文本文件（`fileService.importText()`）
 - [ ] -\`Ctrl+Shift+-\` — 在编辑模式下光标位置分割单元格，分割的单元格继承单元格的层级，若自己拥有从属单元格则由后半段分割出的单元格插入到前半段分割出的单元的从属单元格的最前端。输出栏的内容复制双分给两个单元格
 
   你觉得完成这
+- [ ] <br />
 
 #### 单元格操作
 
@@ -177,4 +178,8 @@
 - [x] **设置持久化 500ms 防抖**
 - [x] **翻译模块策略模式**: Ollama / OpenAI / Ark Provider
 - [x] **背诵模式完整实现**: 数据层 → IPC → 服务层 → UI
+
+## 7.阅读界面
+
+- [ ] 阅读计时功能
 

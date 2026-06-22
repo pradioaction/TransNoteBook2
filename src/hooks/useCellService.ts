@@ -78,15 +78,36 @@ export function useCellService(): CellService {
     const orig = cells[index]
     if (!orig || !beforeText.trim() || !afterText.trim()) return
     cells[index] = { ...orig, content: beforeText }
-    cells.splice(index + 1, 0, {
+
+    // Check if orig has child cells
+    const hasChildren = cells.some((c) => c.parentId === orig.id)
+
+    const base = {
       ...orig,
       id: crypto.randomUUID(),
       content: afterText,
-      output: '',
+      output: orig.output,
       isCollapsed: false,
       isInputCollapsed: false,
       isOutputCollapsed: false,
-    })
+    }
+
+    if (hasChildren) {
+      // Insert after index, before the first child; the new cell becomes a child of orig
+      cells.splice(index + 1, 0, {
+        ...base,
+        parentId: orig.id,
+        indentLevel: orig.indentLevel + 1,
+      })
+    } else {
+      // No children, insert as sibling of orig
+      cells.splice(index + 1, 0, {
+        ...base,
+        parentId: orig.parentId,
+        indentLevel: orig.indentLevel,
+      })
+    }
+
     store.setCells(cells)
     store.selectCell(index + 1)
   }

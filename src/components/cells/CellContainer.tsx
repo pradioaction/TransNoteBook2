@@ -87,6 +87,7 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
                 placeholder="Write source text (Markdown supported)..."
                 onContentChange={(c) => store.updateCellContent(index, c)}
                 onFocus={() => store.selectCell(index)}
+                onSplit={(beforeHtml, afterHtml) => cellService.splitCell(index, beforeHtml, afterHtml)}
               />
             )}
             <CellCollapseIndicator

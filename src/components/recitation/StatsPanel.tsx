@@ -102,27 +102,32 @@ export function StatsPanel() {
   const selectedBookId = useRecitationStore((s) => s.selectedBookId)
 
   const [books, setBooks] = useState<Book[]>([])
-  const [selectedOption, setSelectedOption] = useState<number | 'all'>('all')
+  const [selectedOption, setSelectedOption] = useState<number>(0)
   const [distribution, setDistribution] = useState<StageDistribution | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // 加载词书列表
+  // 加载词书列表并恢复上次选中的词书
   useEffect(() => {
     recitationService.getBooks().then((list) => {
       setBooks(list)
+      // 尝试恢复上次选中的词书
+      recitationService.getConfig().then(config => {
+        const savedBookId = config.current_book_id as number | undefined
+        if (savedBookId && list.some(b => b.id === savedBookId)) {
+          setSelectedOption(savedBookId)
+        } else if (list.length > 0) {
+          setSelectedOption(list[0].id!)
+        }
+      })
     }).catch(() => {})
   }, [recitationService])
 
   // 加载分布数据
   const loadData = useCallback(async () => {
+    if (selectedOption === 0) return
     setLoading(true)
     try {
-      let dist: StageDistribution
-      if (selectedOption === 'all') {
-        dist = await recitationService.getOverallStageDistribution()
-      } else {
-        dist = await recitationService.getStageDistribution(selectedOption)
-      }
+      const dist = await recitationService.getStageDistribution(selectedOption)
       setDistribution(dist)
     } catch {
       console.error('加载阶段分布数据失败')
@@ -164,9 +169,9 @@ export function StatsPanel() {
     return totalWords - summary.unstudied
   }, [summary, totalWords])
 
-  // 当选中词书变化时，自动切换下拉
+  // 当在词书管理中选中词书时，自动切换统计面板
   useEffect(() => {
-    if (selectedBookId && selectedOption === 'all') {
+    if (selectedBookId && selectedOption !== selectedBookId) {
       setSelectedOption(selectedBookId)
     }
   }, [selectedBookId, selectedOption])
@@ -200,10 +205,9 @@ export function StatsPanel() {
       {/* 词书选择器 */}
       <div style={{ padding: '8px 12px', flexShrink: 0 }}>
         <select
-          value={selectedOption === 'all' ? 'all' : String(selectedOption)}
+          value={selectedOption ? String(selectedOption) : ''}
           onChange={(e) => {
-            const val = e.target.value
-            setSelectedOption(val === 'all' ? 'all' : Number(val))
+            setSelectedOption(Number(e.target.value))
           }}
           style={{
             width: '100%',
@@ -216,7 +220,7 @@ export function StatsPanel() {
             outline: 'none',
           }}
         >
-          <option value="all">全部词书</option>
+          {selectedOption === 0 && <option value="">加载中...</option>}
           {books.map((b) => (
             <option key={b.id} value={String(b.id)}>
               {b.name}
