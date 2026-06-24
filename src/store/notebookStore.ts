@@ -56,12 +56,16 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
     if (fn) fn(key)
   },
 
+  closeNotebook: () => {
+    set({ openFiles: new Map(), activeFilePath: null, selectedIndices: new Set(), notebook: null, openFileCount: 0 })
+  },
+
   closeFile: (key) => {
     const map = new Map(get().openFiles)
     if (!map.has(key)) return
     map.delete(key)
     if (map.size === 0) {
-      set({ openFiles: map, activeFilePath: null, selectedIndices: new Set(), notebook: null, openFileCount: 0 })
+      get().closeNotebook()
       return
     }
     const keys = [...map.keys()]

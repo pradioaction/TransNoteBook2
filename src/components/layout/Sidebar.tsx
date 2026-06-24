@@ -1,3 +1,4 @@
+import { useCallback, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useTheme } from '@/hooks/useTheme'
@@ -6,8 +7,11 @@ import { IconSettings } from '@/components/icons'
 
 export function Sidebar() {
   const { t } = useTranslation()
-  const { sidebarVisible, sidebarActiveTab } = useWorkspaceStore()
+  const { sidebarVisible, sidebarActiveTab, sidebarWidth, setSidebarWidth } = useWorkspaceStore()
   const { colors } = useTheme()
+  const draggingRef = useRef(false)
+  const startXRef = useRef(0)
+  const startWidthRef = useRef(0)
 
   const kbd: React.CSSProperties = {
     padding: '1px 5px', fontSize: 11,
@@ -17,19 +21,51 @@ export function Sidebar() {
     fontFamily: 'inherit', whiteSpace: 'nowrap',
   }
 
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    draggingRef.current = true
+    startXRef.current = e.clientX
+    startWidthRef.current = sidebarWidth
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [sidebarWidth])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return
+      const delta = e.clientX - startXRef.current
+      const newWidth = Math.max(180, Math.min(600, startWidthRef.current + delta))
+      setSidebarWidth(newWidth)
+    }
+    const handleMouseUp = () => {
+      if (draggingRef.current) {
+        draggingRef.current = false
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [setSidebarWidth])
+
   if (!sidebarVisible) return null
 
   return (
     <div
       style={{
-        width: 280,
-        minWidth: 200,
+        width: sidebarWidth,
+        minWidth: 180,
+        maxWidth: 600,
         backgroundColor: colors.sidebarBackground,
         borderRight: `1px solid ${colors.sidebarBorder}`,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         flexShrink: 0,
+        position: 'relative',
       }}
     >
       {sidebarActiveTab === 'explorer' && <FileExplorer />}
@@ -110,6 +146,19 @@ export function Sidebar() {
           </div>
         </div>
       )}
+      {/* 拖拽缩放手柄 */}
+      <div
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          cursor: 'col-resize',
+          zIndex: 10,
+        }}
+      />
     </div>
   )
 }

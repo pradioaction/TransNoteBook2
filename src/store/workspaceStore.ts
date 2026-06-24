@@ -6,11 +6,13 @@ export interface WorkspaceStore {
   workspaceFiles: FileEntry[]
   sidebarActiveTab: string
   sidebarVisible: boolean
+  sidebarWidth: number
   panelVisible: boolean
   setWorkspace: (path: string | null) => void
   scanWorkspaceFiles: () => Promise<void>
   setSidebarTab: (tabId: string) => void
   toggleSidebar: () => void
+  setSidebarWidth: (width: number) => void
   togglePanel: () => void
   refreshFiles: () => Promise<void>
 }
@@ -20,6 +22,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   workspaceFiles: [],
   sidebarActiveTab: 'explorer',
   sidebarVisible: true,
+  sidebarWidth: 280,
   panelVisible: false,
 
   setWorkspace: (path) => {
@@ -45,6 +48,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
 
   setSidebarTab: (tabId) => set({ sidebarActiveTab: tabId }),
   toggleSidebar: () => set((state) => ({ sidebarVisible: !state.sidebarVisible })),
+  setSidebarWidth: (width) => set({ sidebarWidth: width }),
   togglePanel: () => set((state) => ({ panelVisible: !state.panelVisible })),
   refreshFiles: () => get().scanWorkspaceFiles(),
 }))

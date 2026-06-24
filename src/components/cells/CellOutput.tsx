@@ -92,14 +92,14 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
           borderBottom: `1px solid ${colors.border}`,
         }}>
           <span style={{ flex: 1, fontSize: 11, color: '#999', alignSelf: 'center' }}>
-            Editing — press Escape to finish
+            {t('cellOutput.editingHint')}
           </span>
           <button onClick={() => setEditing(false)}
             style={{ fontSize: 11, padding: '2px 8px', border: `1px solid ${colors.border}`, borderRadius: 3, backgroundColor: colors.toolbarBackground, color: colors.foreground, cursor: 'pointer' }}
-          >Cancel</button>
+          >{t('cellOutput.cancel')}</button>
           <button onClick={() => setEditing(false)}
             style={{ fontSize: 11, padding: '2px 8px', border: 'none', borderRadius: 3, backgroundColor: colors.primaryButton, color: '#fff', cursor: 'pointer' }}
-          >Done</button>
+          >{t('cellOutput.done')}</button>
         </div>
         <textarea ref={textareaRef} autoFocus value={content}
           onChange={(e) => { onContentChange(e.target.value); autoResize() }}
@@ -114,7 +114,7 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
             whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             overflow: 'hidden',
           }}
-          placeholder="Edit translation (Markdown supported)..."
+          placeholder={t('cellOutput.placeholder')}
         />
       </div>
     )
@@ -141,9 +141,9 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
         position: 'absolute', top: 1, right: 4, zIndex: 2,
         display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.15s',
       }} className="cell-output-actions">
-        <button onClick={() => setEditing(true)} title="Edit translation"
+        <button onClick={() => setEditing(true)} title={t('cellOutput.editTranslation')}
           style={{ fontSize: 11, padding: '2px 6px', border: `1px solid ${colors.border}`, borderRadius: 3, backgroundColor: colors.toolbarBackground, color: colors.foreground, cursor: 'pointer' }}
-        >Edit</button>
+        >{t('cellOutput.edit')}</button>
       </div>
       <div onDoubleClick={() => setEditing(true)}
         className="md-body"

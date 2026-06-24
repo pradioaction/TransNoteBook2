@@ -223,19 +223,17 @@ export function FileExplorer() {
                 onClick={() => switchToFile(key)}
                 onContextMenu={(e) => {
                   e.preventDefault()
-                  if (openEditors.length > 1) closeFile(key)
+                  closeFile(key)
                 }}
                 title={file.path || file.name}
               >
                 <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconEdit size={14} /></span>
-                <span style={{ flex: 1 }}>{file.name}{file.isModified ? <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconDot size={10} /></span> : ''}</span>
-                {openEditors.length > 1 && (
-                  <span
-                    onClick={(e) => { e.stopPropagation(); closeFile(key) }}
-                    style={{ cursor: 'pointer', opacity: 0.5, fontSize: 14, padding: '0 2px' }}
-                    title={t('fileExplorer.close')}
-                  ><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconClose size={12} /></span></span>
-                )}
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}{file.isModified ? <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconDot size={10} /></span> : ''}</span>
+                <span
+                  onClick={(e) => { e.stopPropagation(); closeFile(key) }}
+                  style={{ cursor: 'pointer', opacity: 0.5, fontSize: 14, padding: '0 2px' }}
+                  title={t('fileExplorer.close')}
+                ><span style={{ display: 'inline-flex', verticalAlign: 'middle' }}><IconClose size={12} /></span></span>
               </div>
             )
           })

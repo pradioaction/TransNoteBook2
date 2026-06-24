@@ -242,6 +242,27 @@
   "importDialog.paragraphs": "{{count}} 个段落",
   "importDialog.placeholder": "输入或粘贴文本内容，剪贴板内容已自动加载...",
   "importDialog.cancel": "取消",
-  "importDialog.import": "导入"
+  "importDialog.import": "导入",
+
+  "fileExplorer.cellCount": "{{count}} 个单元格",
+  "fileExplorer.close": "关闭",
+  "fileExplorer.importText": "导入文本",
+  "fileExplorer.newFile": "新建文件",
+  "fileExplorer.noFiles": "暂无打开的文件",
+  "fileExplorer.noTransnbFiles": "工作区中无 .transnb 文件",
+  "fileExplorer.noWorkspace": "尚未打开工作区文件夹",
+  "fileExplorer.openEditors": "已打开的编辑器",
+  "fileExplorer.openFolder": "打开文件夹",
+  "fileExplorer.refresh": "刷新",
+  "fileExplorer.workspace": "工作区",
+
+  "panel.title": "输出面板",
+  "panel.translating": "翻译中...",
+  "panel.translationError": "翻译出错",
+  "panel.current": "当前: ",
+  "panel.doneCount": "完成: {{count}}",
+  "panel.errorCount": "错误: {{count}}",
+  "panel.cellError": "单元格 #{{idx}}: {{err}}",
+  "panel.noOutput": "暂无输出"
 }
 

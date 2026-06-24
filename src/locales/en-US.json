@@ -242,5 +242,26 @@
   "importDialog.paragraphs": "{{count}} paragraph(s)",
   "importDialog.placeholder": "Paste or type text content (clipboard loaded automatically)...",
   "importDialog.cancel": "Cancel",
-  "importDialog.import": "Import"
+  "importDialog.import": "Import",
+
+  "fileExplorer.cellCount": "{{count}} cells",
+  "fileExplorer.close": "Close",
+  "fileExplorer.importText": "Import Text",
+  "fileExplorer.newFile": "New File",
+  "fileExplorer.noFiles": "No open files",
+  "fileExplorer.noTransnbFiles": "No .transnb files in this workspace",
+  "fileExplorer.noWorkspace": "No workspace folder opened",
+  "fileExplorer.openEditors": "OPEN EDITORS",
+  "fileExplorer.openFolder": "Open Folder",
+  "fileExplorer.refresh": "Refresh",
+  "fileExplorer.workspace": "WORKSPACE",
+
+  "panel.title": "OUTPUT",
+  "panel.translating": "Translating...",
+  "panel.translationError": "Translation Error",
+  "panel.current": "Current: ",
+  "panel.doneCount": "Done: {{count}}",
+  "panel.errorCount": "Errors: {{count}}",
+  "panel.cellError": "Cell #{{idx}}: {{err}}",
+  "panel.noOutput": "No output yet."
 }

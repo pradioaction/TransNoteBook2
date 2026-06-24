@@ -185,7 +185,7 @@ export function CellEditor({
           borderBottom: `1px solid ${colors.border}`,
         }}>
           <span style={{ flex: 1, fontSize: 11, color: '#999', alignSelf: 'center' }}>
-            Editing — press Escape to finish
+            {t('cellEditor.editingHint')}
           </span>
           <button
             onClick={() => setEditing(false)}

@@ -23,7 +23,7 @@ export function useCellService(): CellService {
     const nb = store.notebook
     if (!nb) return
     const indices = [...store.selectedIndices]
-    const idx = indices.length > 0 ? Math.max(...indices) : 0
+    const idx = indices.length > 0 ? Math.max(...indices) : nb.cells.length - 1
     const cells = [...nb.cells]
     cells.splice(idx + 1, 0, createEmptyCell())
     store.setCells(cells)

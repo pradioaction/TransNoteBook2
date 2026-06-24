@@ -10,21 +10,14 @@ import { useKeyboard } from '@/hooks/useKeyboard'
 import { useTranslationService } from '@/hooks/useTranslationService'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useRecitationStore } from '@/store/recitationStore'
-import { useState, useCallback } from 'react'
-
 export function AppShell() {
   useKeyboard()
   const { status } = useTranslationService()
   const notebookPath = useNotebookStore((s) => s.notebook?.path ?? null)
   const notebookName = useNotebookStore((s) => s.notebook?.name ?? null)
   const isRecitationMode = useRecitationStore((s) => s.active)
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
 
-  const showWelcome = !welcomeDismissed && (!notebookPath || (notebookName?.startsWith('untitled-') ?? false))
-
-  const handleFileOpened = useCallback(() => {
-    setWelcomeDismissed(true)
-  }, [])
+  const showWelcome = !notebookPath && !(notebookName?.startsWith('untitled-') ?? false)
 
   return (
     <div
@@ -46,7 +39,7 @@ export function AppShell() {
             <>
               <NotebookToolbar />
               {showWelcome ? (
-                <WelcomePage onFileOpened={handleFileOpened} />
+                <WelcomePage />
               ) : (
                 <NotebookEditor />
               )}

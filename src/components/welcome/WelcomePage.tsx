@@ -5,10 +5,10 @@ import { useSettingStore } from '@/store/settingStore'
 import { IconFile } from '@/components/icons'
 
 interface WelcomePageProps {
-  onFileOpened: () => void
+  onFileOpened?: () => void
 }
 
-export function WelcomePage({ onFileOpened }: WelcomePageProps) {
+export function WelcomePage(_props: WelcomePageProps) {
   const { t } = useTranslation()
   const { colors } = useTheme()
   const fileService = useFileService()
@@ -26,17 +26,14 @@ export function WelcomePage({ onFileOpened }: WelcomePageProps) {
 
   const handleOpenFile = async () => {
     await fileService.openFile()
-    onFileOpened()
   }
 
   const handleNewFile = async () => {
     await fileService.createFile()
-    onFileOpened()
   }
 
   const openRecentFile = async (path: string) => {
     await fileService.openFile(path)
-    onFileOpened()
   }
 
   return (

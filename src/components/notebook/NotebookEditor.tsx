@@ -62,7 +62,10 @@ export function NotebookEditor() {
 
         <div
           onClick={() => {
-            if (cells.length > 0) { selectCell(cells.length - 1); cellService.insertBelow() }
+            const nb = useNotebookStore.getState().notebook
+            if (!nb) return
+            const newCell = { id: crypto.randomUUID(), type: 'markdown' as const, content: '', output: '', parentId: null, indentLevel: 0, isCollapsed: false, isInputCollapsed: false, isOutputCollapsed: false }
+            useNotebookStore.getState().setCells([...nb.cells, newCell])
           }}
           style={{
             height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',

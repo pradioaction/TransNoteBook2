@@ -45,6 +45,7 @@ export interface NotebookStore {
   setOnFileOpened: (cb: ((path: string) => void) | null) => void
   openFile: (file: NotebookFile) => void
   closeFile: (key: string) => void
+  closeNotebook: () => void
   switchToFile: (key: string) => void
   setNotebook: (notebook: NotebookFile) => void
   setCells: (cells: NotebookCell[]) => void

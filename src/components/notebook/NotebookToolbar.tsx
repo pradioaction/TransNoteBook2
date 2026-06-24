@@ -219,7 +219,7 @@ export function NotebookToolbar() {
           {testing ? '准备中...' : 'Test'}
         </button>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: '#999' }}>
+        <span style={{ fontSize: 11, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '40%' }}>
           {notebookName || 'No file'}{isModified ? <> <IconDot size={10} /></> : ''}
         </span>
       </div>
