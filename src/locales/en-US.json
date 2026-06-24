@@ -46,7 +46,7 @@
   "quizPanel.floating": "Float",
   "quizPanel.gather": "Gather",
   "quizPanel.next": "Next",
-  "quizPanel.shortcutHint": "1/2/3/4 select · ←/→ Enter navigate · Space float/gather",
+  "quizPanel.shortcutHint": "1/2/3/4 select · hold to inspect · ←/→/Enter/Space navigate · Ctrl+Tab float/gather",
 
   "reviewPanel.noData": "No review data",
   "reviewPanel.title": "Quiz Review",

@@ -26,6 +26,8 @@ export function QuizPanel() {
   const markWordsAsSynced = useRecitationStore((s) => s.markWordsAsSynced)
   const [damping, setDamping] = useState(0.9985)
   const [impulse, setImpulse] = useState(8)
+  const [kbHoverOptionId, setKbHoverOptionId] = useState<string | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const configLoaded = useRef(false)
 
   // 从 studywordmode.json 加载阻尼和冲量
@@ -143,7 +145,7 @@ export function QuizPanel() {
     [answerQuestion, quizState?.currentIndex]
   )
 
-  // 键盘快捷键
+  // 键盘快捷键（含长按检视）
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
@@ -151,11 +153,25 @@ export function QuizPanel() {
       const state = useRecitationStore.getState()
       if (!state.quizState) return
 
-      if (e.key === '1') handleSelect('A')
-      else if (e.key === '2') handleSelect('B')
-      else if (e.key === '3') handleSelect('C')
-      else if (e.key === '4') handleSelect('D')
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      const keyToOptId: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' }
+      const optId = keyToOptId[e.key]
+
+      if (optId) {
+        const cur = state.quizState.questions[state.quizState.currentIndex]
+        if (cur?.answered) {
+          // 已答完：启动长按定时器，用于键盘悬停检视
+          if (longPressTimer.current) clearTimeout(longPressTimer.current)
+          longPressTimer.current = setTimeout(() => {
+            setKbHoverOptionId(optId)
+          }, 300)
+          return
+        }
+        // 未答题：直接选择
+        handleSelect(optId)
+        return
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         if (state.quizState.currentIndex > 0) prevQuestion()
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
         const cur = state.quizState.questions[state.quizState.currentIndex]
@@ -164,13 +180,38 @@ export function QuizPanel() {
         }
       } else if (e.key === ' ') {
         e.preventDefault()
+        const cur = state.quizState.questions[state.quizState.currentIndex]
+        if (cur && cur.answered !== undefined && state.quizState.currentIndex < state.quizState.questions.length - 1) {
+          nextQuestion()
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
+        e.preventDefault()
         toggleFloatingAnimation()
       }
     }
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (['1', '2', '3', '4'].includes(e.key)) {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current)
+          longPressTimer.current = null
+        }
+        setKbHoverOptionId(null)
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
   }, [handleSelect, prevQuestion, nextQuestion, toggleFloatingAnimation])
+
+  // 切换题目时清除键盘悬停
+  useEffect(() => {
+    setKbHoverOptionId(null)
+  }, [quizState?.currentIndex])
 
   if (isComplete) {
     return (
@@ -302,6 +343,7 @@ export function QuizPanel() {
           questionKey={quizState.currentIndex}
           damping={damping}
           impulse={impulse}
+          kbHoveredOptionId={kbHoverOptionId}
         />
       </div>
 
@@ -333,7 +375,7 @@ export function QuizPanel() {
           colors={colors}
         />
         <ToolButton
-          label={t(floatingAnimationEnabled ? 'quizPanel.floating' : 'quizPanel.gather')}
+          label={t(floatingAnimationEnabled ? 'quizPanel.gather' : 'quizPanel.floating')}
           onClick={toggleFloatingAnimation}
           colors={colors}
         />

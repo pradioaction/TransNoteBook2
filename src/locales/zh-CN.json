@@ -46,7 +46,7 @@
   "quizPanel.floating": "浮动",
   "quizPanel.gather": "集合",
   "quizPanel.next": "下一题",
-  "quizPanel.shortcutHint": "1/2/3/4 选择 · ←/→/Enter 切换 · Space 集合/浮动",
+  "quizPanel.shortcutHint": "1/2/3/4 选择 · 长按数字检视 · ←/→/Enter/Space 切换 · Ctrl+Tab 集合/浮动",
 
   "reviewPanel.noData": "暂无检测数据",
   "reviewPanel.title": "检测回顾",

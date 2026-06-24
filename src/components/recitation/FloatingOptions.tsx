@@ -12,6 +12,7 @@ interface FloatingOptionsProps {
   questionKey?: number
   damping?: number
   impulse?: number
+  kbHoveredOptionId?: string | null
 }
 
 const OPTION_W = 210
@@ -40,7 +41,7 @@ function overlap(
     : [true, 0, Math.sign(dy) * oy]
 }
 
-export function FloatingOptions({ question, onSelect, selectedOptionId, disabled, questionKey, damping = 0.9985, impulse = 8 }: FloatingOptionsProps) {
+export function FloatingOptions({ question, onSelect, selectedOptionId, disabled, questionKey, damping = 0.9985, impulse = 8, kbHoveredOptionId }: FloatingOptionsProps) {
   const { t } = useTranslation()
   const gather = !useRecitationStore((s) => s.floatingAnimationEnabled)
   const { colors } = useTheme()
@@ -259,7 +260,7 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
           >
             <span style={{ fontWeight: 700, marginRight: 8, flexShrink: 0 }}>{option.id}.</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {selectedOptionId && hoveredOptionId === option.id ? option.pairText : option.text}
+              {selectedOptionId && (hoveredOptionId === option.id || kbHoveredOptionId === option.id) ? option.pairText : option.text}
             </span>
           </button>
         )
