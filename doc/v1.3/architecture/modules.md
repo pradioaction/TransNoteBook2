@@ -90,6 +90,7 @@ v1.2 解耦: 移除了对 themeStore 的直接 import, 通过 _onThemeChange 回
 
 ### outputStore.ts
 日志输出 Store, 用于底部 Panel 日志显示. 提供 addLog/clearLogs.
+v1.4 集成: addLog 方法同步写入当日日志文件, 通过 logService 异步追加, 路径为 {workspace}/.tranread/log/{yyyy-MM-dd}.log.
 
 ## 3.3 布局层 (components/layout/)
 
@@ -120,6 +121,7 @@ ActivityBar: 活动图标切换; Sidebar: 280px 可变宽度 (FileExplorer + sea
 
 ### NotebookToolbar.tsx
 文件操作 (新建/打开/保存/另存为/导入), 删除选中单元格, 设置对话框.
+v1.4 变更: 按钮文本全部改为 i18n 国际化 (toolbar.* 命名空间). 右上角集成 ReadingTimer 阅读计时器组件.
 
 ### CellContainer.tsx
 组合 CellToolbar + CellEditor + CellOutput + CellCollapseIndicator. 处理选中和缩进.
@@ -144,7 +146,21 @@ CellCollapseIndicator: 可点击折叠分隔线.
 FileExplorer: 浏览 .transnb 文件, 目录展开/折叠, 右键菜单, 打开文件列表.
 SettingsDialog: 4 标签页 (General / Translation / Prompts / Models).
 
-## 3.8 工具层
+## 3.8 阅读工具组件 (components/reading/)
+
+### ReadingTimer.tsx
+阅读界面计时器，嵌入 NotebookToolbar 右上角文件名左侧。
+```
+[▶|⏸] 00:00   文件名.transnb
+```
+功能:
+- 开始/暂停切换（SVG 播放/暂停图标）
+- 自动停止场景：文件切换 → 记录 "(file switched)"；背诵检测激活 → 记录 "(quiz started)"
+- 计时结束通过 outputStore.addLog() 写入底部 Panel 和当日日志文件
+- 无 notebook 时隐藏组件
+- 格式化: h:mm:ss / mm:ss
+
+## 3.9 工具层
 
 ### fileUtils.ts
 parseNotebookFile (v1.0/v2.0 兼容), serializeNotebookFile (2空格缩进), splitTextIntoParagraphs.
@@ -170,7 +186,7 @@ parseNotebookFile (v1.0/v2.0 兼容), serializeNotebookFile (2空格缩进), spl
 ### useTheme.ts
 将 ThemeConfig 映射为 CSS 变量, 提供主题切换和颜色获取.
 
-## 3.9 类型系统 (types/)
+## 3.10 类型系统 (types/)
 
 | 目录 | 文件 | 核心类型 |
 |------|------|----------|
@@ -182,25 +198,26 @@ parseNotebookFile (v1.0/v2.0 兼容), serializeNotebookFile (2空格缩进), spl
 
 v1.2 变更: IPC 共享类型统一到 electron.ts.
 
-## 3.10 主题系统 (styles/)
+## 3.11 主题系统 (styles/)
 
 themes.ts: 40 个颜色键 (含背诵模式配色 + 6 阶段颜色 light/dark).
 global.css: 全局样式 + TipTap 编辑器样式 + CSS 变量.
 
-## 3.11 服务层详解 (services/)
+## 3.12 服务层详解 (services/)
 
-服务接口: FileService (7方法), CellService (16方法), TranslationService (含 generateSceneText), RecitationService (含 v1.3 扩展).
+服务接口: FileService (7方法), CellService (16方法), TranslationService (含 generateSceneText), RecitationService (含 v1.3 扩展), LogService (5方法).
 
-| 服务 | 模式 | Hook | 依赖 |
+| 服务 | 模式 | Hook / 创建方式 | 依赖 |
 |------|------|------|------|
 | FileService | 模块级闭包 | useFileService | notebookStore, workspaceStore, electronAPI |
 | CellService | 模块级闭包 | useCellService | notebookStore |
 | TranslationService | 模块级单例 | useTranslationService | notebookStore, settingStore, providers |
 | RecitationService | IPC 代理 | useRecitationService | recitationAPI |
+| LogService | 模块级闭包 (工厂) | createLogService(getWorkspacePath) | window.electronAPI, workspaceStore |
 
 设计原则: 接口与实现分离, 组合而非继承, 可选 Hook 封装, 单一职责.
 
-## 3.12 翻译模块详解 (translation/)
+## 3.13 翻译模块详解 (translation/)
 
 TranslationProvider 接口 + 策略模式.
 内置提供者: OllamaProvider (system, ollama), OpenAIProvider (system, openai), ArkProvider (custom, ark).

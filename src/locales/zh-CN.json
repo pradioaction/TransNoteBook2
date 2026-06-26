@@ -263,6 +263,19 @@
   "panel.doneCount": "完成: {{count}}",
   "panel.errorCount": "错误: {{count}}",
   "panel.cellError": "单元格 #{{idx}}: {{err}}",
-  "panel.noOutput": "暂无输出"
+  "panel.noOutput": "暂无输出",
+
+  "toolbar.new": "新建",
+  "toolbar.open": "打开",
+  "toolbar.save": "保存",
+  "toolbar.saveAs": "另存为",
+  "toolbar.import": "导入",
+  "toolbar.translateAll": "翻译全部",
+  "toolbar.translating": "翻译中 {{progress}}%",
+  "toolbar.cancel": "取消",
+  "toolbar.delete": "删除",
+  "toolbar.test": "检测",
+  "toolbar.testing": "准备中...",
+  "toolbar.noFile": "无文件"
 }
 

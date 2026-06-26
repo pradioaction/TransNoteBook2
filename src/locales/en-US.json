@@ -263,5 +263,18 @@
   "panel.doneCount": "Done: {{count}}",
   "panel.errorCount": "Errors: {{count}}",
   "panel.cellError": "Cell #{{idx}}: {{err}}",
-  "panel.noOutput": "No output yet."
+  "panel.noOutput": "No output yet.",
+
+  "toolbar.new": "New",
+  "toolbar.open": "Open",
+  "toolbar.save": "Save",
+  "toolbar.saveAs": "Save As",
+  "toolbar.import": "Import",
+  "toolbar.translateAll": "Translate All",
+  "toolbar.translating": "Translating {{progress}}%",
+  "toolbar.cancel": "Cancel",
+  "toolbar.delete": "Delete",
+  "toolbar.test": "Test",
+  "toolbar.testing": "Preparing...",
+  "toolbar.noFile": "No file"
 }

@@ -93,6 +93,27 @@ useTheme hook 重新计算 cssVars
 React 重新渲染，CSS 变量更新 (--foreground, --background)
 ```
 
+### 4.8 日志写入流程
+```
+组件调用 useOutputStore.getState().addLog(message, level)
+    ↓
+outputStore 生成 LogEntry { id, timestamp, message, level }
+    ↓
+set(state => logs.push(entry))  →  Panel 实时显示
+    ↓
+logService.appendToFile(todayPath, `[HH:mm:ss] [LEVEL] message\n`)
+    ↓
+enqueue → processQueue (异步, 防并发锁)
+    ↓
+electronAPI.readFile → electronAPI.writeFile (追加)
+    ↓
+日志文件: {workspace}/.tranread/log/{yyyy-MM-dd}.log
+```
+
+触发入口:
+- ReadingTimer.stopTimer() → 阅读计时停止时
+- ReviewPanel 测验保存完成 → 测验结果统计
+
 ## 5. 扩展点
 
 ### 5.1 新增翻译提供者
@@ -121,6 +142,11 @@ React 重新渲染，CSS 变量更新 (--foreground, --background)
 2. themeStore.ts 的 themes 字典注册
 3. SettingsDialog 添加选择选项
 
+### 5.6 新增日志输出入口
+1. 在目标组件中 import { useOutputStore } from '@/store/outputStore'
+2. 调用 useOutputStore.getState().addLog(message, level)
+3. 日志自动写入底部 Panel 和当日 .log 文件
+
 ## 6. 依赖关系
 
 ```
@@ -128,12 +154,14 @@ AppShell
 ├── useKeyboard (全局快捷键)
 ├── ActivityBar → useWorkspaceStore
 ├── Sidebar → useWorkspaceStore / FileExplorer / useTheme
-├── NotebookToolbar → useFileService / useNotebookStore / SettingsDialog
+├── NotebookToolbar → useFileService / useNotebookStore / SettingsDialog / ReadingTimer
+│   └── ReadingTimer → useNotebookStore / useRecitationStore / useOutputStore / useTheme
 ├── NotebookEditor → useNotebookStore / useCellService / CellContainer[]
 │   └── CellContainer → CellToolbar / CellEditor (TipTap) / CellOutput (marked) / CellCollapseIndicator
-├── Panel → useTranslationService / useTheme
+├── Panel → useTranslationService / useTheme / useOutputStore
+│   └── useOutputStore.addLog() → logService.appendToFile()
 ├── RecitationShell → useRecitationService / useRecitationStore
-│   └── BookManagerPanel / QuizPanel / ReviewPanel + WordSidebar
+│   └── BookManagerPanel / QuizPanel / ReviewPanel → useOutputStore.addLog()
 └── StatusBar → useNotebookStore / useTheme
 ```
 
@@ -151,9 +179,9 @@ TSBook2/
 │       └── bookService.ts / studyService.ts
 ├── scripts/ / tests/
 ├── src/
-│   ├── components/ (cells/ recitation/ file/ layout/ notebook/ welcome/ settings/)
+│   ├── components/ (cells/ recitation/ file/ layout/ notebook/ welcome/ settings/ reading/)
 │   ├── hooks/ (useKeyboard / useTheme / use*Service)
-│   ├── services/ (types / translationService / recitationService)
+│   ├── services/ (types / translationService / recitationService / logService)
 │   ├── translation/ (types / providerFactory / providers/ollama/openai/ark)
 │   ├── store/ (notebookStore / workspaceStore / themeStore / settingStore / recitationStore / outputStore)
 │   ├── styles/ (global.css / themes.ts)
@@ -215,7 +243,7 @@ TSBook2/
 
 ## 12. 版本状态
 
-> 当前版本: v1.3 | 最后更新: 2026-06-18
+> 当前版本: v1.3 | 最后更新: 2026-06-26
 
 ### v1.1 (已完成)
 - 单元格编辑/阅读模式切换 (marked 渲染)
@@ -241,6 +269,13 @@ TSBook2/
 - 已测单词持久化追踪 (markWordsAsTested + testedNewWordIds/testedReviewWordIds)
 - 悬停选项切换显示对应文本 (FloatingOptions pairText)
 - 后端 API 扩展 (markWordsAsTested, getStageDistribution, getWordsByStage)
+
+### v1.4 (未发布, 当前开发中)
+- 阅读界面计时器 (ReadingTimer: 开始/暂停, 文件切换/检测激活自动停止)
+- 工作区日志模块 (logService: 异步写入队列, .tranread/log/{日期}.log)
+- 工具栏 i18n 国际化 (toolbar.* 命名空间, 10 个键)
+- outputStore 集成日志持久化 (addLog 同步写入当日日志文件)
+- ReviewPanel 测验结果日志输出 (正确率/用时统计)
 
 ### 待办
 - 翻译错误重试机制

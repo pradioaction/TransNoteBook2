@@ -27,8 +27,12 @@ function createEmptyNotebookFile(): NotebookFile {
   }
 }
 
+function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/')
+}
+
 function fileKey(file: NotebookFile): string {
-  return file.path || `__temp__${file.name}`
+  return file.path ? normalizePath(file.path) : `__temp__${file.name}`
 }
 
 export const useNotebookStore = create<NotebookStore>((set, get) => ({
@@ -42,14 +46,15 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   setOnFileOpened: (cb) => set({ _onFileOpened: cb }),
 
   openFile: (file) => {
-    const key = fileKey(file)
+    const normalizedFile = file.path ? { ...file, path: normalizePath(file.path) } : file
+    const key = fileKey(normalizedFile)
     const map = new Map(get().openFiles)
-    map.set(key, { ...file })
+    map.set(key, { ...normalizedFile })
     set({
       openFiles: map,
       activeFilePath: key,
       selectedIndices: new Set(),
-      notebook: { ...file },
+      notebook: { ...normalizedFile },
       openFileCount: map.size,
     })
     const fn = get()._onFileOpened
@@ -95,15 +100,16 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   },
 
   setNotebook: (nb) => {
-    const key = fileKey(nb)
+    const normalizedNb = nb.path ? { ...nb, path: normalizePath(nb.path) } : nb
+    const key = fileKey(normalizedNb)
     const map = new Map(get().openFiles)
-    map.set(key, { ...nb })
+    map.set(key, { ...normalizedNb })
     const sel = new Set<number>()
     set({
       openFiles: map,
       activeFilePath: key,
       selectedIndices: sel,
-      notebook: { ...nb },
+      notebook: { ...normalizedNb },
       openFileCount: map.size,
     })
   },
@@ -120,11 +126,12 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   setFilePath: (path) => {
     const s = get()
     if (!s.notebook) return
+    const normalizedPath = path ? normalizePath(path) : path
     const oldKey = s.activeFilePath ?? fileKey(s.notebook)
     const nb = {
       ...s.notebook,
-      path,
-      name: path ? path.split(/[/\\]/).pop() || s.notebook.name : s.notebook.name,
+      path: normalizedPath,
+      name: normalizedPath ? normalizedPath.split('/').pop() || s.notebook.name : s.notebook.name,
     }
     const newKey = fileKey(nb)
     const map = new Map(s.openFiles)

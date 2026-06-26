@@ -4,6 +4,10 @@ import { parseNotebookFile, serializeNotebookFile, splitTextIntoParagraphs } fro
 import type { FileService, ImportTextOptions } from '@/services/types'
 import type { NotebookCell } from '@/types/notebook'
 
+function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/')
+}
+
 export function useFileService(): FileService {
   const notebookStore = useNotebookStore()
   const workspaceStore = useWorkspaceStore()
@@ -15,8 +19,9 @@ export function useFileService(): FileService {
     if (!fp) return
     const content = await api.readFile(fp)
     const data = parseNotebookFile(content)
-    const name = fp.split(/[/\\]/).pop() || 'untitled.transnb'
-    notebookStore.openFile({ path: fp, name, isModified: false, cells: data.cells, wordMeta: data.wordMeta })
+    const normalizedPath = normalizePath(fp)
+    const name = normalizedPath.split('/').pop() || 'untitled.transnb'
+    notebookStore.openFile({ path: normalizedPath, name, isModified: false, cells: data.cells, wordMeta: data.wordMeta })
   }
 
   const saveFile = async (): Promise<boolean> => {
@@ -38,8 +43,9 @@ export function useFileService(): FileService {
     if (!p) return false
     const nb = notebookStore.notebook
     if (!nb) return false
+    const normalizedPath = normalizePath(p)
     await api.writeFile(p, serializeNotebookFile(nb.cells, nb.wordMeta))
-    notebookStore.setFilePath(p)
+    notebookStore.setFilePath(normalizedPath)
     notebookStore.setModified(false)
     workspaceStore.refreshFiles()
     return true
@@ -101,17 +107,18 @@ export function useFileService(): FileService {
     if (!api) return
     const savePath = await api.saveFileDialog()
     if (!savePath) return
+    const normalizedPath = normalizePath(savePath)
     const emptyJson = serializeNotebookFile([])
     await api.writeFile(savePath, emptyJson)
-    const name = savePath.split(/[/\\]/).pop() || 'new.transnb'
-    notebookStore.openFile({ path: savePath, name, isModified: false, cells: [] })
+    const name = normalizedPath.split('/').pop() || 'new.transnb'
+    notebookStore.openFile({ path: normalizedPath, name, isModified: false, cells: [] })
     workspaceStore.refreshFiles()
   }
 
   const deleteFile = async (filePath: string) => {
     if (!api) return
     await api.deleteFile(filePath)
-    const key = filePath
+    const key = normalizePath(filePath)
     if (notebookStore.openFiles.has(key)) {
       notebookStore.closeFile(key)
     }
@@ -120,9 +127,26 @@ export function useFileService(): FileService {
 
   const renameFile = async (oldPath: string, newName: string) => {
     if (!api) return
-    const dir = oldPath.substring(0, Math.max(oldPath.lastIndexOf('/'), oldPath.lastIndexOf('\\')))
+    const normalizedOld = normalizePath(oldPath)
+    const dir = normalizedOld.substring(0, normalizedOld.lastIndexOf('/'))
     const newPath = dir + '/' + newName
     await api.renameFile(oldPath, newPath)
+    // 如果重命名的文件在 openFiles 中，更新其 key
+    const normalizedNew = normalizePath(newPath)
+    const oldKey = normalizedOld
+    if (notebookStore.openFiles.has(oldKey)) {
+      const file = notebookStore.openFiles.get(oldKey)!
+      const updatedFile = { ...file, path: normalizedNew, name: newName }
+      const newKey = normalizedNew
+      const map = new Map(notebookStore.openFiles)
+      map.delete(oldKey)
+      map.set(newKey, updatedFile)
+      useNotebookStore.setState({
+        openFiles: map,
+        activeFilePath: notebookStore.activeFilePath === oldKey ? newKey : notebookStore.activeFilePath,
+        notebook: notebookStore.notebook?.path === normalizedOld ? updatedFile : notebookStore.notebook,
+      })
+    }
     workspaceStore.refreshFiles()
   }
 

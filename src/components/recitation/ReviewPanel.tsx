@@ -5,6 +5,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { useNotebookStore } from '@/store/notebookStore'
+import { useOutputStore } from '@/store/outputStore'
 
 export function ReviewPanel() {
   const { t } = useTranslation()
@@ -68,6 +69,19 @@ export function ReviewPanel() {
           await recitationService.markWordsAsTested(selectedBookId, testedNewIds, testedReviewIds, quizResults)
         }
       }
+
+      // 输出检测日志
+      const total = quizState.questions.length
+      const correctCount = [...quizState.results.values()].filter(Boolean).length
+      const wrongCount = total - correctCount
+      const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
+      const elapsed = Math.round((Date.now() - quizState.startTime) / 1000)
+      const mm = Math.floor(elapsed / 60)
+      const ss = elapsed % 60
+      const bookName = useRecitationStore.getState().selectedBookName || '未知词书'
+      useOutputStore.getState().addLog(
+        `【检测完成】词书: ${bookName} | 总题数: ${total} | 正确: ${correctCount} | 错误: ${wrongCount} | 正确率: ${accuracy}% | 用时: ${mm}分${ss}秒`
+      )
     } catch (err) {
       console.error('[ReviewPanel] 保存检测结果失败:', err)
     }

@@ -71,9 +71,11 @@ TSBook2 应用
 │   │   ├── Panel.tsx     # 底部面板 (翻译进度 + 日志)
 │   │   └── StatusBar.tsx # 状态栏
 │   ├── 业务组件层
+│   │   ├── reading/      # 阅读工具组件
+│   │   │   └── ReadingTimer.tsx     # 阅读计时器 (开始/暂停 + 自动停止 + 日志)
 │   │   ├── notebook/     # 笔记本组件
 │   │   │   ├── NotebookEditor.tsx   # 笔记本编辑器主区域
-│   │   │   └── NotebookToolbar.tsx  # 笔记本工具栏 (含翻译全部按钮)
+│   │   │   └── NotebookToolbar.tsx  # 笔记本工具栏 (含翻译全部 + ReadingTimer + i18n)
 │   │   ├── cells/        # 单元格组件
 │   │   │   ├── CellContainer.tsx    # 单元格容器 (含翻译状态指示器)
 │   │   │   ├── CellEditor.tsx       # 单元格原文编辑器
@@ -103,7 +105,8 @@ TSBook2 应用
 │   │   ├── types.ts              # 服务层接口定义
 │   │   ├── index.ts              # 统一导出 (仅类型)
 │   │   ├── translationService.ts # 翻译服务 (模块级单例)
-│   │   └── recitationService.ts  # 背诵服务 (IPC 代理)
+│   │   ├── recitationService.ts  # 背诵服务 (IPC 代理)
+│   │   └── logService.ts         # 日志服务 (异步写入队列, .tranread/log/ 目录)
 │   ├── 翻译模块 (translation/)
 │   │   ├── types.ts              # TranslationProvider 接口 + ProviderInfo
 │   │   ├── providerFactory.ts    # 提供者工厂
@@ -176,7 +179,8 @@ TSBook2 应用
 │  │                                                         ││
 │  │  ┌─ 正常模式 ───────────────────────────────────────┐  ││
 │  │  │  ActivityBar │ Sidebar > FileExplorer             │  ││
-│  │  │  NotebookToolbar │ NotebookEditor                  │  ││
+│  │  │  NotebookToolbar (含 ReadingTimer)                 │  ││
+│  │  │  NotebookEditor                                   │  ││
 │  │  │  └── CellContainer[] → CellToolbar/CellEditor/... │  ││
 │  │  │  Panel (翻译进度 + 日志)                           │  ││
 │  │  └──────────────────────────────────────────────────┘  ││
@@ -192,10 +196,12 @@ TSBook2 应用
 │  │  └──────────────────────────────────────────────────┘  ││
 │  │                                                         ││
 │  │  Service Layer: useFileService / useCellService /       ││
-│  │                useTranslationService / useRecitationService ││
+│  │                useTranslationService / useRecitationService / ││
+│  │                logService                                ││
 │  │  Stores: useNotebookStore / useWorkspaceStore /         ││
 │  │          useThemeStore / useSettingStore /              ││
-│  │          useRecitationStore / useOutputStore            ││
+│  │          useRecitationStore / useOutputStore             ││
+│  │              └── 集成 logService 写入 .tranread/log/    ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
 ```
