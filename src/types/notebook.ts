@@ -173,7 +173,7 @@ export interface AppSettings {
 
 interface RecitationAPI {
   init(workspacePath: string): Promise<boolean>
-  addBook(book: { name: string; path: string; count: number }): Promise<Book | null>
+  addBook(book: { name: string; path: string; count: number; description?: string }): Promise<Book | null>
   getBookById(bookId: number): Promise<Book | null>
   getAllBooks(): Promise<Book[]>
   deleteBook(bookId: number): Promise<boolean>
@@ -190,13 +190,19 @@ interface RecitationAPI {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
-  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): Promise<boolean>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): Promise<boolean>
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>
   getStageDistribution(bookId: number): Promise<StageDistribution>
   getOverallStageDistribution(): Promise<StageDistribution>
   getWordsByStage(bookId: number, minStage: number, maxStage: number): Promise<Word[]>
+
+  // === v1.4 新增 ===
+  renameBook(bookId: number, newName: string): Promise<boolean>
+  exportBook(bookId: number, exportPath: string): Promise<boolean>
+  exportBookToDialog(bookId: number): Promise<string | null>
+  batchDeleteWords(bookId: number, wordIds: number[]): Promise<{ success: number; failed: number; errors?: string[] }>
 }
 
 declare global {

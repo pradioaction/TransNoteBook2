@@ -39,6 +39,10 @@ export class RecitationDAL {
     return this.bookDAL.updateBook(book)
   }
 
+  renameBook(bookId: number, newName: string): boolean {
+    return this.bookDAL.rename(bookId, newName)
+  }
+
   deleteBook(bookId: number): boolean {
     return this.bookDAL.deleteBook(bookId)
   }
@@ -109,6 +113,10 @@ export class RecitationDAL {
 
   deleteWord(wordId: number): boolean {
     return this.wordDAL.deleteWord(wordId)
+  }
+
+  batchDeleteWords(wordIds: number[]): number {
+    return this.wordDAL.batchDelete(wordIds)
   }
 
   checkWordExistsInBook(bookId: number, wordText: string): boolean {

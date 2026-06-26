@@ -4,6 +4,7 @@ import type { TranslationProvider } from '@/translation/types'
 import { createSystemProviders, createCustomProviders } from '@/translation/providerFactory'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useSettingStore } from '@/store/settingStore'
+import { serializeNotebookFile } from '@/utils/fileUtils'
 
 export function createTranslationService(): TranslationService {
   let systemProviders = createSystemProviders()
@@ -116,6 +117,17 @@ export function createTranslationService(): TranslationService {
     status.state = 'idle'
     status.currentContent = undefined
     status.progress = 100
+
+    // 全部翻译完成后自动保存文件，避免内容丢失
+    try {
+      const nb = useNotebookStore.getState().notebook
+      if (nb?.path && window.electronAPI) {
+        await window.electronAPI.writeFile(nb.path, serializeNotebookFile(nb.cells, nb.wordMeta))
+        useNotebookStore.getState().setModified(false)
+      }
+    } catch {
+      // 自动保存失败不影响翻译结果
+    }
   }
 
   return {

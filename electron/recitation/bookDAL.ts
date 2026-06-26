@@ -70,6 +70,17 @@ export class BookDAL {
     }
   }
 
+  rename(bookId: number, newName: string): boolean {
+    try {
+      const db = this._db.getDb()
+      const result = db.prepare('UPDATE book SET name = ? WHERE id = ?').run(newName, bookId)
+      return result.changes > 0
+    } catch (err) {
+      console.error(`[BookDAL] rename failed: ${err}`)
+      return false
+    }
+  }
+
   deleteBook(bookId: number): boolean {
     try {
       const db = this._db.getDb()

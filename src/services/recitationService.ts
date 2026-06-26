@@ -1,4 +1,4 @@
-import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult, StageDistribution } from '@/recitation/types'
+import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult, StageDistribution, BatchOperationResult } from '@/recitation/types'
 
 export interface RecitationService {
   init(workspacePath: string): Promise<boolean>
@@ -25,6 +25,14 @@ export interface RecitationService {
   getStageDistribution(bookId: number): Promise<StageDistribution>
   getOverallStageDistribution(): Promise<StageDistribution>
   getWordsByStage(bookId: number, minStage: number, maxStage: number): Promise<Word[]>
+
+  // === v1.4 新增 ===
+  createBook(name: string, description?: string): Promise<Book | null>
+  renameBook(bookId: number, newName: string): Promise<boolean>
+  exportBook(bookId: number): Promise<boolean>
+  searchBooks(keyword: string): Promise<Book[]>
+  batchDeleteWords(bookId: number, wordIds: number[]): Promise<BatchOperationResult>
+  batchImportWords(bookId: number): Promise<BatchOperationResult>
 }
 
 export function createRecitationService(): RecitationService {
@@ -125,6 +133,38 @@ export function createRecitationService(): RecitationService {
 
     getWordsByStage: async (bookId: number, minStage: number, maxStage: number) => {
       return (await api()?.getWordsByStage(bookId, minStage, maxStage)) ?? []
+    },
+
+    // === v1.4 新增 ===
+
+    createBook: async (name: string, description?: string) => {
+      return (await api()?.addBook({ name, path: '', count: 0, description })) ?? null
+    },
+
+    renameBook: async (bookId: number, newName: string) => {
+      return (await api()?.renameBook(bookId, newName)) ?? false
+    },
+
+    exportBook: async (bookId: number) => {
+      const path = await api()?.exportBookToDialog(bookId)
+      return path !== null && path !== undefined
+    },
+
+    searchBooks: async (keyword: string) => {
+      // Client-side filtering from already loaded books
+      const all = await api()?.getAllBooks() ?? []
+      if (!keyword.trim()) return all as Book[]
+      const kw = keyword.toLowerCase()
+      return all.filter(b => b.name.toLowerCase().includes(kw)) as Book[]
+    },
+
+    batchDeleteWords: async (bookId: number, wordIds: number[]) => {
+      return (await api()?.batchDeleteWords(bookId, wordIds)) ?? { success: 0, failed: wordIds.length }
+    },
+
+    batchImportWords: async (bookId: number) => {
+      // Stub: for future implementation
+      return { success: 0, failed: 0 }
     },
   }
 }

@@ -83,6 +83,7 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord, inde
         <input
           type="checkbox"
           checked={word.isSelected}
+          readOnly
           onClick={(e) => {
             e.stopPropagation()
             onToggle?.(word.id, isNewWord, index, e.ctrlKey, batchStage)

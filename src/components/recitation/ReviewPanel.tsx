@@ -6,6 +6,8 @@ import { useRecitationStore } from '@/store/recitationStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useOutputStore } from '@/store/outputStore'
+import type { BookWithProgress } from '@/recitation/types'
+import { IconClose } from '@/components/icons'
 
 export function ReviewPanel() {
   const { t } = useTranslation()
@@ -22,6 +24,44 @@ export function ReviewPanel() {
 
   const [selectedWrongIds, setSelectedWrongIds] = useState<Set<number>>(new Set())
   const recitationService = useRecitationService()
+
+  // 收藏到词书对话框状态
+  const [bookPickerOpen, setBookPickerOpen] = useState(false)
+  const [availableBooks, setAvailableBooks] = useState<BookWithProgress[]>([])
+  const [selectedTargetBookId, setSelectedTargetBookId] = useState<number | null>(null)
+  const [bookLoading, setBookLoading] = useState(false)
+  const [addResult, setAddResult] = useState<string | null>(null)
+
+  // 当前词书的完整单词数据映射（按 wordId 索引），打开对话框时懒加载
+  const [cachedWordMap, setCachedWordMap] = useState<Map<number, { word: string; phonetic: string; definition: string; example: string }>>(new Map())
+
+  // 打开收藏对话框：加载词书列表 + 当前词书完整单词
+  const openBookPicker = useCallback(async () => {
+    if (!selectedBookId) return
+    setBookLoading(true)
+    try {
+      const [books, words] = await Promise.all([
+        recitationService.getAllBooksWithProgress(),
+        recitationService.getWordsByBook(selectedBookId),
+      ])
+      setAvailableBooks(books)
+      // 构建 wordId -> full word data 映射
+      const map = new Map<number, { word: string; phonetic: string; definition: string; example: string }>()
+      for (const w of words) {
+        if (w.id != null) {
+          map.set(w.id, { word: w.word, phonetic: w.phonetic, definition: w.definition, example: w.example })
+        }
+      }
+      setCachedWordMap(map)
+      setSelectedTargetBookId(null)
+      setAddResult(null)
+      setBookPickerOpen(true)
+    } catch {
+      console.error('加载词书列表失败')
+    } finally {
+      setBookLoading(false)
+    }
+  }, [selectedBookId, recitationService])
 
   // 将检测结果保存到数据库
   const saveQuizResults = useCallback(async () => {
@@ -166,9 +206,43 @@ export function ReviewPanel() {
   }
 
   const handleAddToFavorite = () => {
-    // TODO: 创建或找到收藏夹词书，将选中的错词写入
-    console.log('Add to favorite:', [...selectedWrongIds])
+    openBookPicker()
   }
+
+  // 确认将选中错词添加到目标词书
+  const handleAddToBookConfirm = useCallback(async () => {
+    if (!selectedBookId || !selectedTargetBookId) return
+    setBookLoading(true)
+    setAddResult(null)
+    try {
+      const wordIds = Array.from(selectedWrongIds)
+      let added = 0
+      let skipped = 0
+      for (const wordId of wordIds) {
+        const wordData = cachedWordMap.get(wordId)
+        if (!wordData) { skipped++; continue }
+        // 检查目标词书是否已有该单词
+        const existing = await recitationService.searchWords(wordData.word, selectedTargetBookId)
+        if (existing.length > 0) { skipped++; continue }
+        await recitationService.addWord(selectedTargetBookId, wordData)
+        added++
+      }
+      setAddResult(`${t('reviewPanel.addToBookResult', { added, skipped })}`)
+      if (added > 0) {
+        // 刷新目标词书的进度
+        setAvailableBooks(prev => prev.map(b =>
+          b.book.id === selectedTargetBookId
+            ? { ...b, total: b.total + added }
+            : b
+        ))
+      }
+    } catch (err) {
+      console.error('添加到词书失败', err)
+      setAddResult(t('reviewPanel.addToBookError'))
+    } finally {
+      setBookLoading(false)
+    }
+  }, [selectedBookId, selectedTargetBookId, selectedWrongIds, cachedWordMap, recitationService, t])
 
   const handleBack = async () => {
     await saveQuizResults()
@@ -202,8 +276,20 @@ export function ReviewPanel() {
       reset()
       return
     }
-    reset()
-    setPhase('book-manager')
+    // 非文章来源：回到词书管理界面，保留选中词书
+    setSidebarMode('full')
+    if (selectedBookId && selectedBookName) {
+      setPhase('book-manager')
+      // 清除检测期间的答题状态，让 BookManagerPanel 重新加载侧边栏数据
+      setSidebarData({
+        newWords: [],
+        reviewWordBatches: [],
+        studiedCount: 0,
+        pendingReviewCount: 0,
+      })
+    } else {
+      reset()
+    }
   }
 
   return (
@@ -370,6 +456,130 @@ export function ReviewPanel() {
           {t('reviewPanel.restartQuiz')}
         </button>
       </div>
+
+      {/* 选择目标词书对话框 */}
+      {bookPickerOpen && (
+        <div
+          onClick={() => { if (!bookLoading) setBookPickerOpen(false) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 420,
+              backgroundColor: colors.editorBackground,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+              padding: 24,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: colors.foreground }}>
+                {t('reviewPanel.selectTargetBook')}
+              </span>
+              <button
+                onClick={() => setBookPickerOpen(false)}
+                style={{
+                  background: 'none', border: 'none', color: colors.foreground,
+                  cursor: 'pointer', fontSize: 16, padding: '0 4px', display: 'inline-flex', alignItems: 'center',
+                }}
+              >
+                <IconClose size={14} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, color: colors.foreground, marginBottom: 6, fontWeight: 500 }}>
+                {t('reviewPanel.currentWrongWords')}: {selectedWrongIds.size}
+              </label>
+            </div>
+
+            {/* 词书列表 */}
+            <div style={{ maxHeight: 240, overflow: 'auto', marginBottom: 16 }}>
+              {availableBooks.length === 0 ? (
+                <div style={{ padding: 16, textAlign: 'center', color: colors.foreground, opacity: 0.5, fontSize: 13 }}>
+                  {t('reviewPanel.noBooks')}
+                </div>
+              ) : (
+                availableBooks.map((b) => (
+                  <div
+                    key={b.book.id}
+                    onClick={() => setSelectedTargetBookId(b.book.id!)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 10px', borderRadius: 4,
+                      cursor: 'pointer', marginBottom: 2,
+                      backgroundColor: selectedTargetBookId === b.book.id ? colors.cellSelectedBackground : 'transparent',
+                      transition: 'background-color 0.1s',
+                    }}
+                    onMouseEnter={(e) => { if (selectedTargetBookId !== b.book.id) e.currentTarget.style.backgroundColor = colors.listItemHover }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = selectedTargetBookId === b.book.id ? colors.cellSelectedBackground : 'transparent' }}
+                  >
+                    <input
+                      type="radio"
+                      checked={selectedTargetBookId === b.book.id}
+                      onChange={() => setSelectedTargetBookId(b.book.id!)}
+                      style={{ margin: 0, cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: 13, color: colors.foreground, fontWeight: 500 }}>
+                      {b.book.name}
+                    </span>
+                    <span style={{ fontSize: 11, color: colors.foreground, opacity: 0.5, marginLeft: 'auto' }}>
+                      {b.book.count} {t('reviewPanel.wordUnit')}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 操作结果反馈 */}
+            {addResult && (
+              <div style={{
+                padding: '8px 12px', marginBottom: 12, borderRadius: 4, fontSize: 13,
+                backgroundColor: addResult.includes('失败') ? colors.wordWrongBackground : colors.wordCorrectBackground,
+                color: addResult.includes('失败') ? colors.errorText : colors.foreground,
+              }}>
+                {addResult}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setBookPickerOpen(false)}
+                disabled={bookLoading}
+                style={{
+                  padding: '6px 16px', fontSize: 13,
+                  border: `1px solid ${colors.border}`, borderRadius: 4,
+                  backgroundColor: 'transparent', color: colors.foreground,
+                  cursor: 'pointer',
+                }}
+              >
+                {t('reviewPanel.cancel')}
+              </button>
+              <button
+                onClick={handleAddToBookConfirm}
+                disabled={!selectedTargetBookId || bookLoading}
+                style={{
+                  padding: '6px 16px', fontSize: 13,
+                  border: 'none', borderRadius: 4,
+                  backgroundColor: colors.primaryButton, color: '#fff',
+                  cursor: selectedTargetBookId ? 'pointer' : 'not-allowed',
+                  opacity: selectedTargetBookId ? 1 : 0.5,
+                }}
+              >
+                {bookLoading
+                  ? t('reviewPanel.adding')
+                  : t('reviewPanel.confirmAdd', { count: selectedWrongIds.size })}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

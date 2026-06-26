@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 import { useRecitationStore } from '@/store/recitationStore'
@@ -9,6 +9,7 @@ import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useOutputStore } from '@/store/outputStore'
 import { BookCard } from './BookCard'
 import { WordManagerDialog } from './WordManagerDialog'
+import { CreateBookDialog } from './CreateBookDialog'
 import { processArticleText } from '@/utils/articleUtils'
 import { serializeNotebookFile } from '@/utils/fileUtils'
 import type { BookWithProgress, StageSummary, StageFilter } from '@/recitation/types'
@@ -71,6 +72,18 @@ export function BookManagerPanel() {
   const [dialogBookName, setDialogBookName] = useState('')
   const [dialogStageFilter, setDialogStageFilter] = useState<StageFilter | undefined>(undefined)
   const [stageSummaryMap, setStageSummaryMap] = useState<Record<number, StageSummary>>({})
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+
+  // 搜索过滤（客户端实时过滤，不依赖服务端）
+  const filteredBooks = useMemo(() => {
+    if (!searchKeyword.trim()) return books
+    const kw = searchKeyword.toLowerCase()
+    return books.filter(b => b.book.name.toLowerCase().includes(kw))
+  }, [books, searchKeyword])
+
+  // 搜索结果为空时显示的空状态类型
+  const hasSearch = searchKeyword.trim().length > 0
 
   // 加载词书列表 + studywordmode.json 配置
   const loadBooks = useCallback(async () => {
@@ -431,6 +444,40 @@ export function BookManagerPanel() {
     }
   }, [recitationService, loadBooks])
 
+  // 新建词书
+  const handleCreate = useCallback(async (name: string, description: string) => {
+    try {
+      const book = await recitationService.createBook(name, description || undefined)
+      if (book) {
+        await loadBooks()
+        // 自动选中新建的词书
+        handleSelectBook(book.id!, book.name)
+      }
+      setCreateOpen(false)
+    } catch {
+      console.error('新建词书失败')
+    }
+  }, [recitationService, loadBooks, handleSelectBook])
+
+  // 导出词书
+  const handleExport = useCallback(async (bookId: number) => {
+    try {
+      await recitationService.exportBook(bookId)
+    } catch {
+      console.error('导出词书失败')
+    }
+  }, [recitationService])
+
+  // 重命名词书
+  const handleRename = useCallback(async (bookId: number, newName: string) => {
+    try {
+      await recitationService.renameBook(bookId, newName)
+      await loadBooks()
+    } catch {
+      console.error('重命名词书失败')
+    }
+  }, [recitationService, loadBooks])
+
   return (
     <div
       style={{
@@ -479,6 +526,20 @@ export function BookManagerPanel() {
           {t('bookManager.import')}
         </button>
         <button
+          onClick={() => setCreateOpen(true)}
+          style={{
+            padding: '6px 14px',
+            fontSize: 13,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 4,
+            backgroundColor: 'transparent',
+            color: colors.foreground,
+            cursor: 'pointer',
+          }}
+        >
+          {t('bookManager.newBook')}
+        </button>
+        <button
           onClick={loadBooks}
           style={{
             padding: '6px 14px',
@@ -492,6 +553,22 @@ export function BookManagerPanel() {
         >
           {t('bookManager.refresh')}
         </button>
+        {selectedBookId && (
+          <button
+            onClick={() => handleExport(selectedBookId)}
+            style={{
+              padding: '6px 14px',
+              fontSize: 13,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 4,
+              backgroundColor: 'transparent',
+              color: colors.foreground,
+              cursor: 'pointer',
+            }}
+          >
+            {t('bookManager.export')}
+          </button>
+        )}
         {selectedBookId && (
           <button
             onClick={async () => {
@@ -635,6 +712,40 @@ export function BookManagerPanel() {
         </label>
       </div>
 
+      {/* 搜索框 */}
+      <div style={{
+        padding: '4px 16px',
+        borderBottom: `1px solid ${colors.border}`,
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <span style={{ fontSize: 12, color: colors.foreground, opacity: 0.6, flexShrink: 0 }}>
+          🔍
+        </span>
+        <input
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          placeholder={t('bookManager.searchPlaceholder')}
+          style={{
+            flex: 1, padding: '4px 8px', fontSize: 12,
+            backgroundColor: colors.inputBackground, color: colors.foreground,
+            border: `1px solid ${colors.inputBorder}`, borderRadius: 3,
+            outline: 'none',
+          }}
+        />
+        {searchKeyword && (
+          <button
+            onClick={() => setSearchKeyword('')}
+            style={{
+              background: 'none', border: 'none', color: colors.foreground,
+              cursor: 'pointer', fontSize: 12, opacity: 0.5,
+              padding: '2px 4px',
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       {/* 词书列表 */}
       <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
         {loading ? (
@@ -644,6 +755,18 @@ export function BookManagerPanel() {
         ) : error ? (
           <div style={{ padding: 24, textAlign: 'center', color: colors.errorText }}>
             {error}
+          </div>
+        ) : hasSearch && filteredBooks.length === 0 ? (
+          <div
+            style={{
+              padding: 48,
+              textAlign: 'center',
+              color: colors.foreground,
+              opacity: 0.5,
+              fontSize: 14,
+            }}
+          >
+            {t('bookManager.noSearchResults')}
           </div>
         ) : books.length === 0 ? (
           <div
@@ -658,7 +781,7 @@ export function BookManagerPanel() {
             {t('bookManager.noBooks')}
           </div>
         ) : (
-          books.map((b) => (
+          filteredBooks.map((b) => (
             <BookCard
               key={b.book.id}
               book={b}
@@ -667,6 +790,7 @@ export function BookManagerPanel() {
               onViewWords={(bookId, bookName) => { setDialogBookId(bookId); setDialogBookName(bookName); setDialogStageFilter(undefined) }}
               stageSummary={stageSummaryMap[b.book.id!]}
               onDoubleClickSegment={handleDoubleClickSegment}
+              onRename={handleRename}
             />
           ))
         )}
@@ -694,6 +818,13 @@ export function BookManagerPanel() {
           stageFilter={dialogStageFilter}
         />
       )}
+
+      {/* CreateBookDialog 弹窗 */}
+      <CreateBookDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={handleCreate}
+      />
     </div>
   )
 }

@@ -51,7 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ==================== 背诵模式 API ====================
   recitationAPI: {
     init: (workspacePath: string) => ipcRenderer.invoke('recitation:init', workspacePath),
-    addBook: (book: { name: string; path: string; count: number }) =>
+    addBook: (book: { name: string; path: string; count: number; description?: string }) =>
       ipcRenderer.invoke('recitation:add-book', book),
     getBookById: (bookId: number) => ipcRenderer.invoke('recitation:get-book-by-id', bookId),
     getAllBooks: () => ipcRenderer.invoke('recitation:get-all-books'),
@@ -91,5 +91,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('recitation:get-overall-stage-distribution'),
     getWordsByStage: (bookId: number, minStage: number, maxStage: number) =>
       ipcRenderer.invoke('recitation:get-words-by-stage', bookId, minStage, maxStage),
+
+    // === v1.4 新增 ===
+    renameBook: (bookId: number, newName: string) =>
+      ipcRenderer.invoke('recitation:rename-book', bookId, newName),
+    exportBook: (bookId: number, exportPath: string) =>
+      ipcRenderer.invoke('recitation:export-book', bookId, exportPath),
+    exportBookToDialog: (bookId: number) =>
+      ipcRenderer.invoke('recitation:export-book-to-dialog', bookId),
+    batchDeleteWords: (bookId: number, wordIds: number[]) =>
+      ipcRenderer.invoke('recitation:batch-delete-words', bookId, wordIds),
   },
 })

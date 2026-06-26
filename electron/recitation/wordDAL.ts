@@ -251,6 +251,19 @@ export class WordDAL {
     }
   }
 
+  batchDelete(wordIds: number[]): number {
+    if (wordIds.length === 0) return 0
+    try {
+      const db = this._db.getDb()
+      const placeholders = wordIds.map(() => '?').join(',')
+      const result = db.prepare(`DELETE FROM word WHERE id IN (${placeholders})`).run(...wordIds)
+      return result.changes
+    } catch (err) {
+      console.error(`[WordDAL] batchDelete failed: ${err}`)
+      return 0
+    }
+  }
+
   private _shuffle<T>(array: T[]): void {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

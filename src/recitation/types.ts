@@ -6,6 +6,7 @@ export interface Book {
   path: string
   count: number
   create_time?: string | null // ISO datetime string
+  description?: string         // v1.4 新增：词书描述
 }
 
 export interface Word {
@@ -111,6 +112,12 @@ export interface StudyWordResult {
   is_correct: boolean
 }
 
+export interface BatchOperationResult {
+  success: number
+  failed: number
+  errors?: string[]
+}
+
 export interface ImportBookResult {
   book: Book | null
   words: Word[]
@@ -136,7 +143,7 @@ export interface RecitationAPI {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<TodayWordsResult>
-  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[]): Promise<boolean>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): Promise<boolean>
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>

@@ -420,6 +420,80 @@ function registerIpcHandlers() {
     if (!_recitationDAL) return []
     return _recitationDAL.getWordsByStage(bookId, minStage, maxStage)
   })
+
+  // === v1.4 新增 ===
+
+  ipcMain.handle('recitation:rename-book', async (_event, bookId: number, newName: string) => {
+    if (!_recitationDAL) return false
+    return _recitationDAL.renameBook(bookId, newName)
+  })
+
+  ipcMain.handle('recitation:export-book', async (_event, bookId: number, exportPath: string) => {
+    if (!_recitationDAL || !_bookService) return false
+    try {
+      const words = _recitationDAL.getWordsByBookId(bookId)
+      const book = _recitationDAL.getBookById(bookId)
+      if (!book) return false
+      const data = JSON.stringify({
+        name: book.name,
+        export_time: new Date().toISOString(),
+        word_count: book.count,
+        words: words.map((w: any) => ({
+          word: w.word, phonetic: w.phonetic,
+          definition: w.definition, example: w.example,
+        })),
+      }, null, 2)
+      fs.writeFileSync(exportPath, data, 'utf-8')
+      return true
+    } catch (err) {
+      console.error(`[Recitation] export-book failed: ${err}`)
+      return false
+    }
+  })
+
+  ipcMain.handle('recitation:export-book-to-dialog', async (_event, bookId: number) => {
+    if (!_recitationDAL) return null
+    const book = _recitationDAL.getBookById(bookId)
+    if (!book) return null
+    const result = await dialog.showSaveDialog(mainWindow!, {
+      defaultPath: `${book.name}.json`,
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePath) return null
+    // Do the export directly
+    try {
+      const words = _recitationDAL.getWordsByBookId(bookId)
+      const data = JSON.stringify({
+        name: book.name,
+        export_time: new Date().toISOString(),
+        word_count: book.count,
+        words: words.map((w: any) => ({
+          word: w.word, phonetic: w.phonetic,
+          definition: w.definition, example: w.example,
+        })),
+      }, null, 2)
+      fs.writeFileSync(result.filePath, data, 'utf-8')
+      return result.filePath
+    } catch (err) {
+      console.error(`[Recitation] export-book-to-dialog failed: ${err}`)
+      return null
+    }
+  })
+
+  ipcMain.handle('recitation:batch-delete-words', async (_event, bookId: number, wordIds: number[]) => {
+    if (!_recitationDAL) return { success: 0, failed: wordIds.length }
+    try {
+      const book = _recitationDAL.getBookById(bookId)
+      if (!book) return { success: 0, failed: wordIds.length, errors: ['Book not found'] }
+
+      // Use a transaction to delete words and update count atomically
+      const deleted = _recitationDAL.batchDeleteWords(wordIds)
+      _recitationDAL.refreshBookCount(bookId)
+      return { success: deleted, failed: wordIds.length - deleted }
+    } catch (err: any) {
+      return { success: 0, failed: wordIds.length, errors: [String(err)] }
+    }
+  })
 }
 
 app.whenReady().then(() => {
