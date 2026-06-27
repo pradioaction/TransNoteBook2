@@ -98,12 +98,29 @@ interface LogEntry {
   timestamp: string
   message: string
   level: 'info' | 'warn' | 'error'
+  color?: string      // v1.4: 自定义颜色，优先级高于 level 默认色
 }
 
 interface OutputStore {
   logs: LogEntry[]
-  addLog: (message: string, level?: 'info' | 'warn' | 'error') => void
+  addLog: (message: string, level?: 'info' | 'warn' | 'error', color?: string) => void
   clearLogs: () => void
+}
+```
+
+颜色约定: `#4caf50` 成功(绿), `#d4a017` 警告(琥珀), `#e06c75` 错误(红).
+
+### 4.7 useWorkspaceConfigStore (workspaceConfigStore.ts, v1.4 新增)
+
+工作区级配置 Store，存储 notebook 模块的配置，数据位于 `{workspace}/.TransRead/workspace-config.json`。
+独立于背诵模块的 `studywordmode.json`。
+
+```typescript
+interface WorkspaceConfigStore {
+  bookmarkFilePath: string | null  // 收藏夹目标 .transnb 文件路径
+  loaded: boolean                  // 是否已从磁盘加载
+  load(): Promise<void>
+  setBookmarkFilePath(path: string | null): Promise<void>
 }
 ```
 
@@ -260,7 +277,23 @@ function useKeyboard(): { shortcuts: KeyboardShortcut[] }
 
 **注意**：当焦点位于 TipTap 编辑器、`<input>` 或 `<textarea>` 元素内时，快捷键自动跳过，以避免与编辑器内快捷键冲突。
 
-### 5.4 useRecitationService
+### 5.4 useBookmark (v1.4 新增)
+
+单元格收藏 Hook。
+
+```typescript
+function useBookmark(): {
+  addCurrentCellToBookmark(): Promise<void>
+}
+```
+
+`addCurrentCellToBookmark()` 流程：
+1. 检查 `bookmarkFilePath` 是否已设置 → 未设置则输出琥珀色警告
+2. 读取目标 `.transnb` 文件 → 解析 → 追加新 Cell（仅 content + output，丢弃层级）→ 写回磁盘
+3. 若目标文件当前已打开 → 仅更新 `openFiles` 中对应条目，不触动当前活动文件
+4. 输出面板绿色反馈
+
+### 5.5 useRecitationService
 
 背诵服务 hook，封装 `RecitationService` 单例。
 

@@ -4,6 +4,7 @@ import { useNotebookStore } from '@/store/notebookStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useCellService } from '@/hooks/useCellService'
 import { useTranslationService } from '@/hooks/useTranslationService'
+import { useBookmark } from '@/hooks/useBookmark'
 import { CellToolbar } from './CellToolbar'
 import { CellEditor } from './CellEditor'
 import { CellOutput } from './CellOutput'
@@ -22,6 +23,7 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
   const store = useNotebookStore()
   const cellService = useCellService()
   const { translateCell, status } = useTranslationService()
+  const { addCurrentCellToBookmark } = useBookmark()
   const cellState = status.cellStates[index]
 
   const handleSelect = useCallback(
@@ -71,6 +73,7 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
             onDelete={() => { store.selectCell(index); setTimeout(() => cellService.deleteSelected(), 0) }}
             onCollapse={() => cellService.toggleCollapse(index)}
             onCopy={() => cellService.copyCell(index)}
+            onBookmark={addCurrentCellToBookmark}
             isCollapsed={false}
             isFirst={index === 0}
             isLast={index === totalCells - 1}

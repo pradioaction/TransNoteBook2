@@ -33,7 +33,9 @@
 │  ipcMain.handle('recitation:*')                                  │
 │      │                                                          │
 │      ├── BookService      (词书管理业务逻辑)                      │
+│      │   └── ConfigProvider (依赖注入 → studywordmode.json)       │
 │      ├── StudyService     (学习记录 + 艾宾浩斯算法)               │
+│      │   └── ConfigProvider (依赖注入 → studywordmode.json)       │
 │      │                                                          │
 │      ▼                                                          │
 │  RecitationDAL (组合层)                                          │
@@ -64,6 +66,8 @@ tsbook2/
 ├── electron/
 │   ├── main.ts                          # IPC 处理器注册 + 服务生命周期管理
 │   ├── preload.ts                       # recitationAPI 上下文桥接
+│   ├── workspace/                       # 工作区通用能力
+│   │   └── configProvider.ts            # ConfigProvider 接口 + FileBasedConfig 实现
 │   └── recitation/
 │       ├── database.ts                  # PathManager + DatabaseManager
 │       ├── bookDAL.ts                   # 词书数据访问层
@@ -306,6 +310,15 @@ weight = 1.0 + (1.0 - stage / 9) * exp(progress * 3)
 
 配置文件：`{workspace}/.TransRead/studywordmode.json`
 
+由 `FileBasedConfig` 类（`electron/workspace/configProvider.ts`）统一管理文件 I/O，`StudyService` 和 `BookService` 通过依赖注入共享同一个 `ConfigProvider` 实例存取配置，消除重复的文件读写代码。
+
+```typescript
+// main.ts 中创建共享实例
+const configProvider = new FileBasedConfig(path.join(workspacePath, '.TransRead', 'studywordmode.json'))
+_studyService = new StudyService(dal, configProvider)
+_bookService = new BookService(dal, configProvider)
+```
+
 ```json
 {
   "daily_new_words": 20,
@@ -364,8 +377,8 @@ weight = 1.0 + (1.0 - stage / 9) * exp(progress * 3)
 | 组合 DAL | `recitation_dal.py` | `electron/recitation/recitationDAL.ts` | 完全一致 |
 | 艾宾浩斯算法 | `ebbinghaus.py` | `electron/recitation/ebbinghaus.ts` | 完全一致 |
 | 词书导入 | `book_importer.py` | `electron/recitation/bookImporter.ts` | 完全一致 |
-| 学习服务 | `study_service.py` | `electron/recitation/studyService.ts` | 完全一致 |
-| 词书服务 | `book_service.py` | `electron/recitation/bookService.ts` | 完全一致 |
+| 学习服务 | `study_service.py` | `electron/recitation/studyService.ts` | 注入 ConfigProvider |
+| 词书服务 | `book_service.py` | `electron/recitation/bookService.ts` | 注入 ConfigProvider |
 | 工具函数 | `utils.py` | (渲染端可参考 `formatPhonetic` 逻辑) | 待移植 |
 
 **数据库兼容性**：TSBook2 生成的 `words.db` 可直接被原始 Python 项目读取，反之亦然。

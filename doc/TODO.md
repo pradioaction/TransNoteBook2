@@ -51,7 +51,7 @@
 - [x] `RecitationService` 接口 + `createRecitationService()`（`src/services/recitationService.ts`）
 - [x] `useRecitationService()` React Hook（模块级单例）
 - [x] `RecitationStore`（Zustand，管理 UI 状态：模式/阶段/侧边栏数据/检测状态）
-- [ ] 词书管理欠缺很多基础功能，增加，删除等什么之类的。
+- [x] 词书管理欠缺很多基础功能，增加，删除等什么之类的。
 
 #### v1.3 新增功能
 
@@ -83,6 +83,7 @@
 ### 2.2 📋 待优化
 
 - [x] **每日新词数/复习数设置**: 通过 `recitationAPI.setConfig` 配置 `daily_new_words` / `daily_review_words`
+- [x] **配置管理解耦**: BookService/StudyService 重复的配置 I/O 抽取为 FileBasedConfig 共享实例（`electron/workspace/configProvider.ts`）
 - [ ] **背诵设置面板**: 在 SettingsDialog 中集成背诵模式配置
 - [ ] **文章生成器集成**: AI 生成包含今日单词的场景文章 → 保存为 .transnb 文件
 - [x] **背诵统计可视化**: 学习时长、正确率趋势等图表
@@ -113,17 +114,13 @@
 - [ ] `Ctrl+Shift+S` — 另存为（`fileService.saveFileAs()`）
 - [ ] `Ctrl+O` — 打开文件（`fileService.openFile()`）
 - [ ] `Ctrl+Shift+I` — 导入文本文件（`fileService.importText()`）
-- [ ] -\`Ctrl+Shift+-\` — 在编辑模式下光标位置分割单元格，分割的单元格继承单元格的层级，若自己拥有从属单元格则由后半段分割出的单元格插入到前半段分割出的单元的从属单元格的最前端。输出栏的内容复制双分给两个单元格
-
-  你觉得完成这
-- [ ] <br />
 
 #### 单元格操作
 
 - [ ] `Ctrl+Enter` — 翻译当前选中单元格
 - [ ] `Ctrl+Shift+Enter` — 翻译全部单元格
 - [ ] `Ctrl+Z` / `Ctrl+Shift+Z` — 撤销/重做（预留）
-- [ ]  `Ctrl+Shift+-` — 在编辑模式下光标位置分割单元格，分割的单元格继承单元格的层级，若自己拥有从属单元格则由后半段分割出的单元格插入到前半段分割出的单元的从属单元格的最前端。输出栏的内容复制双分给两个单元格
+- [x]  `Ctrl+Shift+-` — 在编辑模式下光标位置分割单元格，分割的单元格继承单元格的层级，若自己拥有从属单元格则由后半段分割出的单元格插入到前半段分割出的单元的从属单元格的最前端。输出栏的内容复制双分给两个单元格
 
 #### 显示/导航
 
@@ -187,7 +184,12 @@
 ## 7.阅读界面
 
 - [x] 阅读计时功能
-- [ ] 针对单元格的收藏
+- [x] 针对单元格的收藏 — 用户可将选定 Cell 追加到工作区收藏夹 .transnb 文件末尾（仅文本，丢弃层级）
+  - 新增 `workspace-config` IPC 通道 + `workspaceConfigStore`，在 `{workspace}/.TransRead/workspace-config.json` 中持久化 `bookmarkFilePath`
+  - FileExplorer 右键菜单"设为收藏夹"，收藏夹文件以 ★ 星标图标标识
+  - CellToolbar 新增 ★ 按钮，"添加到收藏夹"调用 `useBookmark` 核心逻辑
+  - 输出面板彩色日志反馈（成功绿色、未设置琥珀色、失败红色）
 - [ ] AI批阅功能修改功能
-  * 我的想法是用户可以手写文章，模拟考试写作，AI会根据用户的文章，帮助用户检查文章是否正确，改改句子，检查语法错误等
+  - 我的想法是用户可以手写文章，模拟考试写作，AI会根据用户的文章，帮助用户检查文章是否正确，改改句子，检查语法错误等
+- 日志bug修复
 

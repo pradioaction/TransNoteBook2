@@ -47,7 +47,9 @@ TSBook2 是"翻译笔记本"(TransNb)的 TypeScript/React 重构版本。原项�
 TSBook2 应用
 ├── Electron 主进程 (electron/)
 │   ├── main.ts               # 窗口管理 + IPC 处理
-│   └── preload.ts            # 上下文桥接 (contextBridge)
+│   ├── preload.ts            # 上下文桥接 (contextBridge)
+│   ├── workspace/            # 工作区通用能力
+│   │   └── configProvider.ts # 通用配置存取 (ConfigProvider 接口 + FileBasedConfig)
 │   └── recitation/           # 背诵模式数据层
 │       ├── database.ts       # SQLite 数据库管理 (better-sqlite3)
 │       ├── bookDAL.ts        # 词书数据访问层
@@ -106,7 +108,7 @@ TSBook2 应用
 │   │   ├── index.ts              # 统一导出 (仅类型)
 │   │   ├── translationService.ts # 翻译服务 (模块级单例)
 │   │   ├── recitationService.ts  # 背诵服务 (IPC 代理)
-│   │   └── logService.ts         # 日志服务 (异步写入队列, .tranread/log/ 目录)
+│   │   └── logService.ts         # 日志服务 (异步写入队列, .TransRead/log/ 目录)
 │   ├── 翻译模块 (translation/)
 │   │   ├── types.ts              # TranslationProvider 接口 + ProviderInfo
 │   │   ├── providerFactory.ts    # 提供者工厂
@@ -120,7 +122,8 @@ TSBook2 应用
 │   │   ├── themeStore.ts       # 主题状态 (Zustand)
 │   │   ├── settingStore.ts     # 设置状态 (Zustand + 持久化)
 │   │   ├── recitationStore.ts  # 背诵模式 UI 状态 (Zustand)
-│   │   └── outputStore.ts      # 日志输出 Store
+│   │   ├── outputStore.ts      # 日志输出 Store
+│   │   └── workspaceConfigStore.ts # (v1.4) 工作区级配置 Store
 │   ├── 工具层
 │   │   ├── utils/
 │   │   │   ├── fileUtils.ts        # 文件序列化/解析/分割工具
@@ -131,7 +134,8 @@ TSBook2 应用
 │   │   │   ├── useFileService.ts      # 文件操作服务 Hook
 │   │   │   ├── useCellService.ts      # 单元格操作服务 Hook
 │   │   │   ├── useTranslationService.ts # 翻译服务 Hook (状态轮询)
-│   │   │   └── useRecitationService.ts  # 背诵服务 Hook (单例)
+│   │   │   ├── useRecitationService.ts  # 背诵服务 Hook (单例)
+│   │   │   └── useBookmark.ts         # 单元格收藏 Hook (v1.4 新增)
 │   ├── 类型定义 (types/)
 │   │   ├── notebook.ts    # 全局类型
 │   │   ├── electron.ts    # IPC 共享类型
@@ -197,11 +201,12 @@ TSBook2 应用
 │  │                                                         ││
 │  │  Service Layer: useFileService / useCellService /       ││
 │  │                useTranslationService / useRecitationService / ││
-│  │                logService                                ││
+│  │                useBookmark / logService                  ││
 │  │  Stores: useNotebookStore / useWorkspaceStore /         ││
 │  │          useThemeStore / useSettingStore /              ││
-│  │          useRecitationStore / useOutputStore             ││
-│  │              └── 集成 logService 写入 .tranread/log/    ││
+│  │          useRecitationStore / useOutputStore /          ││
+│  │          useWorkspaceConfigStore                        ││
+│  │              └── 集成 logService 写入 .TransRead/log/    ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
 ```

@@ -95,11 +95,11 @@ React 重新渲染，CSS 变量更新 (--foreground, --background)
 
 ### 4.8 日志写入流程
 ```
-组件调用 useOutputStore.getState().addLog(message, level)
+组件调用 useOutputStore.getState().addLog(message, level, color?)
     ↓
-outputStore 生成 LogEntry { id, timestamp, message, level }
+outputStore 生成 LogEntry { id, timestamp, message, level, color? }
     ↓
-set(state => logs.push(entry))  →  Panel 实时显示
+set(state => logs.push(entry))  →  Panel 实时显示 (优先 log.color)
     ↓
 logService.appendToFile(todayPath, `[HH:mm:ss] [LEVEL] message\n`)
     ↓
@@ -107,12 +107,41 @@ enqueue → processQueue (异步, 防并发锁)
     ↓
 electronAPI.readFile → electronAPI.writeFile (追加)
     ↓
-日志文件: {workspace}/.tranread/log/{yyyy-MM-dd}.log
+日志文件: {workspace}/.TransRead/log/{yyyy-MM-dd}.log
 ```
+
+v1.4 增强: addLog 支持第三个可选参数 `color`, Panel 渲染日志时优先取 `log.color`, 降级为 `logColors[log.level]`.
+颜色约定: `#4caf50` 成功(绿), `#d4a017` 警告(琥珀), `#e06c75` 错误(红), 其余使用默认前景色.
 
 触发入口:
 - ReadingTimer.stopTimer() → 阅读计时停止时
 - ReviewPanel 测验保存完成 → 测验结果统计
+- **useBookmark.addCurrentCellToBookmark()** → 收藏成功/失败反馈
+
+### 4.9 单元格收藏流程 (v1.4)
+```
+用户选中 Cell → 点击工具栏 ★ 按钮
+    ↓
+useBookmark.addCurrentCellToBookmark()
+    ↓
+├─ bookmarkFilePath 为空:
+│     addLog('⚠️ 尚未设置收藏夹...', 'warn', '#d4a017')   → Panel
+│
+└─ bookmarkFilePath 已存在:
+      electronAPI.readFile(bookmarkFilePath)
+          ↓
+      parseNotebookFile(content) → NotebookData
+          ↓
+      创建新 Cell (仅 content + output, 无层级)
+          ↓
+      data.cells.push(bookmarkCell)
+          ↓
+      electronAPI.writeFile(filePath, serializeNotebookFile())
+          ↓
+      若目标文件已打开 → 仅更新 openFiles 中对应条目, 不触碰当前文件
+          ↓
+      addLog('✅ 已收藏到 xxx（第 N 个）', 'info', '#4caf50')   → Panel
+```
 
 ## 5. 扩展点
 
@@ -158,6 +187,8 @@ AppShell
 │   └── ReadingTimer → useNotebookStore / useRecitationStore / useOutputStore / useTheme
 ├── NotebookEditor → useNotebookStore / useCellService / CellContainer[]
 │   └── CellContainer → CellToolbar / CellEditor (TipTap) / CellOutput (marked) / CellCollapseIndicator
+│       └── CellToolbar → useBookmark
+│           └── useBookmark → useNotebookStore / workspaceConfigStore / parseNotebookFile / serializeNotebookFile
 ├── Panel → useTranslationService / useTheme / useOutputStore
 │   └── useOutputStore.addLog() → logService.appendToFile()
 ├── RecitationShell → useRecitationService / useRecitationStore
@@ -172,6 +203,8 @@ TSBook2/
 ├── electron/
 │   ├── main.ts                    # Electron 主进程 (窗口 + IPC)
 │   ├── preload.ts                 # 上下文桥接
+│   ├── workspace/                 # 工作区通用能力
+│   │   └── configProvider.ts      # 通用配置存取 (ConfigProvider 接口 + FileBasedConfig)
 │   └── recitation/               # 背诵模式数据层
 │       ├── database.ts / bookDAL.ts / wordDAL.ts / userStudyDAL.ts
 │       ├── recitationDAL.ts / statDAL.ts
@@ -272,10 +305,17 @@ TSBook2/
 
 ### v1.4 (未发布, 当前开发中)
 - 阅读界面计时器 (ReadingTimer: 开始/暂停, 文件切换/检测激活自动停止)
-- 工作区日志模块 (logService: 异步写入队列, .tranread/log/{日期}.log)
+- 工作区日志模块 (logService: 异步写入队列, .TransRead/log/{日期}.log)
 - 工具栏 i18n 国际化 (toolbar.* 命名空间, 10 个键)
 - outputStore 集成日志持久化 (addLog 同步写入当日日志文件)
 - ReviewPanel 测验结果日志输出 (正确率/用时统计)
+- **单元格收藏功能 (Cell Bookmark)**:
+  - `workspace-config` IPC 通道 + `workspace-config.json` 工作区级配置
+  - `workspaceConfigStore`: 管理 `bookmarkFilePath` 持久化
+  - `useBookmark` hook: 收藏核心逻辑 (读 → 追加 Cell → 写回 → 刷新 UI)
+  - FileExplorer: 右键"设为收藏夹" + ★ 星标图标
+  - CellToolbar: ★ 收藏按钮
+  - outputStore 颜色支持: `addLog` 第三参数 `color`
 
 ### 待办
 - 翻译错误重试机制

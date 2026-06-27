@@ -5,7 +5,6 @@ import fs from 'fs'
 export class PathManager {
   static readonly DATA_DIR_NAME = '.TransRead'
   static readonly DB_FILENAME = 'words.db'
-  static readonly CONFIG_FILENAME = 'studywordmode.json'
 
   private _workspacePath: string | null = null
 
@@ -26,12 +25,6 @@ export class PathManager {
     const dataDir = this.getDataDir()
     if (!dataDir) return null
     return path.join(dataDir, PathManager.DB_FILENAME)
-  }
-
-  getConfigPath(): string | null {
-    const dataDir = this.getDataDir()
-    if (!dataDir) return null
-    return path.join(dataDir, PathManager.CONFIG_FILENAME)
   }
 
   ensureDataDir(): boolean {

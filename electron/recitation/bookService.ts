@@ -1,7 +1,6 @@
-import fs from 'fs'
 import { RecitationDAL } from './recitationDAL'
 import { BookImporter } from './bookImporter'
-import { PathManager } from './database'
+import { ConfigProvider } from '../workspace/configProvider'
 import { BookRow } from './bookDAL'
 
 /**
@@ -12,41 +11,13 @@ export class BookService {
   private static readonly CONFIG_KEY_CURRENT_BOOK = 'current_book_id'
 
   private _dal: RecitationDAL
-  private _pathManager: PathManager
+  private _configProvider: ConfigProvider
   private _bookImporter: BookImporter
-  private _config: Record<string, unknown> = {}
 
-  constructor(dal: RecitationDAL, pathManager: PathManager) {
+  constructor(dal: RecitationDAL, configProvider: ConfigProvider) {
     this._dal = dal
-    this._pathManager = pathManager
+    this._configProvider = configProvider
     this._bookImporter = new BookImporter()
-    this._loadConfig()
-  }
-
-  private _loadConfig(): void {
-    try {
-      const configPath = this._pathManager.getConfigPath()
-      if (configPath) {
-        if (fs.existsSync(configPath)) {
-          const content = fs.readFileSync(configPath, 'utf-8')
-          this._config = JSON.parse(content)
-        }
-      }
-    } catch (err) {
-      console.warn(`[BookService] Load config failed: ${err}`)
-      this._config = {}
-    }
-  }
-
-  private _saveConfig(): void {
-    try {
-      const configPath = this._pathManager.getConfigPath()
-      if (configPath) {
-        fs.writeFileSync(configPath, JSON.stringify(this._config, null, 2), 'utf-8')
-      }
-    } catch (err) {
-      console.error(`[BookService] Save config failed: ${err}`)
-    }
   }
 
   importBook(filePath: string): BookRow | null {
@@ -113,13 +84,12 @@ export class BookService {
     const book = this._dal.getBookById(bookId)
     if (!book) return false
 
-    this._config[BookService.CONFIG_KEY_CURRENT_BOOK] = bookId
-    this._saveConfig()
+    this._configProvider.set(BookService.CONFIG_KEY_CURRENT_BOOK, bookId)
     return true
   }
 
   getCurrentBook(): BookRow | null {
-    const bookId = this._config[BookService.CONFIG_KEY_CURRENT_BOOK] as number | undefined
+    const bookId = this._configProvider.get(BookService.CONFIG_KEY_CURRENT_BOOK) as number | undefined
     if (!bookId) return null
 
     return this._dal.getBookById(bookId)
@@ -129,10 +99,9 @@ export class BookService {
     const success = this._dal.deleteBook(bookId)
 
     if (success) {
-      const currentId = this._config[BookService.CONFIG_KEY_CURRENT_BOOK] as number | undefined
+      const currentId = this._configProvider.get(BookService.CONFIG_KEY_CURRENT_BOOK) as number | undefined
       if (currentId === bookId) {
-        delete this._config[BookService.CONFIG_KEY_CURRENT_BOOK]
-        this._saveConfig()
+        this._configProvider.set(BookService.CONFIG_KEY_CURRENT_BOOK, null)
       }
     }
 

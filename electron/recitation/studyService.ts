@@ -1,9 +1,8 @@
-import fs from 'fs'
 import { RecitationDAL } from './recitationDAL'
-import { PathManager } from './database'
 import { EbbinghausAlgorithm } from './ebbinghaus'
 import { WordRow } from './wordDAL'
 import { UserStudyRow } from './userStudyDAL'
+import { ConfigProvider } from '../workspace/configProvider'
 
 /**
  * 学习服务 —— 管理学习记录、抽取单词、更新学习进度
@@ -19,67 +18,38 @@ export class StudyService {
   private static readonly DEFAULT_DAILY_REVIEW = 50
 
   private _dal: RecitationDAL
-  private _pathManager: PathManager
+  private _configProvider: ConfigProvider
   private _ebbinghaus: EbbinghausAlgorithm
-  private _config: Record<string, unknown> = {}
 
-  constructor(dal: RecitationDAL, pathManager: PathManager) {
+  constructor(dal: RecitationDAL, configProvider: ConfigProvider) {
     this._dal = dal
-    this._pathManager = pathManager
+    this._configProvider = configProvider
     this._ebbinghaus = new EbbinghausAlgorithm()
-    this._loadConfig()
-  }
-
-  private _loadConfig(): void {
-    try {
-      const configPath = this._pathManager.getConfigPath()
-      if (configPath && fs.existsSync(configPath)) {
-        const content = fs.readFileSync(configPath, 'utf-8')
-        this._config = JSON.parse(content)
-        this._cleanupStaleTodayWords()
-      }
-    } catch (err) {
-      console.warn(`[StudyService] Load config failed: ${err}`)
-      this._config = {}
-    }
-  }
-
-  private _saveConfig(): void {
-    try {
-      const configPath = this._pathManager.getConfigPath()
-      if (configPath) {
-        fs.writeFileSync(configPath, JSON.stringify(this._config, null, 2), 'utf-8')
-      }
-    } catch (err) {
-      console.error(`[StudyService] Save config failed: ${err}`)
-    }
+    this._cleanupStaleTodayWords()
   }
 
   getConfig(): Record<string, unknown> {
-    return { ...this._config }
+    return this._configProvider.getAll()
   }
 
   setConfig(key: string, value: unknown): void {
-    this._config[key] = value
-    this._saveConfig()
+    this._configProvider.set(key, value)
   }
 
   getDailyNewWords(): number {
-    return (this._config[StudyService.CONFIG_KEY_DAILY_NEW] as number) || StudyService.DEFAULT_DAILY_NEW
+    return (this._configProvider.get(StudyService.CONFIG_KEY_DAILY_NEW) as number) || StudyService.DEFAULT_DAILY_NEW
   }
 
   setDailyNewWords(count: number): void {
-    this._config[StudyService.CONFIG_KEY_DAILY_NEW] = Math.max(1, count)
-    this._saveConfig()
+    this._configProvider.set(StudyService.CONFIG_KEY_DAILY_NEW, Math.max(1, count))
   }
 
   getDailyReviewWords(): number {
-    return (this._config[StudyService.CONFIG_KEY_DAILY_REVIEW] as number) || StudyService.DEFAULT_DAILY_REVIEW
+    return (this._configProvider.get(StudyService.CONFIG_KEY_DAILY_REVIEW) as number) || StudyService.DEFAULT_DAILY_REVIEW
   }
 
   setDailyReviewWords(count: number): void {
-    this._config[StudyService.CONFIG_KEY_DAILY_REVIEW] = Math.max(1, count)
-    this._saveConfig()
+    this._configProvider.set(StudyService.CONFIG_KEY_DAILY_REVIEW, Math.max(1, count))
   }
 
   private _getTodayKey(bookId: number): string {
@@ -88,44 +58,36 @@ export class StudyService {
 
   private _isSameDay(): boolean {
     const todayStr = new Date().toISOString().split('T')[0]
-    const savedDate = this._config[StudyService.CONFIG_KEY_TODAY_DATE] as string || ''
+    const savedDate = this._configProvider.get(StudyService.CONFIG_KEY_TODAY_DATE) as string || ''
     return todayStr === savedDate
   }
 
   private _cleanupStaleTodayWords(): void {
     const todayStr = new Date().toISOString().split('T')[0]
-    const savedDate = this._config[StudyService.CONFIG_KEY_TODAY_DATE] as string || ''
+    const savedDate = this._configProvider.get(StudyService.CONFIG_KEY_TODAY_DATE) as string || ''
 
     if (todayStr === savedDate) return
 
-    const keysToRemove: string[] = []
-    for (const key of Object.keys(this._config)) {
+    const allConfig = this._configProvider.getAll()
+    for (const key of Object.keys(allConfig)) {
       if (key.startsWith(StudyService.CONFIG_KEY_TODAY_WORDS + '_')) {
-        keysToRemove.push(key)
+        this._configProvider.set(key, undefined)
       }
     }
 
-    for (const key of keysToRemove) {
-      delete this._config[key]
-    }
-
-    if (this._config[StudyService.CONFIG_KEY_TODAY_DATE] !== todayStr) {
-      this._config[StudyService.CONFIG_KEY_TODAY_DATE] = todayStr
-    }
-
-    this._saveConfig()
+    this._configProvider.set(StudyService.CONFIG_KEY_TODAY_DATE, todayStr)
   }
 
   getTodayWords(bookId: number, forceRefresh: boolean = false): { newWords: WordRow[]; reviewWords: WordRow[]; testedNewWordIds: number[]; testedReviewWordIds: number[]; quizResults: Record<number, boolean> } {
     const todayKey = this._getTodayKey(bookId)
     let needRefresh = forceRefresh
 
-    if (!(todayKey in this._config)) {
+    if (!this._configProvider.get(todayKey)) {
       needRefresh = true
     }
 
     if (!needRefresh) {
-      const savedData = this._config[todayKey] as { new_words: number[]; review_words: number[]; tested_new_word_ids: number[]; tested_review_word_ids: number[]; quiz_results?: Record<number, boolean> }
+      const savedData = this._configProvider.get(todayKey) as { new_words: number[]; review_words: number[]; tested_new_word_ids: number[]; tested_review_word_ids: number[]; quiz_results?: Record<number, boolean> }
       const newWordIds = savedData?.new_words || []
       const reviewWordIds = savedData?.review_words || []
       const testedNewWordIds = savedData?.tested_new_word_ids || []
@@ -154,14 +116,13 @@ export class StudyService {
     const reviewWords = this._dal.getWordsForReview(bookId, dailyReview)
 
     const todayStr = new Date().toISOString().split('T')[0]
-    this._config[StudyService.CONFIG_KEY_TODAY_DATE] = todayStr
-    this._config[todayKey] = {
+    this._configProvider.set(StudyService.CONFIG_KEY_TODAY_DATE, todayStr)
+    this._configProvider.set(todayKey, {
       new_words: newWords.map(w => w.id),
       review_words: reviewWords.map(w => w.id),
       tested_new_word_ids: [],
       tested_review_word_ids: [],
-    }
-    this._saveConfig()
+    })
 
     return { newWords, reviewWords, testedNewWordIds: [], testedReviewWordIds: [], quizResults: {} }
   }
@@ -221,29 +182,27 @@ export class StudyService {
 
   removeSuccessWordsFromToday(bookId: number, successWordIds: number[]): void {
     const todayKey = this._getTodayKey(bookId)
-    if (!(todayKey in this._config)) return
+    const savedData = this._configProvider.get(todayKey) as { new_words: number[]; review_words: number[] } | undefined
+    if (!savedData) return
 
-    const savedData = this._config[todayKey] as { new_words: number[]; review_words: number[] }
     const successSet = new Set(successWordIds)
 
     savedData.new_words = savedData.new_words.filter(wid => !successSet.has(wid))
     savedData.review_words = savedData.review_words.filter(wid => !successSet.has(wid))
 
-    this._config[todayKey] = savedData
-    this._saveConfig()
+    this._configProvider.set(todayKey, savedData)
   }
 
   markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): void {
     const todayKey = this._getTodayKey(bookId)
-    if (!(todayKey in this._config)) return
-
-    const savedData = this._config[todayKey] as { 
+    const savedData = this._configProvider.get(todayKey) as { 
       new_words: number[]; 
       review_words: number[];
       tested_new_word_ids: number[];
       tested_review_word_ids: number[];
       quiz_results?: Record<number, boolean>;
-    }
+    } | undefined
+    if (!savedData) return
     
     // Ensure tested arrays exist
     if (!savedData.tested_new_word_ids) savedData.tested_new_word_ids = []
@@ -264,8 +223,7 @@ export class StudyService {
       Object.assign(savedData.quiz_results, quizResults)
     }
 
-    this._config[todayKey] = savedData
-    this._saveConfig()
+    this._configProvider.set(todayKey, savedData)
   }
 
   processQuizResults(

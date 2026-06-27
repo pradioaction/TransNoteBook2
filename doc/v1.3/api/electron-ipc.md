@@ -20,6 +20,8 @@ Electron 主进程注册的 IPC 处理器，渲染进程通过 `window.electronA
 | `read-directory-recursive` | `dirPath: string` | `Promise<DirEntry[]>` | 递归遍历目录，返回所有 .transnb 文件 |
 | `get-settings` | 无 | `Promise<Record<string, unknown>>` | 读取 `userData/settings.json` |
 | `set-settings` | `settings: Record<string, unknown>` | `Promise<boolean>` | 保存设置到 `userData/settings.json` |
+| `workspace-config:get` | `workspacePath: string` | `Promise<Record<string, unknown>>` | 读取工作区配置 `{workspace}/.TransRead/workspace-config.json` |
+| `workspace-config:set` | `workspacePath, key, value` | `Promise<boolean>` | 写入工作区配置项 |
 | `recitation:init` | `workspacePath: string` | `Promise<boolean>` | 初始化工作区数据库 |
 | `recitation:add-book` | `book: Book` | `Promise<Book \| null>` | 添加词书 |
 | `recitation:get-book-by-id` | `bookId: number` | `Promise<Book \| null>` | 查询单个词书 |
@@ -70,6 +72,9 @@ interface Window {
     
     getSettings(): Promise<Record<string, unknown>>
     setSettings(settings: Record<string, unknown>): Promise<boolean>
+    
+    getWorkspaceConfig(workspacePath: string): Promise<Record<string, unknown>>
+    setWorkspaceConfig(workspacePath: string, key: string, value: unknown): Promise<boolean>
     
     onMenuAction(callback: (action: string) => void): void
 

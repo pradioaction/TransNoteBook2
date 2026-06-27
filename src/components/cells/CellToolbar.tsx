@@ -1,4 +1,4 @@
-import { IconPlay, IconCheck, IconCross, IconArrowUp, IconArrowDown, IconTrash, IconChevronDown, IconChevronRight } from '@/components/icons'
+import { IconPlay, IconCheck, IconCross, IconArrowUp, IconArrowDown, IconTrash, IconChevronDown, IconChevronRight, IconStar } from '@/components/icons'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 
@@ -9,6 +9,7 @@ interface CellToolbarProps {
   onDelete: () => void
   onCollapse: () => void
   onCopy: () => void
+  onBookmark: () => void
   isCollapsed: boolean
   isFirst: boolean
   isLast: boolean
@@ -22,6 +23,7 @@ export function CellToolbar({
   onDelete,
   onCollapse,
   onCopy,
+  onBookmark,
   isCollapsed,
   isFirst,
   isLast,
@@ -90,6 +92,17 @@ export function CellToolbar({
         onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>      </button>
+      <button
+        title="添加到收藏夹"
+        style={btnStyle}
+        onClick={onBookmark}
+        onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
+        onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
+      >
+        <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+          <IconStar size={14} />
+        </span>
+      </button>
       {!isFirst && (
         <button
           title={t('cellToolbar.moveUp')}

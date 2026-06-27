@@ -122,7 +122,7 @@ export function Panel({ children, translationStatus }: PanelProps) {
         {logs.length > 0 && (
           <div>
             {logs.map((log) => (
-              <div key={log.id} style={{ color: logColors[log.level] || colors.foreground, padding: '1px 0', lineHeight: 1.6 }}>
+              <div key={log.id} style={{ color: log.color || logColors[log.level] || colors.foreground, padding: '1px 0', lineHeight: 1.6 }}>
                 <span style={{ opacity: 0.5, marginRight: 8 }}>{log.timestamp}</span>
                 {log.message}
               </div>

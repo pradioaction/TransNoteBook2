@@ -278,3 +278,12 @@ export function IconMerge(props: IconProps) {
     </svg>
   )
 }
+
+// 星形
+export function IconStar(props: IconProps) {
+  return (
+    <svg {...s(props)}>
+      <path d="M8 1.5l1.8 3.7 4.2.6-3 3 1.8 4.2L8 11l-3.8 2 1.8-4.2-3-3 4.2-.6z" />
+    </svg>
+  )
+}

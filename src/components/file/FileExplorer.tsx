@@ -7,6 +7,9 @@ import type { FileEntry } from '@/types/notebook'
 import { ImportDialog } from '@/components/import/ImportDialog'
 import { IconFolder, IconFolderOpen, IconFile, IconChevronRight, IconChevronDown, IconImport, IconRefresh, IconEdit, IconClose, IconDot, IconSave, IconSearch } from '@/components/icons'
 import { useTranslation } from 'react-i18next'
+import { useWorkspaceConfigStore } from '@/store/workspaceConfigStore'
+import { useOutputStore } from '@/store/outputStore'
+import { IconStar } from '@/components/icons'
 
 export function FileExplorer() {
   const {
@@ -19,6 +22,10 @@ export function FileExplorer() {
   const { colors } = useTheme()
   const { t } = useTranslation()
   const fileService = useFileService()
+
+  const bookmarkFilePath = useWorkspaceConfigStore((s) => s.bookmarkFilePath)
+  const loadConfig = useWorkspaceConfigStore((s) => s.load)
+  const setBookmarkFilePath = useWorkspaceConfigStore((s) => s.setBookmarkFilePath)
 
   const [collapsedEditors, setCollapsedEditors] = useState(false)
   const [collapsedWorkspace, setCollapsedWorkspace] = useState(false)
@@ -85,6 +92,12 @@ export function FileExplorer() {
     await fileService.deleteFile(entry.path)
   }
 
+  const handleSetBookmark = async (entry: FileEntry) => {
+    const normalized = entry.path.replace(/\\/g, '/')
+    await setBookmarkFilePath(normalized)
+    useOutputStore.getState().addLog('📌 已将 "' + entry.name + '" 设为收藏夹', 'info', '#4caf50')
+  }
+
   const toggleDir = (dirPath: string) => {
     setExpandedDirs((prev) => {
       const next = new Set(prev)
@@ -106,6 +119,8 @@ export function FileExplorer() {
   useEffect(() => {
     if (workspacePath) localStorage.setItem('tsbook2_last_workspace', workspacePath)
   }, [workspacePath])
+
+  useEffect(() => { loadConfig() }, [loadConfig])
 
   const sectionStyle: React.CSSProperties = {
     padding: '4px 12px',
@@ -157,7 +172,13 @@ export function FileExplorer() {
             if (!isDir) setContextMenu({ x: e.clientX, y: e.clientY, entry })
           }}
         >
-          <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>{isDir ? (isExpanded ? <IconFolderOpen size={14} /> : <IconFolder size={14} />) : <IconFile size={14} />}</span>
+          <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+            {isDir ? (isExpanded ? <IconFolderOpen size={14} /> : <IconFolder size={14} />) : (
+              entry.path.replace(/\\/g, '/') === bookmarkFilePath
+                ? <IconStar size={14} style={{ color: '#e4b400' }} />
+                : <IconFile size={14} />
+            )}
+          </span>
           {renaming === entry.path ? (
             <input
               autoFocus
@@ -307,6 +328,18 @@ export function FileExplorer() {
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.listItemHover)}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >Rename</div>
+          <div style={{ height: 1, backgroundColor: colors.border, margin: '4px 0' }} />
+          <div
+            style={{ padding: '6px 16px', fontSize: 12, cursor: 'pointer', color: '#e4b400' }}
+            onClick={() => {
+              handleSetBookmark(contextMenu.entry)
+              setContextMenu(null)
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.listItemHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            ★ 设为收藏夹
+          </div>
           <div
             style={{ padding: '6px 16px', fontSize: 12, cursor: 'pointer', color: '#e06c75' }}
             onClick={() => {
