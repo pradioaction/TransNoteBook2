@@ -1,4 +1,4 @@
-import type { TranslationService, TranslationStatus, TranslationServiceDeps } from './types'
+import type { TranslationService, OperationStatus, TranslationServiceDeps } from './types'
 import type { ProviderInfo } from '@/translation/types'
 import type { TranslationProvider } from '@/translation/types'
 import { createSystemProviders, createCustomProviders } from '@/translation/providerFactory'
@@ -10,8 +10,9 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
   let currentProviderId = 'system_Ollama'
   let abortController: AbortController | null = null
 
-  const status: TranslationStatus = {
+  const status: OperationStatus = {
     state: 'idle',
+    operationType: undefined,
     currentIndex: 0,
     totalCount: 0,
     progress: 0,
@@ -62,7 +63,8 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
     if (indices.length === 0) return
 
     abortController = new AbortController()
-    status.state = 'translating'
+    status.state = 'running'
+    status.operationType = 'translate'
     status.currentIndex = 0
     status.totalCount = indices.length
     status.progress = 0
@@ -93,7 +95,7 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
 
       status.currentIndex = i
       status.currentContent = cell.content.substring(0, 80)
-      status.cellStates[idx] = 'translating'
+      status.cellStates[idx] = 'running'
 
       try {
         const result = await provider.translate(cell.content, template, abortController.signal)
@@ -153,7 +155,8 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
       const template = settings.promptTemplates.analysis || '请解析{input}'
 
       abortController = new AbortController()
-      status.state = 'translating'
+      status.state = 'running'
+      status.operationType = 'translate'
       status.currentIndex = index
       status.totalCount = 1
       status.progress = 0
@@ -161,7 +164,7 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
       status.cellStates = {}
       status.cellErrors = {}
       status.currentContent = cell.content.substring(0, 80)
-      status.cellStates[index] = 'translating'
+      status.cellStates[index] = 'running'
 
       try {
         const result = await provider.translate(cell.content, template, abortController.signal)
@@ -215,6 +218,49 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
       const template = promptTemplate || deps.getSettingState().promptTemplates.scenery || '请完成一篇包含{input}的文章'
       const input = words.join(', ')
       return await provider.translate(input, template)
+    },
+
+    reviewCell: async (index: number, promptTemplate?: string): Promise<void> => {
+      syncProvider()
+      const provider = getProvider()
+      if (!provider) throw new Error('No translation provider available')
+
+      const notebook = deps.getNotebook()
+      if (!notebook) return
+      const cell = notebook.cells[index]
+      if (!cell || !cell.content.trim()) return
+
+      const template = promptTemplate || deps.getSettingState().promptTemplates.review || '请对以下英文写作进行批改\n\n原文：\n{input}'
+
+      abortController = new AbortController()
+      status.state = 'running'
+      status.operationType = 'review'
+      status.currentIndex = index
+      status.totalCount = 1
+      status.progress = 0
+      status.error = null
+      status.cellStates = {}
+      status.cellErrors = {}
+      status.currentContent = cell.content.substring(0, 80)
+      status.cellStates[index] = 'running'
+
+      try {
+        const result = await provider.translate(cell.content, template, abortController.signal)
+        deps.updateCellOutput(index, result)
+        status.cellStates[index] = 'done'
+        status.progress = 100
+        status.state = 'idle'
+        status.currentContent = undefined
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          status.state = 'idle'
+          return
+        }
+        status.cellStates[index] = 'error'
+        status.cellErrors[index] = err.message || 'Review failed'
+        status.state = 'error'
+        status.error = err.message || 'Review failed'
+      }
     },
   }
 }

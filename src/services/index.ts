@@ -1,1 +1,1 @@
-export type { FileService, CellService, TranslationService, TranslationStatus, ProviderInfo, RecitationService } from './types'
+export type { FileService, CellService, TranslationService, OperationStatus, ProviderInfo, RecitationService } from './types'

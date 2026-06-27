@@ -6,17 +6,17 @@
 
 ## 1. Electron IPC API
 
-Electron 主进程与渲染进程之间的 IPC 通信接口：文件操作、对话框、背诵模式等方法完整清单及 preload.ts 桥接定义。
+Electron 主进程与渲染进程之间的 IPC 通信接口：文件操作、对话框、背诵模式、工作区配置、日志追加等方法完整清单及 preload.ts 桥接定义。
 
-> 完整内容 → [v1.3/api/electron-ipc.md](v1.3/api/electron-ipc.md)
+> 完整内容 → [v1.4/api/electron-ipc.md](v1.4/api/electron-ipc.md)
 
 ---
 
 ## 2. 类型定义 API
 
-应用核心类型定义：NotebookCell、ThemeConfig、Book/Word/UserStudy、StageDistribution、今日单词结果、NotebookStore、SettingStore 等所有接口。
+应用核心类型定义：NotebookCell、ThemeConfig、Book/Word/UserStudy、StageDistribution、今日单词结果、BatchOperationResult、NotebookStore、SettingStore 等所有接口。
 
-> 完整内容 → [v1.3/api/types.md](v1.3/api/types.md)
+> 完整内容 → [v1.4/api/types.md](v1.4/api/types.md)
 
 ---
 
@@ -24,23 +24,23 @@ Electron 主进程与渲染进程之间的 IPC 通信接口：文件操作、对
 
 parseNotebookFile / serializeNotebookFile / splitTextIntoParagraphs
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)
 
 ---
 
 ## 4. 状态管理 API
 
-6 个 Zustand Store：useNotebookStore / useWorkspaceStore / useThemeStore / useSettingStore / useOutputStore / useRecitationStore
+7 个 Zustand Store：useNotebookStore / useWorkspaceStore / useThemeStore / useSettingStore / useOutputStore / useRecitationStore / useWorkspaceConfigStore
 
-> 完整内容 → [v1.3/api/stores-hooks-services.md](v1.3/api/stores-hooks-services.md)
+> 完整内容 → [v1.4/api/stores-hooks-services.md](v1.4/api/stores-hooks-services.md)
 
 ---
 
 ## 5. React Hooks API
 
-useTheme（CSS 变量映射）/ useKeyboard（快捷键表）/ useRecitationService
+useTheme（CSS 变量映射）/ useKeyboard（快捷键表）/ useBookmark / useRecitationService
 
-> 完整内容 → [v1.3/api/stores-hooks-services.md](v1.3/api/stores-hooks-services.md)
+> 完整内容 → [v1.4/api/stores-hooks-services.md](v1.4/api/stores-hooks-services.md)
 
 ---
 
@@ -48,7 +48,7 @@ useTheme（CSS 变量映射）/ useKeyboard（快捷键表）/ useRecitationServ
 
 lightTheme / darkTheme 关键色值
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)
 
 ---
 
@@ -56,15 +56,15 @@ lightTheme / darkTheme 关键色值
 
 默认设置结构及持久化策略（`{userData}/settings.json`）
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)
 
 ---
 
 ## 8. 典型调用流程
 
-打开文件 / 保存 / 导入文本 / 编辑单元格 / 切换主题 / 翻译单元格 — 完整代码示例
+打开文件 / 保存 / 导入文本 / 编辑单元格 / 切换主题 / 翻译单元格 / 单元格收藏 — 完整代码示例
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)
 
 ---
 
@@ -72,7 +72,7 @@ lightTheme / darkTheme 关键色值
 
 Vitest + jsdom 配置、notebookStore + fileUtils 测试覆盖
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)
 
 ---
 
@@ -80,15 +80,15 @@ Vitest + jsdom 配置、notebookStore + fileUtils 测试覆盖
 
 BrowserWindow 配置、开发/生产模式、启动流程
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)
 
 ---
 
 ## 11. 服务层 API
 
-FileService / CellService / TranslationService（逐单元格追踪）/ RecitationService（含 v1.3 扩展）
+FileService / CellService / TranslationService（逐单元格追踪）/ RecitationService（含 v1.3/v1.4 扩展）/ LogService
 
-> 完整内容 → [v1.3/api/stores-hooks-services.md](v1.3/api/stores-hooks-services.md)
+> 完整内容 → [v1.4/api/stores-hooks-services.md](v1.4/api/stores-hooks-services.md)
 
 ---
 
@@ -96,7 +96,7 @@ FileService / CellService / TranslationService（逐单元格追踪）/ Recitati
 
 TranslationProvider 接口 / OllamaProvider / OpenAIProvider / ArkProvider / ProviderFactory / useTranslationService Hook
 
-> 完整内容 → [v1.3/api/translation.md](v1.3/api/translation.md)
+> 完整内容 → [v1.4/api/translation.md](v1.4/api/translation.md)
 
 ---
 
@@ -104,4 +104,4 @@ TranslationProvider 接口 / OllamaProvider / OpenAIProvider / ArkProvider / Pro
 
 命名规范、文件组织、路径别名
 
-> 完整内容 → [v1.3/api/utilities-examples.md](v1.3/api/utilities-examples.md)
+> 完整内容 → [v1.4/api/utilities-examples.md](v1.4/api/utilities-examples.md)

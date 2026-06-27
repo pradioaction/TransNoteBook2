@@ -22,7 +22,7 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
   const { colors } = useTheme()
   const store = useNotebookStore()
   const cellService = useCellService()
-  const { translateCell, status } = useTranslationService()
+  const { translateCell, reviewCell, status } = useTranslationService()
   const { addCurrentCellToBookmark } = useBookmark()
   const cellState = status.cellStates[index]
 
@@ -33,6 +33,10 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
     },
     [index, store]
   )
+
+  const handleReview = useCallback(() => {
+    reviewCell(index)
+  }, [index, reviewCell])
 
   const indentPx = cell.indentLevel * 20
 
@@ -68,6 +72,7 @@ export function CellContainer({ cell, index, isSelected, totalCells }: CellConta
         <div style={{ display: 'flex', flex: 1 }}>
           <CellToolbar
             onTranslate={() => translateCell(index)}
+            onReview={handleReview}
             onMoveUp={() => { if (index > 0) cellService.moveCell(index, index - 1) }}
             onMoveDown={() => { if (index < totalCells - 1) cellService.moveCell(index, index + 1) }}
             onDelete={() => { store.selectCell(index); setTimeout(() => cellService.deleteSelected(), 0) }}

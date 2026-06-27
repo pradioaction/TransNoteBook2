@@ -1,16 +1,16 @@
 import { type ReactNode, useRef, useEffect } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { useOutputStore } from '@/store/outputStore'
-import type { TranslationStatus } from '@/services/types'
+import type { OperationStatus } from '@/services/types'
 import { IconCheck, IconCross } from '@/components/icons'
 import { useTranslation } from 'react-i18next'
 
 interface PanelProps {
   children?: ReactNode
-  translationStatus?: TranslationStatus
+  operationStatus?: OperationStatus
 }
 
-export function Panel({ children, translationStatus }: PanelProps) {
+export function Panel({ children, operationStatus }: PanelProps) {
   const { t } = useTranslation()
   const { colors } = useTheme()
   const logs = useOutputStore((s) => s.logs)
@@ -23,30 +23,33 @@ export function Panel({ children, translationStatus }: PanelProps) {
   }, [logs])
 
   const renderTranslationProgress = () => {
-    if (!translationStatus || translationStatus.state === 'idle') return null
+    if (!operationStatus || operationStatus.state === 'idle') return null
 
-    const { state, totalCount, progress, error, cellStates, cellErrors, currentContent } = translationStatus
+    const { state, operationType, totalCount, progress, error, cellStates, cellErrors, currentContent } = operationStatus
     const doneCount = Object.values(cellStates).filter(s => s === 'done').length
     const errorCount = Object.values(cellStates).filter(s => s === 'error').length
+    const isReview = operationType === 'review'
 
     return (
       <div style={{ marginBottom: 8, padding: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 4 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12, color: colors.foreground }}>
           <span>
-            {state === 'translating' ? t('panel.translating') : t('panel.translationError')}
+            {state === 'running'
+              ? (isReview ? t('panel.reviewing') : t('panel.translating'))
+              : (isReview ? t('panel.reviewError') : t('panel.translationError'))}
           </span>
           <span>
-            {doneCount + errorCount}/{totalCount} cells ({state === 'translating' ? `${progress}%` : ''})
+            {doneCount + errorCount}/{totalCount} cells ({state === 'running' ? `${progress}%` : ''})
           </span>
         </div>
-        {state === 'translating' && (
+        {state === 'running' && (
           <div style={{ marginBottom: 4 }}>
             <div style={{ height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${progress}%`, backgroundColor: '#4caf50', transition: 'width 0.3s', borderRadius: 2 }} />
             </div>
           </div>
         )}
-        {currentContent && state === 'translating' && (
+        {currentContent && state === 'running' && (
           <div style={{ fontSize: 11, color: '#999', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {t('panel.current')}{currentContent}
           </div>
@@ -132,7 +135,7 @@ export function Panel({ children, translationStatus }: PanelProps) {
         )}
 
         {/* 没有日志和翻译状态时显示 */}
-        {logs.length === 0 && (!translationStatus || translationStatus.state === 'idle') && !children && (
+        {logs.length === 0 && (!operationStatus || operationStatus.state === 'idle') && !children && (
           <div style={{ color: '#999', fontSize: 13, fontStyle: 'italic', fontFamily: 'sans-serif', padding: 4 }}>
             {t('panel.noOutput')}
           </div>

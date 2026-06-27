@@ -287,3 +287,13 @@ export function IconStar(props: IconProps) {
     </svg>
   )
 }
+
+// 批阅 ✓
+export function IconReview(props: IconProps) {
+  return (
+    <svg {...s(props)}>
+      <circle cx="8" cy="8" r="6" />
+      <path d="M5 8l2 2 4-4" />
+    </svg>
+  )
+}

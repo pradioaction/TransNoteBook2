@@ -1,9 +1,10 @@
-import { IconPlay, IconCheck, IconCross, IconArrowUp, IconArrowDown, IconTrash, IconChevronDown, IconChevronRight, IconStar } from '@/components/icons'
+import { IconPlay, IconCheck, IconCross, IconArrowUp, IconArrowDown, IconTrash, IconChevronDown, IconChevronRight, IconStar, IconReview } from '@/components/icons'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 
 interface CellToolbarProps {
   onTranslate: () => void
+  onReview: () => void
   onMoveUp: () => void
   onMoveDown: () => void
   onDelete: () => void
@@ -18,6 +19,7 @@ interface CellToolbarProps {
 
 export function CellToolbar({
   onTranslate,
+  onReview,
   onMoveUp,
   onMoveDown,
   onDelete,
@@ -101,6 +103,17 @@ export function CellToolbar({
       >
         <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
           <IconStar size={14} />
+        </span>
+      </button>
+      <button
+        title="AI 批阅"
+        style={btnStyle}
+        onClick={onReview}
+        onMouseEnter={(e) => ((e.target as HTMLButtonElement).style.opacity = '1')}
+        onMouseLeave={(e) => ((e.target as HTMLButtonElement).style.opacity = '0.6')}
+      >
+        <span style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+          <IconReview size={14} />
         </span>
       </button>
       {!isFirst && (

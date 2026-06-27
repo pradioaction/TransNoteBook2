@@ -44,6 +44,7 @@ const defaultTemplates: PromptTemplates = {
   translation: '请翻译{input}',
   analysis: '请解析{input}',
   scenery: '请完成一篇包含{input}的文章',
+  review: '请对以下英文写作进行批改，包括语法检查、句式优化、用词建议和总体评分（满分10分）\n\n原文：\n{input}',
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null

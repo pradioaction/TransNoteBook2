@@ -43,7 +43,7 @@ export function AppShell() {
               ) : (
                 <NotebookEditor />
               )}
-              <Panel translationStatus={status} />
+              <Panel operationStatus={status} />
             </>
           )}
         </div>

@@ -391,6 +391,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <textarea style={textareaStyle} value={settingStore.promptTemplates.scenery}
                   onChange={(e) => settingStore.setPromptTemplates({ ...settingStore.promptTemplates, scenery: e.target.value })} />
               </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>{t('settings.reviewPrompt')}</label>
+                <textarea style={textareaStyle} value={settingStore.promptTemplates.review}
+                  onChange={(e) => settingStore.setPromptTemplates({ ...settingStore.promptTemplates, review: e.target.value })} />
+              </div>
             </div>
           )}
 

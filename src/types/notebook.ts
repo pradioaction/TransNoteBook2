@@ -158,6 +158,7 @@ export interface PromptTemplates {
   translation: string
   analysis: string
   scenery: string
+  review: string                // v1.4 新增：AI 写作批改提示词
 }
 
 export interface AppSettings {

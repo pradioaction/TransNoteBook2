@@ -38,13 +38,14 @@ export interface CellService {
   updateOutput(index: number, output: string): void
 }
 
-export interface TranslationStatus {
-  state: 'idle' | 'translating' | 'error'
+export interface OperationStatus {
+  state: 'idle' | 'running' | 'error'
+  operationType?: 'translate' | 'review'
   currentIndex: number
   totalCount: number
   progress: number
   error: string | null
-  cellStates: Record<number, 'pending' | 'translating' | 'done' | 'error'>
+  cellStates: Record<number, 'pending' | 'running' | 'done' | 'error'>
   cellErrors: Record<number, string>
   currentContent?: string
 }
@@ -59,10 +60,12 @@ export interface TranslationService {
   translateAll(): Promise<void>
   translateCells(indices: number[]): Promise<void>
   testConnection(providerId: string): Promise<{ success: boolean; error?: string }>
-  getStatus(): TranslationStatus
+  getStatus(): OperationStatus
   cancel(): void
   /** 预留接口：供背诵模块生成场景文章 */
   generateSceneText(words: string[], promptTemplate?: string): Promise<string>
+  /** AI 写作批阅 */
+  reviewCell(index: number, promptTemplate?: string): Promise<void>
 }
 
 export interface TranslationServiceDeps {

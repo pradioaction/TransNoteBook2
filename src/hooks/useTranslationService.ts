@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { createTranslationService } from '@/services/translationService'
-import type { TranslationService, TranslationStatus } from '@/services/types'
+import type { TranslationService, OperationStatus } from '@/services/types'
 import type { ProviderInfo } from '@/translation/types'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useSettingStore } from '@/store/settingStore'
@@ -21,7 +21,7 @@ function getService(): TranslationService {
 
 export function useTranslationService() {
   const service = useMemo(() => getService(), [])
-  const [status, setStatus] = useState<TranslationStatus>(() => service.getStatus())
+  const [status, setStatus] = useState<OperationStatus>(() => service.getStatus())
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -89,6 +89,13 @@ export function useTranslationService() {
     [service]
   )
 
+  const reviewCell = useCallback(
+    async (index: number, promptTemplate?: string): Promise<void> => {
+      await service.reviewCell(index, promptTemplate)
+    },
+    [service]
+  )
+
   return {
     status,
     translateCell,
@@ -98,5 +105,6 @@ export function useTranslationService() {
     listProviders,
     setCurrentProvider,
     generateSceneText,
+    reviewCell,
   }
 }
