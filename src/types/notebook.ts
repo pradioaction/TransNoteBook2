@@ -213,6 +213,7 @@ declare global {
       fileExists: (filePath: string) => Promise<boolean>
       deleteFile: (filePath: string) => Promise<boolean>
       renameFile: (oldPath: string, newPath: string) => Promise<boolean>
+      appendFile: (filePath: string, content: string) => Promise<boolean>
       openFileDialog: () => Promise<string | null>
       saveFileDialog: () => Promise<string | null>
       openFolderDialog: () => Promise<string | null>
@@ -223,6 +224,8 @@ declare global {
       readDirectoryRecursive: (dirPath: string) => Promise<DirEntry[]>
       getSettings: () => Promise<Record<string, unknown>>
       setSettings: (settings: Record<string, unknown>) => Promise<boolean>
+      getWorkspaceConfig: (workspacePath: string) => Promise<Record<string, unknown>>
+      setWorkspaceConfig: (workspacePath: string, key: string, value: unknown) => Promise<boolean>
       onMenuAction: (callback: (action: string) => void) => void
       recitationAPI?: RecitationAPI
     }

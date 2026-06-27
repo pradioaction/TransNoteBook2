@@ -1,12 +1,10 @@
-import type { TranslationService, TranslationStatus } from './types'
+import type { TranslationService, TranslationStatus, TranslationServiceDeps } from './types'
 import type { ProviderInfo } from '@/translation/types'
 import type { TranslationProvider } from '@/translation/types'
 import { createSystemProviders, createCustomProviders } from '@/translation/providerFactory'
-import { useNotebookStore } from '@/store/notebookStore'
-import { useSettingStore } from '@/store/settingStore'
 import { serializeNotebookFile } from '@/utils/fileUtils'
 
-export function createTranslationService(): TranslationService {
+export function createTranslationService(deps: TranslationServiceDeps): TranslationService {
   let systemProviders = createSystemProviders()
   let customProviders: TranslationProvider[] = []
   let currentProviderId = 'system_Ollama'
@@ -33,7 +31,7 @@ export function createTranslationService(): TranslationService {
   }
 
   const reloadCustomProviders = () => {
-    const settings = useSettingStore.getState()
+    const settings = deps.getSettingState()
     customProviders = createCustomProviders(
       settings.customModels.map(m => ({
         name: m.name,
@@ -52,7 +50,7 @@ export function createTranslationService(): TranslationService {
   }
 
   const syncProvider = () => {
-    const settings = useSettingStore.getState()
+    const settings = deps.getSettingState()
     currentProviderId = settings.translation.currentProvider
     reloadCustomProviders()
   }
@@ -77,7 +75,7 @@ export function createTranslationService(): TranslationService {
       status.cellStates[idx] = 'pending'
     }
 
-    const settings = useSettingStore.getState()
+    const settings = deps.getSettingState()
     const template = settings.promptTemplates.analysis || '请解析{input}'
 
     for (let i = 0; i < indices.length; i++) {
@@ -86,7 +84,8 @@ export function createTranslationService(): TranslationService {
         return
       }
       const idx = indices[i]
-      const cell = useNotebookStore.getState().notebook?.cells[idx]
+      const notebook = deps.getNotebook()
+      const cell = notebook?.cells[idx]
       if (!cell || !cell.content.trim()) {
         status.cellStates[idx] = 'done'
         continue
@@ -98,7 +97,7 @@ export function createTranslationService(): TranslationService {
 
       try {
         const result = await provider.translate(cell.content, template, abortController.signal)
-        useNotebookStore.getState().updateCellOutput(idx, result)
+        deps.updateCellOutput(idx, result)
         status.cellStates[idx] = 'done'
         status.currentIndex = i
         status.progress = Math.round(((i + 1) / indices.length) * 100)
@@ -120,10 +119,10 @@ export function createTranslationService(): TranslationService {
 
     // 全部翻译完成后自动保存文件，避免内容丢失
     try {
-      const nb = useNotebookStore.getState().notebook
+      const nb = deps.getNotebook()
       if (nb?.path && window.electronAPI) {
         await window.electronAPI.writeFile(nb.path, serializeNotebookFile(nb.cells, nb.wordMeta))
-        useNotebookStore.getState().setModified(false)
+        deps.setModified(false)
       }
     } catch {
       // 自动保存失败不影响翻译结果
@@ -145,12 +144,12 @@ export function createTranslationService(): TranslationService {
       const provider = getProvider()
       if (!provider) throw new Error('No translation provider available')
 
-      const notebook = useNotebookStore.getState().notebook
+      const notebook = deps.getNotebook()
       if (!notebook) return
       const cell = notebook.cells[index]
       if (!cell || !cell.content.trim()) return
 
-      const settings = useSettingStore.getState()
+      const settings = deps.getSettingState()
       const template = settings.promptTemplates.analysis || '请解析{input}'
 
       abortController = new AbortController()
@@ -166,7 +165,7 @@ export function createTranslationService(): TranslationService {
 
       try {
         const result = await provider.translate(cell.content, template, abortController.signal)
-        useNotebookStore.getState().updateCellOutput(index, result)
+        deps.updateCellOutput(index, result)
         status.cellStates[index] = 'done'
         status.progress = 100
         status.state = 'idle'
@@ -184,7 +183,8 @@ export function createTranslationService(): TranslationService {
     },
 
     translateAll: async () => {
-      const cells = useNotebookStore.getState().notebook?.cells ?? []
+      const notebook = deps.getNotebook()
+      const cells = notebook?.cells ?? []
       const indices = cells.map((_, i) => i).filter(i => cells[i].content.trim())
       await doTranslateCells(indices)
     },
@@ -212,7 +212,7 @@ export function createTranslationService(): TranslationService {
       syncProvider()
       const provider = getProvider()
       if (!provider) throw new Error('No translation provider available')
-      const template = promptTemplate || useSettingStore.getState().promptTemplates.scenery || '请完成一篇包含{input}的文章'
+      const template = promptTemplate || deps.getSettingState().promptTemplates.scenery || '请完成一篇包含{input}的文章'
       const input = words.join(', ')
       return await provider.translate(input, template)
     },

@@ -1,20 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-
-export interface FileEntry {
-  name: string
-  path: string
-  isDirectory: boolean
-}
-
-export interface DirEntry {
-  name: string
-  path: string
-}
-
-export interface ImportResult {
-  filePath: string
-  content: string
-}
+import type { FileEntry, DirEntry, ImportResult } from './types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
@@ -24,6 +9,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   renameFile: (oldPath: string, newPath: string) =>
     ipcRenderer.invoke('rename-file', oldPath, newPath),
+
+  appendFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('append-file', filePath, content),
 
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   saveFileDialog: () => ipcRenderer.invoke('save-file-dialog'),
@@ -43,6 +31,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSettings: () => ipcRenderer.invoke('get-settings') as Promise<Record<string, unknown>>,
   setSettings: (settings: Record<string, unknown>) =>
     ipcRenderer.invoke('set-settings', settings),
+
+  getWorkspaceConfig: (workspacePath: string) => ipcRenderer.invoke('workspace-config:get', workspacePath),
+  setWorkspaceConfig: (workspacePath: string, key: string, value: unknown) =>
+    ipcRenderer.invoke('workspace-config:set', workspacePath, key, value),
 
   onMenuAction: (callback: (action: string) => void) => {
     ipcRenderer.on('menu-action', (_event, action) => callback(action))

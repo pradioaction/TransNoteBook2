@@ -8,41 +8,17 @@ export interface LogService {
   /** 检测指定日期是否有日志文件 */
   hasDateLog(date: Date): Promise<boolean>
 
-  /** 向指定文件追加内容（走异步写入队列） */
+  /** 向指定文件追加内容（直接 IPC appendFile，无需队列） */
   appendToFile(filePath: string, content: string): Promise<void>
 
   /** 创建指定文件 */
   createFile(filePath: string): Promise<void>
+
+  /** 清理超过保留天数的旧日志文件，默认 30 天 */
+  cleanupOldLogs(retentionDays?: number): Promise<void>
 }
 
 export function createLogService(getWorkspacePath: () => string | null): LogService {
-  const queue: Array<{ filePath: string; content: string }> = []
-  let isProcessing = false
-
-  async function processQueue(): Promise<void> {
-    if (isProcessing) return
-    isProcessing = true
-    const api = window.electronAPI
-    while (queue.length > 0) {
-      const { filePath, content } = queue.shift()!
-      if (!api) continue
-      try {
-        const existing = await api.fileExists(filePath)
-          ? await api.readFile(filePath)
-          : ''
-        await api.writeFile(filePath, existing + content)
-      } catch {
-        // 静默失败，不阻塞后续写入
-      }
-    }
-    isProcessing = false
-  }
-
-  function enqueue(filePath: string, content: string): void {
-    queue.push({ filePath, content })
-    processQueue()
-  }
-
   function getDateStr(date?: Date): string {
     const d = date ?? new Date()
     const y = d.getFullYear()
@@ -54,7 +30,7 @@ export function createLogService(getWorkspacePath: () => string | null): LogServ
   function buildLogPath(date?: Date): string {
     const ws = getWorkspacePath()
     if (!ws) return ''
-    return `${ws.replace(/\\/g, '/')}/.tranread/log/${getDateStr(date)}.log`
+    return `${ws.replace(/\\/g, '/')}/.TransRead/log/${getDateStr(date)}.log`
   }
 
   return {
@@ -73,8 +49,12 @@ export function createLogService(getWorkspacePath: () => string | null): LogServ
     },
 
     appendToFile: async (filePath, content) => {
-      if (!getWorkspacePath()) return
-      enqueue(filePath, content)
+      if (!getWorkspacePath() || !window.electronAPI?.appendFile) return
+      try {
+        await window.electronAPI.appendFile(filePath, content)
+      } catch {
+        // 静默失败
+      }
     },
 
     createFile: async (filePath) => {
@@ -83,6 +63,31 @@ export function createLogService(getWorkspacePath: () => string | null): LogServ
         await window.electronAPI?.writeFile(filePath, '')
       } catch {
         // 静默失败
+      }
+    },
+
+    cleanupOldLogs: async (retentionDays = 30) => {
+      const ws = getWorkspacePath()
+      if (!ws) return
+      const logDir = `${ws.replace(/\\/g, '/')}/.TransRead/log`
+      try {
+        const api = window.electronAPI
+        if (!api) return
+        const entries = await api.readDirectory(logDir)
+        const now = Date.now()
+        const maxAge = retentionDays * 24 * 60 * 60 * 1000
+        for (const entry of entries) {
+          if (!entry.isDirectory && entry.name.endsWith('.log')) {
+            // Parse date from filename: yyyy-MM-dd.log
+            const datePart = entry.name.replace('.log', '')
+            const fileDate = new Date(datePart).getTime()
+            if (!isNaN(fileDate) && (now - fileDate) > maxAge) {
+              await api.deleteFile(entry.path).catch(() => {})
+            }
+          }
+        }
+      } catch {
+        // 如果日志目录不存在，静默忽略
       }
     },
   }

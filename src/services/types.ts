@@ -1,4 +1,4 @@
-import type { NotebookCell, NotebookFile, FileEntry } from '@/types/notebook'
+import type { NotebookCell, NotebookFile, FileEntry, TranslationSettings, PromptTemplates, CustomModel } from '@/types/notebook'
 import type { SplitMode } from '@/utils/fileUtils'
 
 export interface ImportTextOptions {
@@ -65,6 +65,17 @@ export interface TranslationService {
   generateSceneText(words: string[], promptTemplate?: string): Promise<string>
 }
 
+export interface TranslationServiceDeps {
+  getSettingState: () => {
+    translation: TranslationSettings
+    promptTemplates: PromptTemplates
+    customModels: CustomModel[]
+  }
+  getNotebook: () => NotebookFile | null
+  updateCellOutput: (index: number, output: string) => void
+  setModified: (v: boolean) => void
+}
+
 export interface RecitationService {
   init(workspacePath: string): Promise<boolean>
   getBooks(): Promise<import('@/recitation/types').Book[]>
@@ -83,4 +94,12 @@ export interface RecitationService {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<import('@/recitation/types').TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<import('@/recitation/types').TodayWordsResult>
+
+  // === v1.4 新增 ===
+  createBook(name: string, description?: string): Promise<import('@/recitation/types').Book | null>
+  renameBook(bookId: number, newName: string): Promise<boolean>
+  exportBook(bookId: number): Promise<boolean>
+  searchBooks(keyword: string): Promise<import('@/recitation/types').Book[]>
+  batchDeleteWords(bookId: number, wordIds: number[]): Promise<import('@/recitation/types').BatchOperationResult>
+  batchImportWords(bookId: number): Promise<import('@/recitation/types').BatchOperationResult>
 }

@@ -2,12 +2,19 @@ import { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { createTranslationService } from '@/services/translationService'
 import type { TranslationService, TranslationStatus } from '@/services/types'
 import type { ProviderInfo } from '@/translation/types'
+import { useNotebookStore } from '@/store/notebookStore'
+import { useSettingStore } from '@/store/settingStore'
 
 let serviceInstance: TranslationService | null = null
 
 function getService(): TranslationService {
   if (!serviceInstance) {
-    serviceInstance = createTranslationService()
+    serviceInstance = createTranslationService({
+      getSettingState: () => useSettingStore.getState(),
+      getNotebook: () => useNotebookStore.getState().notebook,
+      updateCellOutput: (index, output) => useNotebookStore.getState().updateCellOutput(index, output),
+      setModified: (v) => useNotebookStore.getState().setModified(v),
+    })
   }
   return serviceInstance
 }

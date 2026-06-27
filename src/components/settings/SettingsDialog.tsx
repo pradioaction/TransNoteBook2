@@ -30,7 +30,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   const handleTestConnection = useCallback(async (providerId: string) => {
     setTestingProvider(providerId)
-    const service = createTranslationService()
+    const service = createTranslationService({
+      getSettingState: () => useSettingStore.getState(),
+      getNotebook: () => null,
+      updateCellOutput: () => {},
+      setModified: () => {},
+    })
     const result = await service.testConnection(providerId)
     setTestResults(prev => ({ ...prev, [providerId]: result }))
     setTestingProvider(null)

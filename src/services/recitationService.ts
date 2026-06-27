@@ -1,39 +1,6 @@
 import type { Book, Word, UserStudy, BookProgress, BookWithProgress, TodayWordsResult, StageDistribution, BatchOperationResult } from '@/recitation/types'
 
-export interface RecitationService {
-  init(workspacePath: string): Promise<boolean>
-  getBooks(): Promise<Book[]>
-  getBookById(bookId: number): Promise<Book | null>
-  importBook(filePath: string): Promise<Book | null>
-  deleteBook(bookId: number): Promise<boolean>
-  getBookProgress(bookId: number): Promise<BookProgress>
-  getAllBooksWithProgress(): Promise<BookWithProgress[]>
-  getWordsByBook(bookId: number): Promise<Word[]>
-  getUnstudiedWords(bookId: number, limit?: number): Promise<Word[]>
-  getWordsForReview(bookId: number, limit?: number): Promise<Word[]>
-  searchWords(searchText: string, bookId?: number): Promise<Word[]>
-  startStudyWord(bookId: number, wordId: number): Promise<UserStudy | null>
-  reviewWord(bookId: number, wordId: number, isCorrect: boolean): Promise<UserStudy | null>
-  getConfig(): Promise<Record<string, unknown>>
-  setConfig(key: string, value: unknown): Promise<boolean>
-  getTodayWords(bookId: number, forceRefresh?: boolean): Promise<TodayWordsResult>
-  refreshTodayWords(bookId: number): Promise<TodayWordsResult>
-  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): Promise<boolean>
-  addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
-  updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
-  deleteWord(wordId: number): Promise<boolean>
-  getStageDistribution(bookId: number): Promise<StageDistribution>
-  getOverallStageDistribution(): Promise<StageDistribution>
-  getWordsByStage(bookId: number, minStage: number, maxStage: number): Promise<Word[]>
-
-  // === v1.4 新增 ===
-  createBook(name: string, description?: string): Promise<Book | null>
-  renameBook(bookId: number, newName: string): Promise<boolean>
-  exportBook(bookId: number): Promise<boolean>
-  searchBooks(keyword: string): Promise<Book[]>
-  batchDeleteWords(bookId: number, wordIds: number[]): Promise<BatchOperationResult>
-  batchImportWords(bookId: number): Promise<BatchOperationResult>
-}
+import { type RecitationService } from './types'
 
 export function createRecitationService(): RecitationService {
   const api = () => window.electronAPI?.recitationAPI
