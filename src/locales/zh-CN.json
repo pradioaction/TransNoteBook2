@@ -200,6 +200,7 @@
   "sidebar.insertCellAbove": "在上方插入单元格",
   "sidebar.deleteCells": "删除选中单元格",
   "sidebar.copyCell": "复制单元格",
+  "sidebar.splitCell": "拆分单元格（光标处）",
   "sidebar.mergeCells": "合并选中单元格",
   "sidebar.toggleDependency": "切换单元格依赖",
   "sidebar.toggleCollapse": "切换单元格折叠",

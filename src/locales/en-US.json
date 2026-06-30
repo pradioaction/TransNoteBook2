@@ -200,6 +200,7 @@
   "sidebar.insertCellAbove": "Insert cell above",
   "sidebar.deleteCells": "Delete selected cells",
   "sidebar.copyCell": "Copy cell",
+  "sidebar.splitCell": "Split cell (at cursor)",
   "sidebar.mergeCells": "Merge selected cells",
   "sidebar.toggleDependency": "Toggle cell dependency",
   "sidebar.toggleCollapse": "Toggle cell collapse",

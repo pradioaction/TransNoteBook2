@@ -103,6 +103,7 @@ export function Sidebar() {
                 <tr><td><kbd style={kbd}>Ctrl+Shift+A</kbd></td><td>{t('sidebar.insertCellAbove')}</td></tr>
                 <tr><td><kbd style={kbd}>Delete</kbd></td><td>{t('sidebar.deleteCells')}</td></tr>
                 <tr><td><kbd style={kbd}>Ctrl+D</kbd></td><td>{t('sidebar.copyCell')}</td></tr>
+                <tr><td><kbd style={kbd}>Ctrl+P</kbd></td><td>{t('sidebar.splitCell')}</td></tr>
                 <tr><td><kbd style={kbd}>Ctrl+M</kbd></td><td>{t('sidebar.mergeCells')}</td></tr>
                 <tr><td><kbd style={kbd}>Ctrl+F</kbd></td><td>{t('sidebar.toggleDependency')}</td></tr>
                 <tr><td><kbd style={kbd}>Ctrl+E</kbd></td><td>{t('sidebar.toggleCollapse')}</td></tr>
