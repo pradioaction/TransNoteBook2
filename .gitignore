@@ -58,3 +58,6 @@ Desktop.ini
 
 # Electron
 release/
+
+# TTS model files (download manually)
+model/

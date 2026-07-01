@@ -13,6 +13,8 @@ interface FloatingOptionsProps {
   damping?: number
   impulse?: number
   kbHoveredOptionId?: string | null
+  onDoubleClickWord?: (word: string) => void
+  onDoubleClickOption?: (text: string) => void
 }
 
 const OPTION_W = 210
@@ -41,7 +43,7 @@ function overlap(
     : [true, 0, Math.sign(dy) * oy]
 }
 
-export function FloatingOptions({ question, onSelect, selectedOptionId, disabled, questionKey, damping = 0.9985, impulse = 8, kbHoveredOptionId }: FloatingOptionsProps) {
+export function FloatingOptions({ question, onSelect, selectedOptionId, disabled, questionKey, damping = 0.9985, impulse = 8, kbHoveredOptionId, onDoubleClickWord, onDoubleClickOption }: FloatingOptionsProps) {
   const { t } = useTranslation()
   const gather = !useRecitationStore((s) => s.floatingAnimationEnabled)
   const { colors } = useTheme()
@@ -195,23 +197,24 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
     <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
       {/* 固定题目卡片 */}
       <div
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: 0,
-          transform: 'translateX(-50%)',
-          width: CARD_W,
-          height: CARD_H,
-          padding: '20px 32px',
-          backgroundColor: colors.quizCardBackground,
-          border: `1px solid ${colors.quizCardBorder}`,
-          borderRadius: 10,
-          textAlign: 'center',
-          boxSizing: 'border-box',
-          zIndex: 10,
-          pointerEvents: 'none',
-        }}
-      >
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: 0,
+            transform: 'translateX(-50%)',
+            width: CARD_W,
+            height: CARD_H,
+            padding: '20px 32px',
+            backgroundColor: colors.quizCardBackground,
+            border: `1px solid ${colors.quizCardBorder}`,
+            borderRadius: 10,
+            textAlign: 'center',
+            boxSizing: 'border-box',
+            zIndex: 10,
+            cursor: onDoubleClickWord ? 'pointer' : 'default',
+          }}
+          onDoubleClick={() => onDoubleClickWord?.(question.word)}
+        >
         <div style={{ fontSize: 11, color: colors.foreground, opacity: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
           {question.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
         </div>
@@ -236,6 +239,7 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
               localAnsweredRef.current = option.id
               onSelect(option.id)
             }}
+            onDoubleClick={() => onDoubleClickOption?.(option.text)}
             onMouseEnter={() => setHoveredOptionId(option.id)}
             onMouseLeave={() => setHoveredOptionId(null)}
             style={{
