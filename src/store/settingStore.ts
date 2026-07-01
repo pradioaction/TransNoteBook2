@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { TranslationSettings, CustomModel, PromptTemplates, EnvVar } from '@/types/notebook'
 import { useThemeStore } from '@/store/themeStore'
+import { getDefaultEnSid, getDefaultZhSid } from '@/constants/ttsSpeakers'
 
 export interface SettingStore {
   readingFontSize: number
@@ -11,6 +12,11 @@ export interface SettingStore {
   envVars: EnvVar[]
   lastOpenFilePath: string | null
   recentFiles: string[]
+  ttsModelPath: string
+  ttsSid: number
+  ttsSidEn: number
+  ttsSidZh: number
+  ttsSpeed: number
   _onThemeChange: ((theme: 'light' | 'dark') => void) | null
   setOnThemeChange: (cb: ((theme: 'light' | 'dark') => void) | null) => void
   setReadingFontSize: (size: number) => void
@@ -23,6 +29,11 @@ export interface SettingStore {
   setEnvVars: (vars: EnvVar[]) => void
   setLastOpenFilePath: (path: string | null) => void
   addRecentFile: (path: string) => void
+  setTtsModelPath: (path: string) => void
+  setTtsSid: (sid: number) => void
+  setTtsSidEn: (sid: number) => void
+  setTtsSidZh: (sid: number) => void
+  setTtsSpeed: (speed: number) => void
   loadFromDisk: () => Promise<void>
   saveToDisk: () => Promise<void>
 }
@@ -66,6 +77,11 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
   envVars: [],
   lastOpenFilePath: null,
   recentFiles: [],
+  ttsModelPath: 'model/kokoro-int8-multi-lang-v1_0',
+  ttsSid: 0,
+  ttsSidEn: getDefaultEnSid(),
+  ttsSidZh: getDefaultZhSid(),
+  ttsSpeed: 1.0,
   _onThemeChange: null,
   setOnThemeChange: (cb) => set({ _onThemeChange: cb }),
 
@@ -121,6 +137,31 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
     debouncedSave(get().saveToDisk)
   },
 
+  setTtsModelPath: (path) => {
+    set({ ttsModelPath: path })
+    debouncedSave(get().saveToDisk)
+  },
+
+  setTtsSid: (sid) => {
+    set({ ttsSid: sid })
+    debouncedSave(get().saveToDisk)
+  },
+
+  setTtsSidEn: (sid) => {
+    set({ ttsSidEn: sid })
+    debouncedSave(get().saveToDisk)
+  },
+
+  setTtsSidZh: (sid) => {
+    set({ ttsSidZh: sid })
+    debouncedSave(get().saveToDisk)
+  },
+
+  setTtsSpeed: (speed) => {
+    set({ ttsSpeed: speed })
+    debouncedSave(get().saveToDisk)
+  },
+
   loadFromDisk: async () => {
     if (!window.electronAPI) return
     try {
@@ -137,7 +178,12 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
       }
       const lastOpenFilePath = (raw.lastOpenFilePath as string | null) || null
       const recentFiles = (raw.recentFiles as string[]) || []
-      set({ readingFontSize, cellWidthRatio, translation, promptTemplates, customModels, envVars, lastOpenFilePath, recentFiles })
+      const ttsModelPath = (raw.ttsModelPath as string) || 'model/kokoro-int8-multi-lang-v1_0'
+      const ttsSid = (raw.ttsSid as number) ?? 0
+      const ttsSidEn = (raw.ttsSidEn as number) ?? getDefaultEnSid()
+      const ttsSidZh = (raw.ttsSidZh as number) ?? getDefaultZhSid()
+      const ttsSpeed = (raw.ttsSpeed as number) ?? 1.0
+      set({ readingFontSize, cellWidthRatio, translation, promptTemplates, customModels, envVars, lastOpenFilePath, recentFiles, ttsModelPath, ttsSid, ttsSidEn, ttsSidZh, ttsSpeed })
     } catch { /* ignore */ }
   },
 
@@ -156,6 +202,11 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
         envVars: state.envVars,
         lastOpenFilePath: state.lastOpenFilePath,
         recentFiles: state.recentFiles,
+        ttsModelPath: state.ttsModelPath,
+        ttsSid: state.ttsSid,
+        ttsSidEn: state.ttsSidEn,
+        ttsSidZh: state.ttsSidZh,
+        ttsSpeed: state.ttsSpeed,
       } as unknown as Record<string, unknown>)
     } catch { /* ignore */ }
   },

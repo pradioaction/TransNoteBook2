@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createTranslationService } from '@/services/translationService'
 import { IconCheck, IconQuestion, IconClose, IconSun, IconMoon } from '@/components/icons'
+import { TTS_SPEAKERS, ENGLISH_SPEAKERS, CHINESE_SPEAKERS } from '@/constants/ttsSpeakers'
 
 interface SettingsDialogProps {
   open: boolean
@@ -16,7 +17,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const { colors } = useTheme()
   const settingStore = useSettingStore()
   const { t, i18n } = useTranslation()
-  const [activeTab, setActiveTab] = useState<'general' | 'translation' | 'templates' | 'models'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'translation' | 'templates' | 'models' | 'tts'>('general')
   const [newModelOpen, setNewModelOpen] = useState(false)
   const [editingModelName, setEditingModelName] = useState<string | null>(null)
   const [newModel, setNewModel] = useState({
@@ -165,6 +166,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           <button style={tabStyle(activeTab === 'translation')} onClick={() => setActiveTab('translation')}>{t('settings.tabTranslation')}</button>
           <button style={tabStyle(activeTab === 'templates')} onClick={() => setActiveTab('templates')}>{t('settings.tabPrompts')}</button>
           <button style={tabStyle(activeTab === 'models')} onClick={() => setActiveTab('models')}>{t('settings.tabModels')}</button>
+          <button style={tabStyle(activeTab === 'tts')} onClick={() => setActiveTab('tts')}>{t('settings.tabTts')}</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
@@ -395,6 +397,62 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <label style={labelStyle}>{t('settings.reviewPrompt')}</label>
                 <textarea style={textareaStyle} value={settingStore.promptTemplates.review}
                   onChange={(e) => settingStore.setPromptTemplates({ ...settingStore.promptTemplates, review: e.target.value })} />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'tts' && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{t('settings.ttsSpeakerEn')}</label>
+                <select
+                  value={settingStore.ttsSidEn}
+                  onChange={(e) => settingStore.setTtsSidEn(Number(e.target.value))}
+                  style={inputStyle}
+                >
+                  {TTS_SPEAKERS.filter((sp) => ENGLISH_SPEAKERS.includes(sp.sid)).map((sp) => (
+                    <option key={sp.sid} value={sp.sid}>{sp.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{t('settings.ttsSpeakerZh')}</label>
+                <select
+                  value={settingStore.ttsSidZh}
+                  onChange={(e) => settingStore.setTtsSidZh(Number(e.target.value))}
+                  style={inputStyle}
+                >
+                  {TTS_SPEAKERS.filter((sp) => CHINESE_SPEAKERS.includes(sp.sid)).map((sp) => (
+                    <option key={sp.sid} value={sp.sid}>{sp.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{t('settings.ttsSpeed')}</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="range"
+                    min={0.5} max={2.0} step={0.1}
+                    value={settingStore.ttsSpeed}
+                    onChange={(e) => settingStore.setTtsSpeed(Number(e.target.value))}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ fontSize: 13, color: colors.foreground, minWidth: 36 }}>
+                    {settingStore.ttsSpeed.toFixed(1)}x
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>{t('settings.ttsModelPath')}</label>
+                <input
+                  style={inputStyle}
+                  value={settingStore.ttsModelPath}
+                  onChange={(e) => settingStore.setTtsModelPath(e.target.value)}
+                  placeholder={t('settings.ttsModelPathPlaceholder')}
+                />
               </div>
             </div>
           )}

@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next'
 import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
+import { useSettingStore } from '@/store/settingStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { FloatingOptions } from './FloatingOptions'
 import { IconCelebrate } from '@/components/icons'
+import { isChineseText } from '@/constants/ttsSpeakers'
 
 export function QuizPanel() {
   const { t } = useTranslation()
@@ -17,6 +19,8 @@ export function QuizPanel() {
   const prevQuestion = useRecitationStore((s) => s.prevQuestion)
   const toggleFloatingAnimation = useRecitationStore((s) => s.toggleFloatingAnimation)
   const floatingAnimationEnabled = useRecitationStore((s) => s.floatingAnimationEnabled)
+  const ttsEnabled = useRecitationStore((s) => s.ttsEnabled)
+  const setTtsEnabled = useRecitationStore((s) => s.setTtsEnabled)
   const completeQuiz = useRecitationStore((s) => s.completeQuiz)
   const setPhase = useRecitationStore((s) => s.setPhase)
   const setSidebarMode = useRecitationStore((s) => s.setSidebarMode)
@@ -39,6 +43,40 @@ export function QuizPanel() {
       if (typeof cfg.quiz_impulse === 'number') setImpulse(cfg.quiz_impulse)
     }).catch(() => {})
   }, [recitationService])
+
+  // ==================== TTS 朗读 ====================
+  const ttsInited = useRef(false)
+  const speakingRef = useRef(false)
+  const speakWord = useCallback(async (text: string) => {
+    if (speakingRef.current) return
+    speakingRef.current = true
+    try {
+      if (!window.electronAPI?.ttsAPI) return
+      if (!ttsInited.current) {
+        const r = await window.electronAPI.ttsAPI.init()
+        if (!r.success) { speakingRef.current = false; return }
+        ttsInited.current = true
+      }
+      const store = useSettingStore.getState()
+      const sid = isChineseText(text) ? store.ttsSidZh : store.ttsSidEn
+      const r = await window.electronAPI.ttsAPI.speak(text, sid, store.ttsSpeed)
+      if (r.success && r.dataUrl) {
+        new Audio(r.dataUrl).play()
+      }
+    } catch { /* ignore */ }
+    speakingRef.current = false
+  }, [])
+
+  // TTS 开启时，切换题目自动朗读当前单词
+  const prevQuestionWordRef = useRef('')
+  useEffect(() => {
+    if (!ttsEnabled || !quizState) return
+    const word = quizState.questions[quizState.currentIndex]?.word
+    if (word && word !== prevQuestionWordRef.current) {
+      prevQuestionWordRef.current = word
+      speakWord(word)
+    }
+  }, [ttsEnabled, quizState?.currentIndex, quizState?.questions, speakWord])
 
   // 后台批量同步：将已答完的单词保存到数据库和 JSON
   const syncPendingWords = useCallback(async () => {
@@ -319,6 +357,24 @@ export function QuizPanel() {
             />
             <span style={{ minWidth: 24 }}>{impulse}</span>
           </label>
+          {/* TTS 喇叭按钮 */}
+          <button
+            onClick={() => setTtsEnabled(!ttsEnabled)}
+            style={{
+              background: 'none',
+              border: `1px solid ${ttsEnabled ? colors.primaryButton : colors.border}`,
+              cursor: 'pointer',
+              fontSize: 14,
+              padding: '2px 8px',
+              borderRadius: 4,
+              opacity: ttsEnabled ? 1 : 0.5,
+              color: ttsEnabled ? colors.primaryButton : colors.foreground,
+              lineHeight: 1,
+            }}
+            title={ttsEnabled ? t('quizPanel.ttsOff') : t('quizPanel.ttsOn')}
+          >
+            {ttsEnabled ? '♫' : '♪'}
+          </button>
         </div>
 
         <span style={{ opacity: 0.6, flexShrink: 0 }}>
@@ -344,6 +400,8 @@ export function QuizPanel() {
           damping={damping}
           impulse={impulse}
           kbHoveredOptionId={kbHoverOptionId}
+          onDoubleClickWord={(word) => speakWord(word)}
+          onDoubleClickOption={(text) => speakWord(text)}
         />
       </div>
 

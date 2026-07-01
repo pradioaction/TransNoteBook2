@@ -18,6 +18,7 @@ export interface RecitationStore {
   // === 检测状态 ===
   quizState: QuizState | null
   floatingAnimationEnabled: boolean
+  ttsEnabled: boolean
 
   // === 文章测试来源标记（非词书管理发起） ===
   articleQuizSource: boolean
@@ -44,6 +45,7 @@ export interface RecitationStore {
   nextQuestion: () => void
   prevQuestion: () => void
   toggleFloatingAnimation: () => void
+  setTtsEnabled: (enabled: boolean) => void
   completeQuiz: () => void
 
   // === 批量同步追踪 ===
@@ -89,6 +91,7 @@ const initialState = {
   sidebarMode: 'full' as const,
   quizState: null,
   floatingAnimationEnabled: true,
+  ttsEnabled: true,
   articleQuizSource: false,
   pendingSyncResults: {},
   quizResultsByBook: {},
@@ -292,6 +295,9 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
 
   toggleFloatingAnimation: () => {
     set((state) => ({ floatingAnimationEnabled: !state.floatingAnimationEnabled }))
+  },
+  setTtsEnabled: (enabled) => {
+    set({ ttsEnabled: enabled })
   },
 
   completeQuiz: () => {

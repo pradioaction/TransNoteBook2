@@ -103,6 +103,11 @@ export function getDefaultSettings() {
     }>,
     recentFiles: [] as string[],
     envVars: [] as Array<{ name: string; description: string }>,
+    ttsModelPath: path.join(__dirname, '../model/kokoro-int8-multi-lang-v1_0'),
+    ttsSid: 0,
+    ttsSidEn: 0,
+    ttsSidZh: 45,
+    ttsSpeed: 1.0,
   }
 }
 

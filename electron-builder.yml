@@ -8,6 +8,23 @@ files:
   - dist-electron/**/*
   - package.json
 icon: TN.ico
+extraResources:
+  # TTS 运行时（CMake MSVC 构建产物）
+  - from: electron/tts/build/bin/Release
+    to: .
+    filter:
+      - tts-server.exe
+      - TtsEngine.dll
+      - onnxruntime.dll
+      - onnxruntime_providers_shared.dll
+      - sherpa-onnx-c-api.dll
+      - sherpa-onnx-cxx-api.dll
+      - cargs.dll
+  # 模型文件（如用户将模型放在项目目录下，取消注释即可启用）
+  # - from: model
+  #   to: model
+  #   filter:
+  #     - "**/*"
 win:
   target:
     - target: portable

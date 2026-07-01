@@ -94,4 +94,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     batchDeleteWords: (bookId: number, wordIds: number[]) =>
       ipcRenderer.invoke('recitation:batch-delete-words', bookId, wordIds),
   },
+
+  // ==================== TTS API ====================
+  ttsAPI: {
+    init: () => ipcRenderer.invoke('tts:init') as Promise<{ success: boolean; error?: string; sampleRate?: number; numSpeakers?: number }>,
+    speak: (text: string, sid?: number, speed?: number) =>
+      ipcRenderer.invoke('tts:speak', text, sid, speed) as Promise<{ success: boolean; error?: string; dataUrl?: string }>,
+    status: () => ipcRenderer.invoke('tts:status') as Promise<{ running: boolean }>,
+    stop: () => ipcRenderer.invoke('tts:stop'),
+  },
 })

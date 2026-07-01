@@ -170,6 +170,18 @@ export interface AppSettings {
   customModels: CustomModel[]
   recentFiles: string[]
   envVars: EnvVar[]
+  ttsModelPath?: string
+  ttsSid?: number
+  ttsSidEn?: number
+  ttsSidZh?: number
+  ttsSpeed?: number
+}
+
+interface TtsAPI {
+  init(): Promise<{ success: boolean; error?: string; sampleRate?: number; numSpeakers?: number }>
+  speak(text: string, sid?: number, speed?: number): Promise<{ success: boolean; error?: string; dataUrl?: string }>
+  status(): Promise<{ running: boolean }>
+  stop(): Promise<void>
 }
 
 interface RecitationAPI {
@@ -229,6 +241,7 @@ declare global {
       setWorkspaceConfig: (workspacePath: string, key: string, value: unknown) => Promise<boolean>
       onMenuAction: (callback: (action: string) => void) => void
       recitationAPI?: RecitationAPI
+      ttsAPI?: TtsAPI
     }
   }
 }
