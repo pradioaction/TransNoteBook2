@@ -133,7 +133,7 @@ contextIsolation / API Key 环境变量 / 文件过滤 / 路径安全
 阅读界面计时器 (ReadingTimer)、工作区日志模块 (logService + outputStore 持久化)、工具栏 i18n 国际化、测验结果日志输出、单元格收藏功能 (Cell Bookmark + useBookmark)、工作区级配置 (workspaceConfigStore + ConfigProvider)、IPC 处理器模块化 (handlers/ 5 个模块)、类型安全加固 (P0-2/P0-6)、日志模块重构 (append-file IPC + 清理机制)、outputStore 颜色支持
 
 ### v2.0 完成
-远程词书导入（GitHub/Gitee 一键导入词书）、词书界面 UI/UX 改进（状态页背景色跟随主题、统计面板空状态处理）
+远程词书导入（GitHub/Gitee 一键导入词书）、词书界面 UI/UX 改进（状态页背景色跟随主题、统计面板空状态处理）、**侧边栏搜索功能（搜索当前笔记、上下文片段展示、跳转高亮）**
 
 ### 待办
 翻译重试/缓存、AI 批阅功能、提示词模板预览、阅读增强、快捷键补全、自定义主题
