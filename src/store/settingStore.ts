@@ -11,6 +11,7 @@ export interface SettingStore {
   envVars: EnvVar[]
   lastOpenFilePath: string | null
   recentFiles: string[]
+  workspacePath: string | null
   _onThemeChange: ((theme: 'light' | 'dark') => void) | null
   setOnThemeChange: (cb: ((theme: 'light' | 'dark') => void) | null) => void
   setReadingFontSize: (size: number) => void
@@ -23,6 +24,7 @@ export interface SettingStore {
   setEnvVars: (vars: EnvVar[]) => void
   setLastOpenFilePath: (path: string | null) => void
   addRecentFile: (path: string) => void
+  setWorkspacePath: (path: string | null) => void
   loadFromDisk: () => Promise<void>
   saveToDisk: () => Promise<void>
 }
@@ -66,6 +68,7 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
   envVars: [],
   lastOpenFilePath: null,
   recentFiles: [],
+  workspacePath: null,
   _onThemeChange: null,
   setOnThemeChange: (cb) => set({ _onThemeChange: cb }),
 
@@ -121,6 +124,11 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
     debouncedSave(get().saveToDisk)
   },
 
+  setWorkspacePath: (path) => {
+    set({ workspacePath: path })
+    debouncedSave(get().saveToDisk)
+  },
+
   loadFromDisk: async () => {
     if (!window.electronAPI) return
     try {
@@ -137,7 +145,8 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
       }
       const lastOpenFilePath = (raw.lastOpenFilePath as string | null) || null
       const recentFiles = (raw.recentFiles as string[]) || []
-      set({ readingFontSize, cellWidthRatio, translation, promptTemplates, customModels, envVars, lastOpenFilePath, recentFiles })
+      const workspacePath = (raw.workspacePath as string | null) || null
+      set({ readingFontSize, cellWidthRatio, translation, promptTemplates, customModels, envVars, lastOpenFilePath, recentFiles, workspacePath })
     } catch { /* ignore */ }
   },
 
@@ -156,6 +165,7 @@ export const useSettingStore = create<SettingStore>((set, get) => ({
         envVars: state.envVars,
         lastOpenFilePath: state.lastOpenFilePath,
         recentFiles: state.recentFiles,
+        workspacePath: state.workspacePath,
       } as unknown as Record<string, unknown>)
     } catch { /* ignore */ }
   },

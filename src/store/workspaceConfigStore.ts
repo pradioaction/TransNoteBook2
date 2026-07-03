@@ -16,7 +16,7 @@ export const useWorkspaceConfigStore = create<WorkspaceConfigStore>((set) => ({
     const api = window.electronAPI
     if (!api?.getWorkspaceConfig) return
     const ws = useWorkspaceStore.getState().workspacePath
-    if (!ws) { set({ loaded: true }); return }
+    if (!ws) { set({ bookmarkFilePath: null, loaded: true }); return }
     try {
       const config = await api.getWorkspaceConfig(ws)
       set({ bookmarkFilePath: config.bookmarkFilePath ?? null, loaded: true })

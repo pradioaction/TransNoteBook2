@@ -47,8 +47,20 @@ export function useCellService(): CellService {
     if (store.selectedIndices.size === 0) return
     const sorted = [...store.selectedIndices].sort((a, b) => b - a)
     const cells = [...nb.cells]
+
+    // Collect IDs of cells being deleted
+    const deletedIds = new Set(sorted.map(i => cells[i]?.id).filter(Boolean))
+
     sorted.forEach(i => cells.splice(i, 1))
     if (cells.length === 0) cells.push(createEmptyCell())
+
+    // Fix dangling references: promote orphaned children to top-level
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i].parentId && deletedIds.has(cells[i].parentId!)) {
+        cells[i] = { ...cells[i], parentId: null, indentLevel: 0 }
+      }
+    }
+
     const newIdx = Math.min(sorted[sorted.length - 1], cells.length - 1)
     store.setCells(cells)
     store.selectCell(newIdx)
@@ -92,15 +104,17 @@ export function useCellService(): CellService {
       isOutputCollapsed: false,
     }
 
-    if (hasChildren) {
-      // Insert after index, before the first child; the new cell becomes a child of orig
+    // Respect two-level limit: if orig is already a child (indentLevel >= 1) and has children,
+    // the new cell becomes a sibling instead of creating indentLevel 2
+    if (hasChildren && orig.indentLevel === 0) {
+      // Insert as child of orig (keeps within two-level limit)
       cells.splice(index + 1, 0, {
         ...base,
         parentId: orig.id,
-        indentLevel: orig.indentLevel + 1,
+        indentLevel: 1,
       })
     } else {
-      // No children, insert as sibling of orig
+      // No children or orig is already a child: insert as sibling
       cells.splice(index + 1, 0, {
         ...base,
         parentId: orig.parentId,
@@ -204,7 +218,24 @@ export function useCellService(): CellService {
     const p = cells[parentIndex]
     const c = cells[childIndex]
     if (!p || !c || childIndex === parentIndex) return
-    cells[childIndex] = { ...c, parentId: p.id, indentLevel: p.indentLevel + 1 }
+
+    // Determine target parent: if prev cell is top-level (indentLevel=0), join under it;
+    // if prev cell is already a child (indentLevel=1), join its parent group
+    const targetParentId = p.indentLevel === 0 ? p.id : p.parentId
+    if (!targetParentId) return
+
+    // Update current cell to be a child of the target parent
+    cells[childIndex] = { ...c, parentId: targetParentId, indentLevel: 1 }
+
+    // If current cell had children, promote them to the same target parent (two-level constraint)
+    for (let i = childIndex + 1; i < cells.length; i++) {
+      if (cells[i].parentId === c.id) {
+        cells[i] = { ...cells[i], parentId: targetParentId, indentLevel: 1 }
+      } else {
+        break
+      }
+    }
+
     store.setCells(cells)
   }
 
@@ -212,7 +243,24 @@ export function useCellService(): CellService {
     const nb = store.notebook
     if (!nb) return
     const cells = [...nb.cells]
-    if (cells[index]) cells[index] = { ...cells[index], parentId: null, indentLevel: 0 }
+    const c = cells[index]
+    if (!c) return
+
+    const oldParentId = c.parentId
+    const cId = c.id
+
+    // Promote current cell to top-level
+    cells[index] = { ...c, parentId: null, indentLevel: 0 }
+
+    // Subsequent consecutive cells that shared the same old parent follow this cell
+    for (let i = index + 1; i < cells.length; i++) {
+      if (cells[i].parentId === oldParentId) {
+        cells[i] = { ...cells[i], parentId: cId, indentLevel: 1 }
+      } else {
+        break
+      }
+    }
+
     store.setCells(cells)
   }
 

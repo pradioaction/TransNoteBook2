@@ -9,6 +9,7 @@ import { IconFolder, IconFolderOpen, IconFile, IconChevronRight, IconChevronDown
 import { useTranslation } from 'react-i18next'
 import { useWorkspaceConfigStore } from '@/store/workspaceConfigStore'
 import { useOutputStore } from '@/store/outputStore'
+import { useSettingStore } from '@/store/settingStore'
 import { IconStar } from '@/components/icons'
 
 export function FileExplorer() {
@@ -111,16 +112,16 @@ export function FileExplorer() {
   useEffect(() => {
     const ws = useWorkspaceStore.getState().workspacePath
     if (!ws) {
-      const last = localStorage.getItem('tsbook2_last_workspace')
-      if (last) setWorkspace(last)
+      const saved = useSettingStore.getState().workspacePath
+      if (saved) setWorkspace(saved)
     }
   }, [setWorkspace])
 
   useEffect(() => {
-    if (workspacePath) localStorage.setItem('tsbook2_last_workspace', workspacePath)
+    if (workspacePath) useSettingStore.getState().setWorkspacePath(workspacePath)
   }, [workspacePath])
 
-  useEffect(() => { loadConfig() }, [loadConfig])
+  useEffect(() => { loadConfig() }, [loadConfig, workspacePath])
 
   const sectionStyle: React.CSSProperties = {
     padding: '4px 12px',

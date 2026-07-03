@@ -122,7 +122,7 @@
   "wordEditor.save": "Save",
   "wordEditor.saving": "Saving...",
 
-  "recitationShell.initializing": "Initializing recitation database...",
+  "recitationShell.initializing": "Initializing recitation database... If this takes too long, check your workspace settings",
   "recitationShell.noWorkspace": "Please open a workspace first",
   "recitationShell.noWorkspaceHint": "Use \"Open Folder\" in the file explorer to set a workspace path",
   "recitationShell.initError": "Failed to initialize recitation database",
