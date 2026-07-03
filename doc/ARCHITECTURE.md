@@ -8,7 +8,7 @@
 
 项目定位、核心理念、技术栈、与原项目 TransNb 的对比。
 
-> 完整内容 → [v1.4/architecture/overview.md](v1.4/architecture/overview.md)
+> 完整内容 → [v2.0/architecture/overview.md](v2.0/architecture/overview.md)
 
 ---
 
@@ -22,7 +22,7 @@ Electron 主进程（main.ts / handlers/ / preload.ts / recitation/）与 React 
 
 Main Process ↔ preload.ts (contextBridge) ↔ Renderer Process 的 ASCII 架构图，含模块化 IPC Handler、正常模式与背诵模式的组件树。
 
-> 完整内容 → [v1.4/architecture/overview.md](v1.4/architecture/overview.md)
+> 完整内容 → [v2.0/architecture/overview.md](v2.0/architecture/overview.md)
 
 ---
 
@@ -55,7 +55,7 @@ FileService / CellService / TranslationService / RecitationService / LogService 
 ### 3.12 翻译模块
 TranslationProvider 策略模式 / OllamaProvider / OpenAIProvider / ArkProvider / ProviderFactory
 
-> 完整内容 → [v1.4/architecture/modules.md](v1.4/architecture/modules.md)
+> 完整内容 → [v2.0/architecture/modules.md](v2.0/architecture/modules.md)
 
 ---
 
@@ -63,7 +63,7 @@ TranslationProvider 策略模式 / OllamaProvider / OpenAIProvider / ArkProvider
 
 文件打开 / 保存 / 导入 / 单元格编辑 / 选中 / 设置加载保存 / 主题切换 / 日志写入 / 单元格收藏 — 完整流程图
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -71,7 +71,7 @@ TranslationProvider 策略模式 / OllamaProvider / OpenAIProvider / ArkProvider
 
 新增翻译提供者 / 侧边栏面板 / 设置标签页 / 单元格操作 / 主题 / IPC Handler / 工作区级配置项的步骤
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -79,7 +79,7 @@ TranslationProvider 策略模式 / OllamaProvider / OpenAIProvider / ArkProvider
 
 AppShell → 各组件的依赖树
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -89,7 +89,7 @@ AppShell → 各组件的依赖树
 TSBook2/ ├── electron/ ├── src/ └── doc/
 ```
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -97,7 +97,7 @@ TSBook2/ ├── electron/ ├── src/ └── doc/
 
 13 种设计模式及应用位置表
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -105,7 +105,7 @@ TSBook2/ ├── electron/ ├── src/ └── doc/
 
 TransNb（PyQt5）与 TSBook2（Electron + React）全方位对比表
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -113,7 +113,7 @@ TransNb（PyQt5）与 TSBook2（Electron + React）全方位对比表
 
 Zustand 不可变更新 / key 优化 / 按需创建 / 主进程 I/O / debounced 持久化 / append-file 直接追加
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
@@ -121,27 +121,21 @@ Zustand 不可变更新 / key 优化 / 按需创建 / 主进程 I/O / debounced 
 
 contextIsolation / API Key 环境变量 / 文件过滤 / 路径安全
 
-> 完整内容 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
 
 ---
 
 ## 12. 版本状态
 
-> 当前版本: **v1.4** | 最后更新: 2026-06-27
-
-### v1.1 完成
-单元格编辑/阅读切换、译文渲染、翻译引擎、宽度控制、服务层
-
-### v1.2 完成
-背诵模式、翻译进度可视化、代码质量重构、单词 CRUD、欢迎页
-
-### v1.3 完成
-学习统计面板、阶段筛选、测验结果反馈、Ctrl+范围选择、已测单词追踪、pairText 切换、API 扩展
+> 当前版本: **v2.0** | 最后更新: 2026-07-03
 
 ### v1.4 完成
 阅读界面计时器 (ReadingTimer)、工作区日志模块 (logService + outputStore 持久化)、工具栏 i18n 国际化、测验结果日志输出、单元格收藏功能 (Cell Bookmark + useBookmark)、工作区级配置 (workspaceConfigStore + ConfigProvider)、IPC 处理器模块化 (handlers/ 5 个模块)、类型安全加固 (P0-2/P0-6)、日志模块重构 (append-file IPC + 清理机制)、outputStore 颜色支持
 
-### 待办
-翻译重试/缓存、文章生成器、环境变量 UI、用户自定义主题、Service-Store 解耦
+### v2.0 完成
+远程词书导入（GitHub/Gitee 一键导入词书）、词书界面 UI/UX 改进（状态页背景色跟随主题、统计面板空状态处理）
 
-> 完整版本清单 → [v1.4/architecture/reference.md](v1.4/architecture/reference.md)
+### 待办
+翻译重试/缓存、AI 批阅功能、提示词模板预览、阅读增强、快捷键补全、自定义主题
+
+> 完整版本清单 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)

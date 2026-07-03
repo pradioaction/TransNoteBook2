@@ -2,6 +2,8 @@ import { ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { recitationState, ensureRecitationServices } from '../state'
+import { GitHubBookFetcher } from '../recitation/gitHubBookFetcher'
+import type { BookSource } from '../recitation/gitHubBookFetcher'
 
 export function registerRecitationHandlers() {
   const $ = recitationState
@@ -209,6 +211,31 @@ export function registerRecitationHandlers() {
       return { success: deleted, failed: wordIds.length - deleted }
     } catch (err: any) {
       return { success: 0, failed: wordIds.length, errors: [String(err)] }
+    }
+  })
+
+  // === 远程导入 ===
+
+  ipcMain.handle('recitation:fetch-remote-books', async (_event, source: BookSource) => {
+    try {
+      const fetcher = new GitHubBookFetcher()
+      const books = await fetcher.fetchBookList(source)
+      return { success: true, books }
+    } catch (err: any) {
+      return { success: false, error: String(err?.message ?? err), books: [] }
+    }
+  })
+
+  ipcMain.handle('recitation:import-remote-book', async (_event, downloadUrl: string, bookName: string) => {
+    try {
+      const fetcher = new GitHubBookFetcher()
+      const content = await fetcher.downloadJson(downloadUrl)
+      if (!$.bookService) return { success: false, error: '词书服务未初始化' }
+      const book = $.bookService.importFromJsonContent(content, bookName)
+      if (!book) return { success: false, error: '词书导入失败，可能格式不正确或内容为空' }
+      return { success: true, book }
+    } catch (err: any) {
+      return { success: false, error: String(err?.message ?? err) }
     }
   })
 }

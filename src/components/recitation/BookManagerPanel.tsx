@@ -10,6 +10,7 @@ import { useOutputStore } from '@/store/outputStore'
 import { BookCard } from './BookCard'
 import { WordManagerDialog } from './WordManagerDialog'
 import { CreateBookDialog } from './CreateBookDialog'
+import { ImportBookDialog } from './ImportBookDialog'
 import { processArticleText } from '@/utils/articleUtils'
 import { serializeNotebookFile } from '@/utils/fileUtils'
 import type { BookWithProgress, StageSummary, StageFilter } from '@/recitation/types'
@@ -74,6 +75,7 @@ export function BookManagerPanel() {
   const [stageSummaryMap, setStageSummaryMap] = useState<Record<number, StageSummary>>({})
   const [searchKeyword, setSearchKeyword] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   // 搜索过滤（客户端实时过滤，不依赖服务端）
   const filteredBooks = useMemo(() => {
@@ -431,18 +433,9 @@ export function BookManagerPanel() {
   }, [])
 
   // 导入词书
-  const handleImport = useCallback(async () => {
-    const api = window.electronAPI
-    if (!api) return
-    const filePath = await api.openBookDialog()
-    if (!filePath) return
-    try {
-      await recitationService.importBook(filePath)
-      await loadBooks()
-    } catch {
-      console.error('导入词书失败')
-    }
-  }, [recitationService, loadBooks])
+  const handleImport = useCallback(() => {
+    setImportDialogOpen(true)
+  }, [])
 
   // 新建词书
   const handleCreate = useCallback(async (name: string, description: string) => {
@@ -824,6 +817,13 @@ export function BookManagerPanel() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={handleCreate}
+      />
+
+      {/* ImportBookDialog 弹窗 */}
+      <ImportBookDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImportComplete={loadBooks}
       />
     </div>
   )

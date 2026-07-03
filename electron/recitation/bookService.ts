@@ -47,6 +47,38 @@ export class BookService {
     return savedBook
   }
 
+  /**
+   * 从内存 JSON 字符串导入词书（用于远程下载后直接导入）
+   * @param data JSON 字符串内容
+   * @param bookName 词书名称
+   */
+  importFromJsonContent(data: string, bookName: string): BookRow | null {
+    const result = this._bookImporter.importFromContent(data, bookName)
+    if (!result.book || result.words.length === 0) return null
+
+    const savedBook = this._dal.addBook({
+      name: result.book.name,
+      path: '', // 内存导入没有文件路径
+      count: 0,
+    })
+
+    if (!savedBook) return null
+
+    const words = result.words.map(w => ({
+      book_id: savedBook.id,
+      word: w.word,
+      phonetic: w.phonetic,
+      definition: w.definition,
+      example: w.example,
+      raw_data: w.raw_data,
+    }))
+
+    const count = this._dal.addWordsBatch(words)
+    console.log(`[BookService] Imported book from content: ${savedBook.name}, words: ${count}`)
+
+    return savedBook
+  }
+
   getAllBooks(): BookRow[] {
     return this._dal.getAllBooks()
   }

@@ -93,5 +93,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('recitation:export-book-to-dialog', bookId),
     batchDeleteWords: (bookId: number, wordIds: number[]) =>
       ipcRenderer.invoke('recitation:batch-delete-words', bookId, wordIds),
+
+    fetchRemoteBooks: (source: { label: string; owner: string; repo: string; path: string; platform: 'github' | 'gitee' }) =>
+      ipcRenderer.invoke('recitation:fetch-remote-books', source),
+    importRemoteBook: (downloadUrl: string, bookName: string) =>
+      ipcRenderer.invoke('recitation:import-remote-book', downloadUrl, bookName),
   },
 })

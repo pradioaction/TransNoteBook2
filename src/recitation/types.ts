@@ -147,4 +147,8 @@ export interface RecitationAPI {
   addWord(bookId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<Word | null>
   updateWord(wordId: number, word: { word: string; phonetic: string; definition: string; example: string }): Promise<boolean>
   deleteWord(wordId: number): Promise<boolean>
+
+  // === 远程导入 ===
+  fetchRemoteBooks(source: { label: string; owner: string; repo: string; path: string; platform: 'github' | 'gitee' }): Promise<{ success: boolean; books: Array<{ name: string; size: number | null; downloadUrl: string }>; error?: string }>
+  importRemoteBook(downloadUrl: string, bookName: string): Promise<{ success: boolean; book?: Book | null; error?: string }>
 }

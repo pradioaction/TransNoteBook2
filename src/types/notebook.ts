@@ -204,6 +204,10 @@ interface RecitationAPI {
   exportBook(bookId: number, exportPath: string): Promise<boolean>
   exportBookToDialog(bookId: number): Promise<string | null>
   batchDeleteWords(bookId: number, wordIds: number[]): Promise<{ success: number; failed: number; errors?: string[] }>
+
+  // === 远程导入 ===
+  fetchRemoteBooks(source: { label: string; owner: string; repo: string; path: string; platform: 'github' | 'gitee' }): Promise<{ success: boolean; books: Array<{ name: string; size: number | null; downloadUrl: string }>; error?: string }>
+  importRemoteBook(downloadUrl: string, bookName: string): Promise<{ success: boolean; book?: Book | null; error?: string }>
 }
 
 declare global {

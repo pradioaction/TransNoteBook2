@@ -70,6 +70,7 @@ export function RecitationShell() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: colors.recitationBackground,
           color: 'var(--foreground, #d4d4d4)',
           fontSize: 14,
         }}
@@ -87,6 +88,7 @@ export function RecitationShell() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: colors.recitationBackground,
           color: 'var(--foreground, #d4d4d4)',
           fontSize: 14,
           flexDirection: 'column',
@@ -109,6 +111,7 @@ export function RecitationShell() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: colors.recitationBackground,
           color: 'var(--error-text, #f48771)',
           fontSize: 14,
           flexDirection: 'column',

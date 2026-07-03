@@ -53,6 +53,29 @@ export class BookImporter {
     }
   }
 
+  /**
+   * 从 JSON 字符串导入词书（内存导入，不依赖文件系统）
+   * @param content JSON 字符串内容
+   * @param bookName 词书名称
+   */
+  importFromContent(content: string, bookName: string): ImportResult {
+    try {
+      const data = JSON.parse(content)
+      const words = this._parseWords(data)
+      return {
+        book: {
+          name: bookName,
+          path: '', // 内存导入没有文件路径
+          count: words.length,
+        },
+        words,
+      }
+    } catch (err) {
+      console.error(`[BookImporter] Import from content failed: ${err}`)
+      return { book: null, words: [] }
+    }
+  }
+
   private _parseWords(data: unknown): WordData[] {
     const words: WordData[] = []
 

@@ -133,5 +133,13 @@ export function createRecitationService(): RecitationService {
       // Stub: for future implementation
       return { success: 0, failed: 0 }
     },
+
+    fetchRemoteBooks: async (source) => {
+      return (await api()?.fetchRemoteBooks(source)) ?? { success: false, books: [], error: 'API 不可用' }
+    },
+
+    importRemoteBook: async (downloadUrl, bookName) => {
+      return (await api()?.importRemoteBook(downloadUrl, bookName)) ?? { success: false, error: 'API 不可用' }
+    },
   }
 }

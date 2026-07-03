@@ -105,11 +105,13 @@ export function StatsPanel() {
   const [selectedOption, setSelectedOption] = useState<number>(0)
   const [distribution, setDistribution] = useState<StageDistribution | null>(null)
   const [loading, setLoading] = useState(true)
+  const [booksLoaded, setBooksLoaded] = useState(false)
 
   // 加载词书列表并恢复上次选中的词书
   useEffect(() => {
     recitationService.getBooks().then((list) => {
       setBooks(list)
+      setBooksLoaded(true)
       // 尝试恢复上次选中的词书
       recitationService.getConfig().then(config => {
         const savedBookId = config.current_book_id as number | undefined
@@ -117,14 +119,22 @@ export function StatsPanel() {
           setSelectedOption(savedBookId)
         } else if (list.length > 0) {
           setSelectedOption(list[0].id!)
+        } else {
+          setLoading(false) // 无词书时结束加载
         }
       })
-    }).catch(() => {})
-  }, [recitationService])
+    }).catch(() => {
+      setBooksLoaded(true)
+      setLoading(false)
+    })
+  }, [recitationService, selectedBookId])
 
   // 加载分布数据
   const loadData = useCallback(async () => {
-    if (selectedOption === 0) return
+    if (selectedOption === 0) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       const dist = await recitationService.getStageDistribution(selectedOption)
@@ -220,7 +230,8 @@ export function StatsPanel() {
             outline: 'none',
           }}
         >
-          {selectedOption === 0 && <option value="">加载中...</option>}
+          {selectedOption === 0 && !booksLoaded && <option value="">加载中...</option>}
+          {selectedOption === 0 && booksLoaded && books.length === 0 && <option value="">尚无词书</option>}
           {books.map((b) => (
             <option key={b.id} value={String(b.id)}>
               {b.name}
@@ -229,75 +240,93 @@ export function StatsPanel() {
         </select>
       </div>
 
-      {/* 环形图 */}
-      <div
-        style={{
+      {/* 无词书空状态 */}
+      {booksLoaded && books.length === 0 ? (
+        <div style={{
+          flex: 1,
           display: 'flex',
-          justifyContent: 'center',
           alignItems: 'center',
-          padding: '16px 0',
-          flexShrink: 0,
-        }}
-      >
-        {loading ? (
-          <div style={{ width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.foreground, opacity: 0.4, fontSize: 12 }}>
-            加载中...
-          </div>
-        ) : (
-          <DonutChart data={chartData} colors={colors as unknown as Record<string, string>} />
-        )}
-      </div>
-
-      {/* 阶段明细列表 */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 12px 8px' }}>
-        {!loading && chartData.map((item) => (
+          justifyContent: 'center',
+          fontSize: 13,
+          color: colors.foreground,
+          opacity: 0.5,
+          padding: '0 24px',
+          textAlign: 'center',
+        }}>
+          尚无词书，请先导入或创建词书
+        </div>
+      ) : (
+        <>
+          {/* 环形图 */}
           <div
-            key={item.key}
             style={{
               display: 'flex',
+              justifyContent: 'center',
               alignItems: 'center',
-              gap: 8,
-              padding: '4px 0',
-              fontSize: 12,
-              color: colors.foreground,
+              padding: '16px 0',
+              flexShrink: 0,
             }}
           >
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 3,
-                backgroundColor: item.color,
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ flex: 1, opacity: 0.8 }}>{item.label}</span>
-            <span style={{ fontWeight: 500 }}>{item.value}</span>
-            <span style={{ opacity: 0.5, minWidth: 36, textAlign: 'right' }}>{item.pct}%</span>
+            {loading ? (
+              <div style={{ width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.foreground, opacity: 0.4, fontSize: 12 }}>
+                加载中...
+              </div>
+            ) : (
+              <DonutChart data={chartData} colors={colors as unknown as Record<string, string>} />
+            )}
           </div>
-        ))}
-      </div>
 
-      {/* 关键指标 */}
-      <div
-        style={{
-          padding: '8px 12px',
-          borderTop: `1px solid ${colors.border}`,
-          flexShrink: 0,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 6,
-        }}
-      >
-        <MetricCard label="总词数" value={String(totalWords)} colors={colors as unknown as Record<string, string>} />
-        <MetricCard label="已学习" value={String(studiedWords)} colors={colors as unknown as Record<string, string>} />
-        <MetricCard label="待复习" value={String(distribution ? (() => {
-          // 粗略估算待复习：stage 0-4 的已学单词
-          if (!distribution) return 0
-          return distribution.stage0 + distribution.stage1 + distribution.stage2 + distribution.stage3 + distribution.stage4
-        })() : 0)} colors={colors as unknown as Record<string, string>} />
-        <MetricCard label="已掌握" value={String(distribution?.stage8 || 0)} colors={colors as unknown as Record<string, string>} />
-      </div>
+          {/* 阶段明细列表 */}
+          <div style={{ flex: 1, overflow: 'auto', padding: '0 12px 8px' }}>
+            {!loading && chartData.map((item) => (
+              <div
+                key={item.key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 0',
+                  fontSize: 12,
+                  color: colors.foreground,
+                }}
+              >
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    backgroundColor: item.color,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ flex: 1, opacity: 0.8 }}>{item.label}</span>
+                <span style={{ fontWeight: 500 }}>{item.value}</span>
+                <span style={{ opacity: 0.5, minWidth: 36, textAlign: 'right' }}>{item.pct}%</span>
+              </div>
+            ))}
+          </div>
+
+          {/* 关键指标 */}
+          <div
+            style={{
+              padding: '8px 12px',
+              borderTop: `1px solid ${colors.border}`,
+              flexShrink: 0,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 6,
+            }}
+          >
+            <MetricCard label="总词数" value={String(totalWords)} colors={colors as unknown as Record<string, string>} />
+            <MetricCard label="已学习" value={String(studiedWords)} colors={colors as unknown as Record<string, string>} />
+            <MetricCard label="待复习" value={String(distribution ? (() => {
+              if (!distribution) return 0
+              return distribution.stage0 + distribution.stage1 + distribution.stage2 + distribution.stage3 + distribution.stage4
+            })() : 0)} colors={colors as unknown as Record<string, string>} />
+            <MetricCard label="已掌握" value={String(distribution?.stage8 || 0)} colors={colors as unknown as Record<string, string>} />
+          </div>
+        </>
+      )}
     </div>
   )
 }

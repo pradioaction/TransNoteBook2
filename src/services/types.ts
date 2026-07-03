@@ -97,6 +97,7 @@ export interface RecitationService {
   setConfig(key: string, value: unknown): Promise<boolean>
   getTodayWords(bookId: number, forceRefresh?: boolean): Promise<import('@/recitation/types').TodayWordsResult>
   refreshTodayWords(bookId: number): Promise<import('@/recitation/types').TodayWordsResult>
+  markWordsAsTested(bookId: number, testedNewIds: number[], testedReviewIds: number[], quizResults?: Record<number, boolean>): Promise<boolean>
 
   // === v1.4 新增 ===
   createBook(name: string, description?: string): Promise<import('@/recitation/types').Book | null>
@@ -105,4 +106,8 @@ export interface RecitationService {
   searchBooks(keyword: string): Promise<import('@/recitation/types').Book[]>
   batchDeleteWords(bookId: number, wordIds: number[]): Promise<import('@/recitation/types').BatchOperationResult>
   batchImportWords(bookId: number): Promise<import('@/recitation/types').BatchOperationResult>
+
+  // === 远程导入 ===
+  fetchRemoteBooks(source: { label: string; owner: string; repo: string; path: string; platform: 'github' | 'gitee' }): Promise<{ success: boolean; books: Array<{ name: string; size: number | null; downloadUrl: string }>; error?: string }>
+  importRemoteBook(downloadUrl: string, bookName: string): Promise<{ success: boolean; book?: import('@/recitation/types').Book | null; error?: string }>
 }
