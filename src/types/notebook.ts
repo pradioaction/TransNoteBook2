@@ -57,6 +57,13 @@ export interface NotebookStore {
   clearSelection: () => void
   updateCellContent: (index: number, content: string) => void
   updateCellOutput: (index: number, output: string) => void
+
+  // === 搜索功能 ===
+  searchHighlightText: string
+  scrollToCellIndex: number | null
+  setSearchHighlight: (text: string) => void
+  clearSearchHighlight: () => void
+  setScrollToCell: (index: number | null) => void
 }
 
 export interface ThemeConfig {

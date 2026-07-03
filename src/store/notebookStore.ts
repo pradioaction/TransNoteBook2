@@ -42,6 +42,13 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   notebook: null,
   openFileCount: 0,
 
+  // === 搜索功能 ===
+  searchHighlightText: '',
+  scrollToCellIndex: null,
+  setSearchHighlight: (text) => set({ searchHighlightText: text }),
+  clearSearchHighlight: () => set({ searchHighlightText: '' }),
+  setScrollToCell: (index) => set({ scrollToCellIndex: index }),
+
   _onFileOpened: null,
   setOnFileOpened: (cb) => set({ _onFileOpened: cb }),
 

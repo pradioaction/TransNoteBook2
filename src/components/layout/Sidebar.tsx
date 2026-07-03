@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useWorkspaceStore } from '@/store/workspaceStore'
 import { useTheme } from '@/hooks/useTheme'
 import { FileExplorer } from '@/components/file/FileExplorer'
+import { SearchPanel } from '@/components/search/SearchPanel'
 import { IconSettings } from '@/components/icons'
 
 export function Sidebar() {
@@ -69,22 +70,7 @@ export function Sidebar() {
       }}
     >
       {sidebarActiveTab === 'explorer' && <FileExplorer />}
-      {sidebarActiveTab === 'search' && (
-        <div style={{ padding: 16, color: colors.foreground }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>
-            {t('sidebar.search')}
-          </div>
-          <input
-            placeholder={t('sidebar.searchPlaceholder')}
-            style={{
-              width: '100%', padding: '6px 8px', fontSize: 13,
-              backgroundColor: colors.inputBackground, color: colors.foreground,
-              border: `1px solid ${colors.inputBorder}`, borderRadius: 3,
-              outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-        </div>
-      )}
+      {sidebarActiveTab === 'search' && <SearchPanel />}
       {sidebarActiveTab === 'issues' && (
         <div style={{ padding: 16, color: colors.foreground }}>
           <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: 12 }}>

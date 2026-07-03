@@ -26,6 +26,22 @@ function Example() {
 
 完整接口定义参见 `@/types/notebook.ts` 中的 `NotebookStore`。
 
+**v2.0 新增搜索状态：**
+
+```typescript
+// === 搜索功能 ===
+searchHighlightText: string        // 当前高亮的搜索文本
+scrollToCellIndex: number | null   // 待滚动的目标 cell 索引
+setSearchHighlight: (text: string) => void       // 设置高亮文本
+clearSearchHighlight: () => void                 // 清除高亮
+setScrollToCell: (index: number | null) => void  // 设置待滚动目标
+```
+
+搜索功能由 `SearchPanel` 组件提供，实现在 `src/components/search/SearchPanel.tsx`：
+- 300ms 防抖搜索当前笔记的 cells（content 和 output 字段）
+- 结果列表展示 cell 序号和上下文片段
+- 点击结果触发滚动跳转（`scrollIntoView({ block: 'center' })`）和文本高亮（`<mark>` 标签）
+
 ### 4.2 useWorkspaceStore (workspaceStore.ts)
 
 管理工作区路径、文件列表和侧边栏/面板可见性。

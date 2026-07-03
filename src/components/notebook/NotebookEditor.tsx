@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useState } from 'react'
+import { useRef, useLayoutEffect, useState, useEffect } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,7 @@ import { CellContainer } from '@/components/cells/CellContainer'
 import { useSettingStore } from '@/store/settingStore'
 
 export function NotebookEditor() {
-  const { notebook, selectedIndices, selectCell } = useNotebookStore()
+  const { notebook, selectedIndices, selectCell, scrollToCellIndex, setScrollToCell } = useNotebookStore()
   const cellService = useCellService()
   const { colors } = useTheme()
   const { t } = useTranslation()
@@ -32,6 +32,15 @@ export function NotebookEditor() {
 
   const maxWidth = containerWidth > 0 ? Math.max(400, containerWidth * cellWidthRatio / 100) : 900
 
+  useEffect(() => {
+    if (scrollToCellIndex === null) return
+    const el = containerRef.current?.querySelector(`[data-cell-index="${scrollToCellIndex}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    setScrollToCell(null)
+  }, [scrollToCellIndex, setScrollToCell])
+
   return (
     <div
       ref={containerRef}
@@ -51,13 +60,14 @@ export function NotebookEditor() {
         </div>
 
         {cells.map((cell, index) => (
-          <CellContainer
-            key={cell.id}
-            cell={cell}
-            index={index}
-            isSelected={selectedIndices.has(index)}
-            totalCells={cells.length}
-          />
+          <div key={cell.id} data-cell-index={index}>
+            <CellContainer
+              cell={cell}
+              index={index}
+              isSelected={selectedIndices.has(index)}
+              totalCells={cells.length}
+            />
+          </div>
         ))}
 
         <div

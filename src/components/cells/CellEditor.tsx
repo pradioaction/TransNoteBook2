@@ -7,6 +7,7 @@ import { marked } from 'marked'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
+import { useNotebookStore } from '@/store/notebookStore'
 import type { NotebookCell } from '@/types/notebook'
 
 interface CellEditorProps {
@@ -49,6 +50,7 @@ export function CellEditor({
   const { colors } = useTheme()
   const { t } = useTranslation()
   const { readingFontSize } = useSettingStore()
+  const searchHighlightText = useNotebookStore((s) => s.searchHighlightText)
   const [editing, setEditing] = useState(false)
   const lastSyncedRef = useRef('')
 
@@ -125,12 +127,23 @@ export function CellEditor({
     if (editor) editor.setEditable(editing)
   }, [editor, editing])
 
+  useEffect(() => {
+    if (editing) {
+      useNotebookStore.getState().clearSearchHighlight()
+    }
+  }, [editing])
+
   const renderedHtml = useMemo(() => {
     if (!cell.content) return ''
     // Strip HTML to get raw text, then render as Markdown
     const text = stripHtml(cell.content)
-    return marked.parse(text) as string
-  }, [cell.content])
+    let html = marked.parse(text) as string
+    if (searchHighlightText) {
+      const escaped = searchHighlightText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      html = html.replace(new RegExp(escaped, 'gi'), '<mark>$&</mark>')
+    }
+    return html
+  }, [cell.content, searchHighlightText])
 
   const readingStyle: React.CSSProperties = {
     minHeight: 40,
@@ -172,6 +185,12 @@ export function CellEditor({
     .md-body hr { border: none; border-top: 1px solid ${colors.border}; margin: 0.8em 0; }
     .md-body strong { font-weight: 600; }
     .md-body em { font-style: italic; }
+    .md-body mark {
+      background-color: #ffcc00;
+      color: #000;
+      border-radius: 2px;
+      padding: 0 2px;
+    }
     .md-body * { pointer-events: none; }
   `
 

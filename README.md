@@ -147,6 +147,7 @@ TSBook2/
 │   │   ├── layout/          # 布局组件（AppShell、ActivityBar、Sidebar 等）
 │   │   ├── notebook/        # 笔记编辑器（NotebookEditor、NotebookToolbar）
 │   │   ├── cells/           # Cell 组件（CellContainer、CellEditor 等）
+│   │   ├── search/          # 搜索面板（SearchPanel）
 │   │   ├── recitation/      # 背诵模式组件
 │   │   │   ├── RecitationShell.tsx    # 背诵模式主容器
 │   │   │   ├── BookManagerPanel.tsx   # 词书管理面板
@@ -358,6 +359,7 @@ TSBook2 使用 SQLite 数据库存储词书和单词数据。要开始背单词�
 - **单元格收藏** — 将精彩 Cell 收藏到指定的收藏夹笔记文件（支持 ★ 星标标识）
 - **文章单词测验** — 对 AI 生成的文章，启动关联单词的选择题测验
 - **阅读计时** — 笔记阅读模式下的阅读时长统计
+- **文本搜索** — 在侧边栏搜索当前笔记内容，展示上下文片段，点击跳转到目标 Cell 并高亮匹配文本
 
 ### .transnb 笔记文件格式
 

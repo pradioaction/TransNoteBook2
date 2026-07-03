@@ -40,6 +40,26 @@
 - [x] StatsPanel 无词书时不再无限加载，显示"尚无词书，请先导入或创建词书"提示
 - [x] StatsPanel 词书列表在导入后自动刷新（依赖 selectedBookId 变化触发）
 
+### ✅ 侧边栏搜索功能 (Sidebar Search)
+
+**文件**：`src/components/search/SearchPanel.tsx`（新建）
+
+**功能**：
+- [x] SearchPanel 组件：300ms 防抖搜索输入、大小写不敏感匹配 cell 的 content（HTML 提纯后）和 output
+- [x] 搜索结果展示：cell 序号 + 上下文片段（前后 ~30 字符）+ 匹配数统计
+- [x] 点击结果触发滚动：NotebookEditor 使用 `scrollIntoView({ block: 'center' })` 居中定位
+- [x] 匹配文本高亮：在目标 cell 的阅读模式中用 `<mark>` 标签渲染，清空搜索或双击编辑时自动清除
+- [x] 全局搜索预留：搜索函数接受 `NotebookCell[]` 入参，方便扩展到多文件搜索
+
+**新增/修改文件**：
+- `src/components/search/SearchPanel.tsx`（新建）
+- `src/store/notebookStore.ts`（新增 searchHighlightText / scrollToCellIndex 等 5 个状态）
+- `src/types/notebook.ts`（NotebookStore 接口扩展）
+- `src/components/notebook/NotebookEditor.tsx`（添加 data-cell-index 属性和滚动逻辑）
+- `src/components/cells/CellEditor.tsx`（阅读模式添加 `<mark>` 高亮渲染）
+- `src/components/layout/Sidebar.tsx`（替换占位输入框为 SearchPanel）
+- `src/locales/zh-CN.json` / `src/locales/en-US.json`（新增 4 个 i18n key）
+
 ***
 
 ## P0 — 紧急修复（Bug & 数据安全）
