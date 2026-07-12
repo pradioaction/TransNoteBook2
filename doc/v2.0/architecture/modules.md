@@ -350,3 +350,60 @@ TranslationProvider 接口 + 策略模式.
 ProviderFactory: buildProvider, createSystemProviders, createCustomProviders.
 翻译进度可视化 (v1.2): 逐单元格状态跟踪, 200ms 轮询同步, Panel + CellToolbar 指示器.
 generateSceneText: 预留接口供背诵模块生成场景文章.
+
+## 3.14 语音朗读模块详解 (tts/) — v2.0 新增
+
+语音朗读模块采用**多 Provider 策略模式**设计，架构与翻译模块保持一致，支持多种语音源切换扩展。
+
+### 模块文件结构
+
+```
+src/tts/
+├── types.ts              # TTSProvider 接口 + SpeakOptions / TTSVoice / TTSProviderInfo / CustomTTSConfig
+├── providerFactory.ts    # createSystemTTSProviders() + createCustomTTSProviders()
+├── ttsService.ts         # TTSService 单例（提供者管理、speak/stop/pause/resume）
+└── providers/
+    └── webSpeech.ts      # WebSpeechProvider（v1.0 内置，基于 window.speechSynthesis）
+    └── openai.ts         # (预留) OpenAI TTS Provider
+    └── azure.ts          # (预留) Azure TTS Provider
+```
+
+### TTSProvider 接口
+
+```typescript
+interface TTSProvider {
+  readonly id: string
+  readonly name: string
+  readonly type: 'system' | 'custom'
+  readonly backend: string
+
+  speak(text: string, options?: SpeakOptions, signal?: AbortSignal): Promise<void>
+  stop(): void
+  pause?(): void
+  resume?(): void
+  getVoices(): Promise<TTSVoice[]>
+  getInfo(): TTSProviderInfo
+}
+```
+
+### v1.0 内置：WebSpeechProvider
+
+基于 `window.speechSynthesis`，无需外部依赖。适用于 Windows/macOS/Linux 的英语单词朗读。
+
+### 扩展机制
+
+新增语音源只需实现 `TTSProvider` 接口，在 `providerFactory.ts` 中注册即可。详见 [API 文档 - TTS 模块](../api/tts.md)。
+
+### Store 扩展
+
+`recitationStore` 新增 `TTSState`，包含：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ttsEnabled` | `boolean` | 全局开关 |
+| `ttsProvider` | `string` | 当前 Provider ID |
+| `ttsRate` | `number` | 语速 (0.1~10) |
+| `ttsVolume` | `number` | 音量 (0.0~2.0) |
+| `ttsVoiceId` | `string` | 选中语音 ID |
+
+配置通过 `recitationService.setConfig()` 持久化到 `studywordmode.json`。

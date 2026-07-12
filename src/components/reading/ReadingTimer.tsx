@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
-import { useRecitationStore } from '@/store/recitationStore'
 import { useOutputStore } from '@/store/outputStore'
+import { useReadingTimerStore } from '@/store/readingTimerStore'
 import { useTheme } from '@/hooks/useTheme'
 
 function formatTime(totalSeconds: number): string {
@@ -16,38 +16,22 @@ function formatTime(totalSeconds: number): string {
 export function ReadingTimer() {
   const notebookPath = useNotebookStore((s) => s.notebook?.path ?? null)
   const notebookName = useNotebookStore((s) => s.notebook?.name ?? null)
-  const recitationActive = useRecitationStore((s) => s.active)
   const { colors } = useTheme()
 
-  const [running, setRunning] = useState(false)
-  const [elapsed, setElapsed] = useState(0)
+  const running = useReadingTimerStore((s) => s.running)
+  const elapsed = useReadingTimerStore((s) => s.elapsed)
+  const startTimer = useReadingTimerStore((s) => s.startTimer)
+  const stopTimer = useReadingTimerStore((s) => s.stopTimer)
+  const tick = useReadingTimerStore((s) => s.tick)
 
-  const elapsedRef = useRef(0)
   const pathRef = useRef(notebookPath)
 
   // 每秒递增
   useEffect(() => {
     if (!running) return
-    const id = setInterval(() => {
-      setElapsed((s) => {
-        elapsedRef.current = s + 1
-        return s + 1
-      })
-    }, 1000)
+    const id = setInterval(() => tick(), 1000)
     return () => clearInterval(id)
-  }, [running])
-
-  // 停止计时并输出日志
-  const stopTimer = (reason: string) => {
-    setRunning(false)
-    const s = elapsedRef.current
-    setElapsed(0)
-    elapsedRef.current = 0
-    const name = pathRef.current?.split(/[/\\]/).pop() || 'untitled'
-    const timeStr = formatTime(s)
-    useOutputStore.getState().addLog(`Reading: ${timeStr} on ${name}${reason}`)
-    pathRef.current = notebookPath
-  }
+  }, [running, tick])
 
   // 文件切换 → 自动停止
   useEffect(() => {
@@ -57,12 +41,16 @@ export function ReadingTimer() {
     pathRef.current = notebookPath
   })
 
-  // 背诵检测/测验激活 → 自动停止
+  // 组件卸载时兜底：如果计时器仍在运行则输出日志
   useEffect(() => {
-    if (running && recitationActive) {
-      stopTimer(' (quiz started)')
+    return () => {
+      const state = useReadingTimerStore.getState()
+      if (!state.running || state.elapsed === 0) return
+      const name = state.notebookPath?.split(/[/\\]/).pop() || 'untitled'
+      const timeStr = formatTime(state.elapsed)
+      useOutputStore.getState().addLog(`Reading: ${timeStr} on ${name}`)
     }
-  }, [recitationActive])
+  }, [])
 
   // 无 notebook 时隐藏计时器
   if (!notebookPath && !notebookName) return null
@@ -85,8 +73,7 @@ export function ReadingTimer() {
           if (running) {
             stopTimer('')
           } else {
-            setRunning(true)
-            pathRef.current = notebookPath
+            startTimer(notebookPath ?? '')
           }
         }}
         style={btnStyle}

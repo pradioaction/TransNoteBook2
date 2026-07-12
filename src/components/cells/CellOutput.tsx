@@ -3,6 +3,8 @@ import { marked } from 'marked'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
 import { useTranslation } from 'react-i18next'
+import { ContextMenu } from '@/components/common/ContextMenu'
+import type { ContextMenuItem } from '@/components/common/ContextMenu'
 
 interface CellOutputProps {
   content: string
@@ -17,6 +19,21 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Right-click context menu
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (!editing) return
+    e.preventDefault()
+    setCtxMenu({ x: e.clientX, y: e.clientY })
+  }, [editing])
+
+  const formatMenuItems: ContextMenuItem[] = [
+    { id: 'bold', label: t('contextMenu.bold'), onClick: () => {} },
+    { id: 'italic', label: t('contextMenu.italic'), onClick: () => {} },
+    { id: 'underline', label: t('contextMenu.underline'), onClick: () => {} },
+  ]
 
   const renderedHtml = useMemo(() => {
     if (!content) return ''
@@ -105,6 +122,7 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
           onChange={(e) => { onContentChange(e.target.value); autoResize() }}
           onDoubleClick={() => setEditing(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}
+          onContextMenu={handleContextMenu}
           style={{
             ...baseStyle, display: 'block',
             backgroundColor: colors.cellOutputBackground,
@@ -116,6 +134,14 @@ export function CellOutput({ content, onContentChange }: CellOutputProps) {
           }}
           placeholder={t('cellOutput.placeholder')}
         />
+        {ctxMenu && (
+          <ContextMenu
+            x={ctxMenu.x}
+            y={ctxMenu.y}
+            items={formatMenuItems}
+            onClose={() => setCtxMenu(null)}
+          />
+        )}
       </div>
     )
   }

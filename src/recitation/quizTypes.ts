@@ -14,6 +14,11 @@ export interface QuizQuestion {
   correctAnswer: string
   options: QuizOption[]
   answered?: string   // 用户选择的选项 ID  'A'|'B'|'C'|'D'
+  // 翻转卡片展示的单词详细信息
+  phonetic?: string   // 音标
+  definition?: string // 完整释义
+  example?: string    // 例句
+  stage?: number      // 艾宾浩斯阶段
 }
 
 export interface QuizState {

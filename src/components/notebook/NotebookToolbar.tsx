@@ -7,6 +7,7 @@ import { useCellService } from '@/hooks/useCellService'
 import { useTranslationService } from '@/hooks/useTranslationService'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { useRecitationStore } from '@/store/recitationStore'
+import { useReadingTimerStore } from '@/store/readingTimerStore'
 import { ImportDialog } from '@/components/import/ImportDialog'
 import type { QuizQuestion } from '@/recitation/quizTypes'
 import type { WordSidebarData } from '@/recitation/wordSidebarTypes'
@@ -82,6 +83,7 @@ export function NotebookToolbar() {
           word: w.word,
           definition: w.definition,
           phonetic: w.phonetic,
+          example: w.example,
         }))
 
       if (selectedWords.length < 4) {
@@ -128,6 +130,9 @@ export function NotebookToolbar() {
               text,
               pairText: defToWord.get(text) ?? text,
             })),
+            phonetic: w.phonetic,
+            definition: w.definition,
+            example: w.example,
           },
           {
             id: w.id * 2 + 1,
@@ -140,12 +145,18 @@ export function NotebookToolbar() {
               text,
               pairText: wordToDef.get(text) ?? text,
             })),
+            phonetic: w.phonetic,
+            definition: w.definition,
+            example: w.example,
           },
         ]
       })
 
       // 打乱题目顺序，避免同一单词的两道题连续出现
       const shuffled = questions.sort(() => Math.random() - 0.5)
+
+      // 停止阅读计时器（必须在布局切换前执行）
+      useReadingTimerStore.getState().stopTimer(' (quiz started)')
 
       // 设置背诵 store：激活 + 标记为文章来源 + 选中词书 + 开始检测
       const recStore = useRecitationStore.getState()

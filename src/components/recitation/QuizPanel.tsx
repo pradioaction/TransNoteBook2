@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react'
+import { useEffect, useCallback, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
@@ -27,6 +27,8 @@ export function QuizPanel() {
   const [damping, setDamping] = useState(0.9985)
   const [impulse, setImpulse] = useState(8)
   const [kbHoverOptionId, setKbHoverOptionId] = useState<string | null>(null)
+  const [isFlipped, setIsFlipped] = useState(false)
+  const [flipOptionId, setFlipOptionId] = useState<string | null>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const configLoaded = useRef(false)
 
@@ -113,6 +115,56 @@ export function QuizPanel() {
     }
   }, [recitationService])
 
+  // 翻转卡片
+  const flipToBack = useCallback(() => {
+    if (isFlipped) return
+    setIsFlipped(true)
+  }, [isFlipped])
+
+  const flipToFront = useCallback(() => {
+    setIsFlipped(false)
+    setFlipOptionId(null)
+  }, [])
+
+  const toggleFlip = useCallback(() => {
+    if (isFlipped) flipToFront()
+    else flipToBack()
+  }, [isFlipped, flipToFront, flipToBack])
+
+  // 点击已答题的选项 → 翻转到该选项单词的卡片
+  const handleFlipToOption = useCallback((optionId: string) => {
+    setFlipOptionId(optionId)
+    flipToBack()
+  }, [flipToBack])
+
+  // 计算翻转卡片要展示的数据
+  const flipCardData = useMemo(() => {
+    if (!isFlipped || !quizState) return null
+    const q = quizState.questions[quizState.currentIndex]
+    if (!q) return null
+    if (flipOptionId) {
+      const opt = q.options.find(o => o.id === flipOptionId)
+      if (!opt) return null
+      return {
+        type: q.type,
+        word: opt.pairText,
+        definition: opt.text,
+        phonetic: opt.pairText === q.word ? q.phonetic : undefined,
+        example: opt.pairText === q.word ? q.example : undefined,
+        stage: opt.pairText === q.word ? q.stage : undefined,
+      }
+    }
+    return {
+      type: q.type,
+      word: q.type === 'word-to-meaning' ? q.word
+        : (q.options.find(o => o.id === q.correctAnswer)?.text ?? q.word),
+      phonetic: q.phonetic,
+      definition: q.definition,
+      example: q.example,
+      stage: q.stage,
+    }
+  }, [isFlipped, quizState, flipOptionId])
+
   if (!quizState || quizState.questions.length === 0) {
     return (
       <div
@@ -172,21 +224,29 @@ export function QuizPanel() {
       }
 
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        if (state.quizState.currentIndex > 0) prevQuestion()
+        if (state.quizState.currentIndex > 0) {
+          if (isFlipped) flipToFront()
+          prevQuestion()
+        }
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
         const cur = state.quizState.questions[state.quizState.currentIndex]
         if (cur && cur.answered !== undefined && state.quizState.currentIndex < state.quizState.questions.length - 1) {
+          if (isFlipped) flipToFront()
           nextQuestion()
         }
       } else if (e.key === ' ') {
         e.preventDefault()
         const cur = state.quizState.questions[state.quizState.currentIndex]
         if (cur && cur.answered !== undefined && state.quizState.currentIndex < state.quizState.questions.length - 1) {
+          if (isFlipped) flipToFront()
           nextQuestion()
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
         e.preventDefault()
         toggleFloatingAnimation()
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault()
+        toggleFlip()
       }
     }
 
@@ -206,11 +266,13 @@ export function QuizPanel() {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [handleSelect, prevQuestion, nextQuestion, toggleFloatingAnimation])
+  }, [handleSelect, prevQuestion, nextQuestion, toggleFloatingAnimation, toggleFlip, isFlipped, flipToFront])
 
-  // 切换题目时清除键盘悬停
+  // 切换题目时清除键盘悬停并关闭翻转
   useEffect(() => {
     setKbHoverOptionId(null)
+    setIsFlipped(false)
+    setFlipOptionId(null)
   }, [quizState?.currentIndex])
 
   if (isComplete) {
@@ -334,6 +396,13 @@ export function QuizPanel() {
           position: 'relative',
           overflow: 'hidden',
         }}
+        onClick={() => {
+          // 答题后单击题目卡片或空白区域 → 翻转查看题目单词
+          if (question?.answered && !isFlipped) {
+            setFlipOptionId(null)
+            flipToBack()
+          }
+        }}
       >
         <FloatingOptions
           question={question}
@@ -344,6 +413,10 @@ export function QuizPanel() {
           damping={damping}
           impulse={impulse}
           kbHoveredOptionId={kbHoverOptionId}
+          flipped={isFlipped}
+          flipCardData={flipCardData}
+          onFlipBack={flipToFront}
+          onFlipToOption={handleFlipToOption}
         />
       </div>
 
@@ -370,7 +443,7 @@ export function QuizPanel() {
         }} colors={colors} />
         <ToolButton
           label={t('quizPanel.prev')}
-          onClick={prevQuestion}
+          onClick={() => { if (isFlipped) flipToFront(); prevQuestion() }}
           disabled={quizState.currentIndex === 0}
           colors={colors}
         />
@@ -384,6 +457,7 @@ export function QuizPanel() {
           onClick={() => {
             const cur = quizState.questions[quizState.currentIndex]
             if (cur && cur.answered !== undefined) {
+              if (isFlipped) flipToFront()
               nextQuestion()
             }
           }}

@@ -93,6 +93,8 @@ TSBook2 应用
 │   │   │   ├── CellOutput.tsx       # 单元格译文输出
 │   │   │   ├── CellToolbar.tsx      # 单元格操作工具栏 (含 ★ 收藏按钮)
 │   │   │   └── CellCollapseIndicator.tsx  # 折叠指示器
+│   │   ├── common/       # 通用组件
+│   │   │   └── SpeakButton.tsx        # 朗读按钮 (v2.0 新增，封装 TTS 朗读 + 拼读)
 │   │   ├── recitation/   # 背诵模式组件
 │   │   │   ├── RecitationShell.tsx     # 背诵模式主容器
 │   │   │   ├── BookManagerPanel.tsx    # 词书管理面板
@@ -117,7 +119,8 @@ TSBook2 应用
 │   │   ├── index.ts              # 统一导出 (仅类型)
 │   │   ├── translationService.ts # 翻译服务 (模块级单例)
 │   │   ├── recitationService.ts  # 背诵服务 (IPC 代理)
-│   │   └── logService.ts         # 日志服务 (异步写入队列, append-file IPC)
+│   │   ├── logService.ts         # 日志服务 (异步写入队列, append-file IPC)
+│   │   └── ttsService.ts         # TTS 服务 (模块级单例, v2.0 新增)
 │   ├── 翻译模块 (translation/)
 │   │   ├── types.ts              # TranslationProvider 接口 + ProviderInfo
 │   │   ├── providerFactory.ts    # 提供者工厂
@@ -125,12 +128,18 @@ TSBook2 应用
 │   │       ├── ollama.ts         # Ollama 提供者
 │   │       ├── openai.ts         # OpenAI 兼容提供者
 │   │       └── ark.ts            # 火山引擎 Ark 提供者
+│   ├── 语音朗读模块 (tts/)        # (v2.0 新增) 多 Provider TTS
+│   │   ├── types.ts              # TTSProvider 接口 + 配置类型
+│   │   ├── providerFactory.ts    # 提供者工厂
+│   │   ├── ttsService.ts         # TTS 服务单例
+│   │   └── providers/
+│   │       └── webSpeech.ts      # Web Speech API 提供者 (v1.0 内置)
 │   ├── 状态管理层 (store/)
 │   │   ├── notebookStore.ts    # 笔记本数据状态 (Zustand)
 │   │   ├── workspaceStore.ts   # 工作区状态 (Zustand)
 │   │   ├── themeStore.ts       # 主题状态 (Zustand)
 │   │   ├── settingStore.ts     # 设置状态 (Zustand + 持久化)
-│   │   ├── recitationStore.ts  # 背诵模式 UI 状态 (Zustand)
+│   │   ├── recitationStore.ts  # 背诵模式 UI 状态 (Zustand) + TTS 状态
 │   │   ├── outputStore.ts      # 日志输出 Store
 │   │   └── workspaceConfigStore.ts # (v1.4) 工作区级配置 Store
 │   ├── 工具层
@@ -144,7 +153,9 @@ TSBook2 应用
 │   │   │   ├── useCellService.ts      # 单元格操作服务 Hook
 │   │   │   ├── useTranslationService.ts # 翻译服务 Hook (状态轮询)
 │   │   │   ├── useRecitationService.ts  # 背诵服务 Hook (单例)
-│   │   │   └── useBookmark.ts         # 单元格收藏 Hook (v1.4 新增)
+│   │   │   ├── useBookmark.ts         # 单元格收藏 Hook (v1.4 新增)
+│   │   │   ├── useTTSService.ts       # TTS 朗读服务 Hook (v2.0 新增)
+│   │   │   └── useSpeek.ts            # 单词拼读 Hook (v2.0 新增)
 │   ├── 类型定义 (types/)
 │   │   ├── notebook.ts    # 全局类型 (含 Window.electronAPI 类型)
 │   │   ├── electron.ts    # IPC 共享类型 (FileEntry, DirEntry, ImportResult)
@@ -215,7 +226,8 @@ TSBook2 应用
 │  │                                                         ││
 │  │  Service Layer: useFileService / useCellService /       ││
 │  │                useTranslationService / useRecitationService / ││
-│  │                useBookmark / logService                  ││
+│  │                useBookmark / logService / useTTSService /││
+│  │                useSpeek                                  ││
 │  │  Stores: useNotebookStore / useWorkspaceStore /         ││
 │  │          useThemeStore / useSettingStore /              ││
 │  │          useRecitationStore / useOutputStore /          ││

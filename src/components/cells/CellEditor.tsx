@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -8,7 +8,9 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
 import { useNotebookStore } from '@/store/notebookStore'
+import { ContextMenu } from '@/components/common/ContextMenu'
 import type { NotebookCell } from '@/types/notebook'
+import type { ContextMenuItem } from '@/components/common/ContextMenu'
 
 interface CellEditorProps {
   cell: NotebookCell
@@ -53,6 +55,21 @@ export function CellEditor({
   const searchHighlightText = useNotebookStore((s) => s.searchHighlightText)
   const [editing, setEditing] = useState(false)
   const lastSyncedRef = useRef('')
+
+  // Right-click context menu
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (!editing) return
+    e.preventDefault()
+    setCtxMenu({ x: e.clientX, y: e.clientY })
+  }, [editing])
+
+  const formatMenuItems: ContextMenuItem[] = [
+    { id: 'bold', label: t('contextMenu.bold'), onClick: () => {} },
+    { id: 'italic', label: t('contextMenu.italic'), onClick: () => {} },
+    { id: 'underline', label: t('contextMenu.underline'), onClick: () => {} },
+  ]
 
   const extensions = useMemo(() => [
     StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -222,6 +239,7 @@ export function CellEditor({
       {editing ? (
         <div
           onDoubleClick={() => setEditing(false)}
+          onContextMenu={handleContextMenu}
           style={{
           minHeight: 60, padding: '4px 8px',
           fontSize: readingFontSize,
@@ -235,6 +253,7 @@ export function CellEditor({
           <style>{markdownBodyCss}</style>
           <div
             onDoubleClick={() => setEditing(true)}
+            onContextMenu={handleContextMenu}
             className="md-body"
             style={{
               ...readingStyle,
@@ -245,6 +264,14 @@ export function CellEditor({
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
         </div>
+      )}
+      {ctxMenu && (
+        <ContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          items={formatMenuItems}
+          onClose={() => setCtxMenu(null)}
+        />
       )}
     </div>
   )

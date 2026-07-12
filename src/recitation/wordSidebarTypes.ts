@@ -14,6 +14,7 @@ export interface WordDisplay {
   word: string
   definition: string           // 中文释义, 检测模式下隐藏
   phonetic?: string
+  example?: string             // 例句
   stage?: number               // 复习单词才有, 决定批次颜色
   isSelected: boolean          // 用户是否勾选
   isCorrect?: boolean          // 检测模式下: 答题正确/错误

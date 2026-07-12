@@ -13,12 +13,36 @@ interface FloatingOptionsProps {
   damping?: number
   impulse?: number
   kbHoveredOptionId?: string | null
+  /** 是否处于翻转放大状态 */
+  flipped?: boolean
+  /** 翻转卡片展示的数据 */
+  flipCardData?: {
+    type: QuizQuestionType
+    word: string
+    phonetic?: string
+    definition?: string
+    example?: string
+    stage?: number
+  } | null
+  /** 点击遮罩翻回的回调 */
+  onFlipBack?: () => void
+  /** 点击已答题的选项触发翻转（传入选项ID） */
+  onFlipToOption?: (optionId: string) => void
 }
 
 const OPTION_W = 210
 const OPTION_H = 52
 const CARD_W = 500
 const CARD_H = 130
+
+const STAGE_LABELS_KEY = [
+  'floatingOptions.stageUnstudied',
+  'floatingOptions.stageBeginner',
+  'floatingOptions.stageReview',
+  'floatingOptions.stageConsolidate',
+  'floatingOptions.stageProficient',
+  'floatingOptions.stageMastered',
+] as const
 
 interface Body {
   x: number; y: number
@@ -41,7 +65,11 @@ function overlap(
     : [true, 0, Math.sign(dy) * oy]
 }
 
-export function FloatingOptions({ question, onSelect, selectedOptionId, disabled, questionKey, damping = 0.9985, impulse = 8, kbHoveredOptionId }: FloatingOptionsProps) {
+export function FloatingOptions({
+  question, onSelect, selectedOptionId, disabled, questionKey,
+  damping = 0.9985, impulse = 8, kbHoveredOptionId,
+  flipped = false, flipCardData, onFlipBack, onFlipToOption,
+}: FloatingOptionsProps) {
   const { t } = useTranslation()
   const gather = !useRecitationStore((s) => s.floatingAnimationEnabled)
   const { colors } = useTheme()
@@ -55,15 +83,13 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
   const impulseRef = useRef(impulse)
   dampingRef.current = damping
   impulseRef.current = impulse
-  // 组件内部独立答题守卫 —— 与父组件 prop 无关，同一题目内只允许一次选择
   const localAnsweredRef = useRef<string | null>(null)
 
-  // 切换题目时重置内部守卫
   useEffect(() => {
     localAnsweredRef.current = null
   }, [questionKey])
 
-  // 初始化 / 切换题目（保留已有位置和速度，仅更新目标点）
+  // 初始化 / 切换题目
   useEffect(() => {
     const basePositions = [
       { x: -130, y: 40 },
@@ -79,7 +105,6 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
       return {
         x: prev ? prev.x : bp.x,
         y: prev ? prev.y : bp.y,
-        // 切换题目时在保留速度基础上叠加随机冲量
         vx: prev ? prev.vx + (Math.random() - 0.5) * imp * 2 : (Math.random() - 0.5) * imp * 2,
         vy: prev ? prev.vy + (Math.random() - 0.5) * imp * 2 : (Math.random() - 0.5) * imp * 2,
         targetX: bp.x,
@@ -92,15 +117,15 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
     setOffsets(bodies.map(b => ({ x: b.x, y: b.y })))
   }, [questionKey, question.options.length])
 
-  // 物理动画循环
+  // 物理动画循环（翻转时暂停）
   const rafRef = useRef(0)
   useEffect(() => {
+    if (flipped) return
     let last = performance.now()
     const tick = (now: number) => {
       const dt = Math.min((now - last) / 16, 3)
       last = now
 
-      // 每次帧更新容器尺寸，适配父容器变化
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect()
         areaRef.current = { w: rect.width, h: rect.height }
@@ -115,7 +140,6 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
 
       for (const b of bodies) {
         if (gather) {
-          // 集合：弹性归位 + 阻尼
           const dx = b.targetX - b.x
           const dy = b.targetY - b.y
           b.vx += dx * 0.08 * dt
@@ -123,7 +147,6 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
           b.vx *= 0.9
           b.vy *= 0.9
         }
-        // 浮动模式：不做额外牵引，仅靠初始速度 + 碰撞 + 微弱阻尼维持运动
 
         const d = dampingRef.current
         b.vx *= d
@@ -131,7 +154,6 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
         b.x += b.vx * dt
         b.y += b.vy * dt
 
-        // 墙壁
         const minX = -halfW + OPTION_W / 2
         const maxX = halfW - OPTION_W / 2
         const minY = -halfH + OPTION_H / 2
@@ -142,7 +164,6 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
         if (b.y > maxY) { b.y = maxY; b.vy = -b.vy * 0.6 }
       }
 
-      // 选项 vs 卡片
       for (const b of bodies) {
         const [hit, px, py] = overlap(b.x, b.y, OPTION_W, OPTION_H, 0, cardCenterY, CARD_W, CARD_H)
         if (hit) {
@@ -152,7 +173,6 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
         }
       }
 
-      // 选项 vs 选项
       for (let i = 0; i < bodies.length; i++) {
         for (let j = i + 1; j < bodies.length; j++) {
           const a = bodies[i]
@@ -173,7 +193,7 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
 
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [gather])
+  }, [gather, flipped])
 
   const getStyle = (optionId: string) => {
     const isSelected = selectedOptionId === optionId
@@ -191,8 +211,21 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
     return { bg, bd, fg, isSelected }
   }
 
+  // 翻转卡片上展示的单词
+  const displayWord = flipCardData?.word ?? ''
+
+  // 阶段标签
+  const stageLabel = flipCardData?.stage != null
+    ? t(STAGE_LABELS_KEY[Math.min(flipCardData.stage, STAGE_LABELS_KEY.length - 1)])
+    : ''
+
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: 8 }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: 8,
+      }}
+    >
       {/* 固定题目卡片 */}
       <div
         style={{
@@ -210,6 +243,8 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
           boxSizing: 'border-box',
           zIndex: 10,
           pointerEvents: 'none',
+          opacity: flipped ? 0.15 : 1,
+          transition: 'opacity 0.4s',
         }}
       >
         <div style={{ fontSize: 11, color: colors.foreground, opacity: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
@@ -223,16 +258,24 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
         </div>
       </div>
 
-      {/* 浮动选项 */}
+      {/* 浮动选项（翻转时缩小淡出） */}
       {question.options.map((option, i) => {
         const off = offsets[i] ?? { x: 0, y: 0 }
         const s = getStyle(option.id)
+
         return (
           <button
             key={`${questionKey}-${option.id}`}
             onClick={(e) => {
               e.stopPropagation()
-              if (disabled || localAnsweredRef.current) return
+              if (flipped) return
+              if (disabled || localAnsweredRef.current) {
+                // 已答题：点击选项翻转查看该选项的单词
+                if (question.answered && onFlipToOption) {
+                  onFlipToOption(option.id)
+                }
+                return
+              }
               localAnsweredRef.current = option.id
               onSelect(option.id)
             }}
@@ -242,29 +285,141 @@ export function FloatingOptions({ question, onSelect, selectedOptionId, disabled
               position: 'absolute',
               left: '50%',
               top: '50%',
-              transform: `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px))`,
+              transform: flipped
+                ? 'translate(-50%, -50%) scale(0.3)'
+                : `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px))`,
               width: OPTION_W,
               height: OPTION_H,
               padding: 0,
-              backgroundColor: s.bg,
-              border: `2px solid ${s.bd}`,
+              border: 'none',
               borderRadius: 8,
-              color: s.fg,
+              background: 'transparent',
               fontSize: 15,
               cursor: s.isSelected ? 'default' : 'pointer',
-              transition: 'background-color 0.15s, border-color 0.15s',
+              transition: 'opacity 0.4s ease, background-color 0.15s, border-color 0.15s',
+              opacity: flipped ? 0 : 1,
               zIndex: s.isSelected ? 1 : 0,
-              boxShadow: s.isSelected ? '0 2px 8px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: flipped ? 'none' : 'auto',
             }}
           >
-            <span style={{ fontWeight: 700, marginRight: 8, flexShrink: 0 }}>{option.id}.</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {selectedOptionId && (hoveredOptionId === option.id || kbHoveredOptionId === option.id) ? option.pairText : option.text}
-            </span>
+            <div
+              style={{
+                width: '100%', height: '100%',
+                borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backgroundColor: s.bg, border: `2px solid ${s.bd}`,
+                color: s.fg,
+                boxShadow: s.isSelected ? '0 2px 8px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.1)',
+                overflow: 'hidden',
+              }}
+            >
+              <span style={{ fontWeight: 700, marginRight: 8, flexShrink: 0 }}>{option.id}.</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selectedOptionId && (hoveredOptionId === option.id || kbHoveredOptionId === option.id) ? option.pairText : option.text}
+              </span>
+            </div>
           </button>
         )
       })}
+
+      {/* 翻转态：独立详情卡片 */}
+      {flipped && (
+        <>
+          <style>{`
+            @keyframes floatingCardPop {
+              from { opacity: 0; transform: scale(0.7); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          {/* 定位层：固定居中 */}
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 101,
+            }}
+          >
+            {/* 动画层：只做缩放淡入 */}
+            <div
+              style={{
+                animation: 'floatingCardPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+                minWidth: 340,
+                maxWidth: '90vw',
+              }}
+            >
+              <div
+                style={{
+                  background: `linear-gradient(135deg, ${colors.quizCardBackground}, ${colors.recitationBackground})`,
+                  border: `1px solid ${colors.primaryButton}40`,
+                  borderRadius: 20,
+                  padding: '40px 36px',
+                  textAlign: 'center',
+                  boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+                }}
+              >
+                <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 3, opacity: 0.5, marginBottom: 12 }}>
+                  {flipCardData?.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
+                </div>
+                <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>
+                  {displayWord}
+                </div>
+                {flipCardData?.phonetic && (
+                  <div style={{ fontSize: 16, opacity: 0.6, fontFamily: "'Times New Roman', serif", marginBottom: 16 }}>
+                    {flipCardData.phonetic}
+                  </div>
+                )}
+                <div style={{
+                  width: 60, height: 3,
+                  background: `linear-gradient(90deg, transparent, ${colors.primaryButton}, transparent)`,
+                  borderRadius: 2, margin: '0 auto 20px',
+                }} />
+                {flipCardData?.definition && (
+                  <div style={{ fontSize: 20, fontWeight: 500, color: colors.link || '#b0a8ff', lineHeight: 1.4, marginBottom: 16 }}>
+                    {flipCardData.definition}
+                  </div>
+                )}
+                {flipCardData?.example && (
+                  <div style={{ fontSize: 15, opacity: 0.7, fontStyle: 'italic', marginBottom: 20, lineHeight: 1.5 }}>
+                    &ldquo;{flipCardData.example}&rdquo;
+                  </div>
+                )}
+                {flipCardData?.stage != null && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, fontSize: 13, flexWrap: 'wrap' }}>
+                    <span style={{ opacity: 0.5 }}>{t('floatingOptions.ebbinghaus')}</span>
+                    <span style={{
+                      padding: '4px 14px', borderRadius: 20,
+                      background: `${colors.primaryButton}26`,
+                      border: `1px solid ${colors.primaryButton}4D`,
+                      color: colors.link || '#b0a8ff', fontWeight: 600,
+                    }}>
+                      {t('floatingOptions.stageN', { n: flipCardData.stage })}
+                    </span>
+                    <span style={{ opacity: 0.5 }}>{stageLabel}</span>
+                  </div>
+                )}
+                <div style={{ fontSize: 11, opacity: 0.25, letterSpacing: 1 }}>
+                  {t('floatingOptions.clickToFlipBack')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 翻转态半透明遮罩 */}
+      {flipped && (
+        <div
+          onClick={onFlipBack}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.01)',
+            zIndex: 99,
+            cursor: 'pointer',
+          }}
+        />
+      )}
     </div>
   )
 }

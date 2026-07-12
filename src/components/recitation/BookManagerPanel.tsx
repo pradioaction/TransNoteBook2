@@ -177,6 +177,7 @@ export function BookManagerPanel() {
           word: w.word ?? '',
           definition: w.definition ?? '',
           phonetic: w.phonetic ?? '',
+          example: w.example ?? '',
           isSelected: !testedNewSet.has(w.id), // 未检测的默认勾选
         }))
 
@@ -186,6 +187,7 @@ export function BookManagerPanel() {
             word: w.word ?? '',
             definition: w.definition ?? '',
             phonetic: w.phonetic ?? '',
+            example: w.example ?? '',
             stage: w.stage ?? 0,
           })),
           testedReviewSet  // Pass tested set
@@ -270,6 +272,10 @@ export function BookManagerPanel() {
               text,
               pairText: defToWord.get(text) ?? text,
             })),
+            phonetic: w.phonetic,
+            definition: w.definition,
+            example: w.example,
+            stage: w.stage,
           },
           {
             id: w.id * 2 + 1,
@@ -282,6 +288,10 @@ export function BookManagerPanel() {
               text,
               pairText: wordToDef.get(text) ?? text,
             })),
+            phonetic: w.phonetic,
+            definition: w.definition,
+            example: w.example,
+            stage: w.stage,
           },
         ]
       })
@@ -574,12 +584,12 @@ export function BookManagerPanel() {
                 const testedReviewSet = new Set(todayResult.testedReviewWordIds || [])
                 const newWords: WordDisplay[] = (todayResult.newWords || []).map((w: any) => ({
                   id: w.id ?? 0, word: w.word ?? '', definition: w.definition ?? '',
-                  phonetic: w.phonetic ?? '', isSelected: !testedNewSet.has(w.id),
+                  phonetic: w.phonetic ?? '', example: w.example ?? '', isSelected: !testedNewSet.has(w.id),
                 }))
                 const reviewBatches = computeReviewBatches(
                   (todayResult.reviewWords || []).map((w: any) => ({
                     id: w.id ?? 0, word: w.word ?? '', definition: w.definition ?? '',
-                    phonetic: w.phonetic ?? '', stage: w.stage ?? 0,
+                    phonetic: w.phonetic ?? '', example: w.example ?? '', stage: w.stage ?? 0,
                   })),
                   testedReviewSet
                 )
