@@ -95,6 +95,10 @@ export function NotebookToolbar() {
       // 构建正向/反向映射，用于填充 pairText
       const defToWord = new Map(selectedWords.map((w) => [w.definition, w.word]))
       const wordToDef = new Map(selectedWords.map((w) => [w.word, w.definition]))
+      // 构建单词→完整数据映射，用于选项翻转卡片展示
+      const wordDataMap = new Map<string, { phonetic?: string; definition?: string; example?: string }>(
+        selectedWords.map((w: any) => [w.word, w])
+      )
 
       // 生成题目（每个单词 2 道题：word→meaning + meaning→word）
       const questions: QuizQuestion[] = selectedWords.flatMap((w) => {
@@ -125,11 +129,19 @@ export function NotebookToolbar() {
             wordId: w.id,
             word: w.word,
             correctAnswer: defCorrect,
-            options: defOptions.map((text, i) => ({
-              id: (['A', 'B', 'C', 'D'] as const)[i],
-              text,
-              pairText: defToWord.get(text) ?? text,
-            })),
+            options: defOptions.map((text, i) => {
+              const optWord = defToWord.get(text) ?? text
+              const wordData = wordDataMap.get(optWord)
+              return {
+                id: (['A', 'B', 'C', 'D'] as const)[i],
+                text,
+                pairText: optWord,
+                word: optWord,
+                phonetic: wordData?.phonetic,
+                definition: wordData?.definition,
+                example: wordData?.example,
+              }
+            }),
             phonetic: w.phonetic,
             definition: w.definition,
             example: w.example,
@@ -140,11 +152,18 @@ export function NotebookToolbar() {
             wordId: w.id,
             word: w.definition,
             correctAnswer: wordCorrect,
-            options: wordOptions.map((text, i) => ({
-              id: (['A', 'B', 'C', 'D'] as const)[i],
-              text,
-              pairText: wordToDef.get(text) ?? text,
-            })),
+            options: wordOptions.map((text, i) => {
+              const wordData = wordDataMap.get(text)
+              return {
+                id: (['A', 'B', 'C', 'D'] as const)[i],
+                text,
+                pairText: wordToDef.get(text) ?? text,
+                word: text,
+                phonetic: wordData?.phonetic,
+                definition: wordData?.definition,
+                example: wordData?.example,
+              }
+            }),
             phonetic: w.phonetic,
             definition: w.definition,
             example: w.example,

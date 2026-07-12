@@ -4,6 +4,7 @@ import type { ThemeConfig } from '@/types/notebook'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
+import { useTTSService } from '@/hooks/useTTSService'
 import { FloatingOptions } from './FloatingOptions'
 import { IconCelebrate } from '@/components/icons'
 
@@ -31,6 +32,8 @@ export function QuizPanel() {
   const [flipOptionId, setFlipOptionId] = useState<string | null>(null)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const configLoaded = useRef(false)
+  const { speak, stop } = useTTSService()
+  const autoReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 从 studywordmode.json 加载阻尼和冲量
   useEffect(() => {
@@ -143,17 +146,19 @@ export function QuizPanel() {
     const q = quizState.questions[quizState.currentIndex]
     if (!q) return null
     if (flipOptionId) {
+      // 点击选项触发翻转 → 使用该选项自身携带的完整单词数据
       const opt = q.options.find(o => o.id === flipOptionId)
       if (!opt) return null
       return {
         type: q.type,
-        word: opt.pairText,
-        definition: opt.text,
-        phonetic: opt.pairText === q.word ? q.phonetic : undefined,
-        example: opt.pairText === q.word ? q.example : undefined,
-        stage: opt.pairText === q.word ? q.stage : undefined,
+        word: opt.word ?? opt.pairText,
+        phonetic: opt.phonetic,
+        definition: opt.definition,
+        example: opt.example,
+        stage: opt.stage,
       }
     }
+    // 点击题目卡片或按 F 键 → 展示题目主单词的完整数据
     return {
       type: q.type,
       word: q.type === 'word-to-meaning' ? q.word
@@ -268,12 +273,23 @@ export function QuizPanel() {
     }
   }, [handleSelect, prevQuestion, nextQuestion, toggleFloatingAnimation, toggleFlip, isFlipped, flipToFront])
 
-  // 切换题目时清除键盘悬停并关闭翻转
+  // 切换题目时清除键盘悬停、关闭翻转、自动朗读当前题目
   useEffect(() => {
     setKbHoverOptionId(null)
     setIsFlipped(false)
     setFlipOptionId(null)
-  }, [quizState?.currentIndex])
+    // 延迟 100ms 后自动朗读当前题目单词，让页面切换动画先执行
+    if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
+    autoReadTimerRef.current = setTimeout(() => {
+      const q = quizState?.questions[quizState.currentIndex]
+      if (q) {
+        speak(q.word, { rate: 0.9 })
+      }
+    }, 100)
+    return () => {
+      if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
+    }
+  }, [quizState?.currentIndex, quizState?.questions])
 
   if (isComplete) {
     return (

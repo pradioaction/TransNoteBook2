@@ -1,8 +1,9 @@
 import { useRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SpeakButton } from '@/components/common/SpeakButton'
 import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
-import type { QuizQuestion } from '@/recitation/quizTypes'
+import type { QuizQuestion, QuizQuestionType } from '@/recitation/quizTypes'
 
 interface FloatingOptionsProps {
   question: QuizQuestion
@@ -250,8 +251,9 @@ export function FloatingOptions({
         <div style={{ fontSize: 11, color: colors.foreground, opacity: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
           {question.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
         </div>
-        <div style={{ fontSize: 22, fontWeight: 600, color: colors.foreground, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {question.word}
+        <div style={{ fontSize: 22, fontWeight: 600, color: colors.foreground, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'auto' }}>
+          <span style={{ verticalAlign: 'middle' }}>{question.word}</span>
+          <SpeakButton text={question.word} size={16} />
         </div>
         <div style={{ fontSize: 13, color: colors.foreground, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {question.type === 'word-to-meaning' ? t('floatingOptions.selectDefinition') : t('floatingOptions.selectWord')}
@@ -362,8 +364,9 @@ export function FloatingOptions({
                 <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 3, opacity: 0.5, marginBottom: 12 }}>
                   {flipCardData?.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
                 </div>
-                <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>
-                  {displayWord}
+                <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                  <span>{displayWord}</span>
+                  <SpeakButton text={displayWord} size={24} />
                 </div>
                 {flipCardData?.phonetic && (
                   <div style={{ fontSize: 16, opacity: 0.6, fontFamily: "'Times New Roman', serif", marginBottom: 16 }}>

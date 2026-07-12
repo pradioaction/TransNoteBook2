@@ -4,6 +4,12 @@ export interface QuizOption {
   id: 'A' | 'B' | 'C' | 'D'
   text: string
   pairText: string  // 悬停切换显示的对应文本
+  // 选项对应的完整单词数据（点击选项翻转卡片时展示）
+  word?: string     // 该选项对应的单词原文
+  phonetic?: string // 音标
+  definition?: string // 完整释义
+  example?: string  // 例句
+  stage?: number    // 艾宾浩斯阶段
 }
 
 export interface QuizQuestion {
