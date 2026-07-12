@@ -282,7 +282,8 @@ export function QuizPanel() {
     if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
     autoReadTimerRef.current = setTimeout(() => {
       const q = quizState?.questions[quizState.currentIndex]
-      if (q) {
+      // 题目是中文时不自动朗读
+      if (q && q.type === 'word-to-meaning') {
         speak(q.word, { rate: 0.9 })
       }
     }, 100)

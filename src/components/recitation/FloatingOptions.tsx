@@ -253,7 +253,13 @@ export function FloatingOptions({
         </div>
         <div style={{ fontSize: 22, fontWeight: 600, color: colors.foreground, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'auto' }}>
           <span style={{ verticalAlign: 'middle' }}>{question.word}</span>
-          <SpeakButton text={question.word} size={16} />
+          <SpeakButton
+            text={question.type === 'meaning-to-word'
+              ? (question.options.find(o => o.id === question.correctAnswer)?.text ?? question.word)
+              : question.word
+            }
+            size={16}
+          />
         </div>
         <div style={{ fontSize: 13, color: colors.foreground, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {question.type === 'word-to-meaning' ? t('floatingOptions.selectDefinition') : t('floatingOptions.selectWord')}
