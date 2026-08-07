@@ -4,6 +4,7 @@ import type { TranslationService, OperationStatus } from '@/services/types'
 import type { ProviderInfo } from '@/translation/types'
 import { useNotebookStore } from '@/store/notebookStore'
 import { useSettingStore } from '@/store/settingStore'
+import { serializeNotebookFile } from '@/utils/fileUtils'
 
 let serviceInstance: TranslationService | null = null
 
@@ -14,6 +15,17 @@ function getService(): TranslationService {
       getNotebook: () => useNotebookStore.getState().notebook,
       updateCellOutput: (index, output) => useNotebookStore.getState().updateCellOutput(index, output),
       setModified: (v) => useNotebookStore.getState().setModified(v),
+      onTranslateComplete: async () => {
+        const nb = useNotebookStore.getState().notebook
+        if (nb?.path && window.electronAPI) {
+          try {
+            await window.electronAPI.writeFile(nb.path, serializeNotebookFile(nb.cells, nb.wordMeta))
+            useNotebookStore.getState().setModified(false)
+          } catch {
+            // 自动保存失败不影响翻译结果
+          }
+        }
+      },
     })
   }
   return serviceInstance

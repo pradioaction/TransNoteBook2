@@ -77,6 +77,8 @@ export interface TranslationServiceDeps {
   getNotebook: () => NotebookFile | null
   updateCellOutput: (index: number, output: string) => void
   setModified: (v: boolean) => void
+  /** 翻译全部完成后回调（用于调用方处理保存等后续操作） */
+  onTranslateComplete?: () => Promise<void>
 }
 
 export interface RecitationService {

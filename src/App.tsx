@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
+import { useTTSSettingStore } from '@/store/ttsSettingStore'
 import { useThemeStore } from '@/store/themeStore'
 import { useNotebookStore } from '@/store/notebookStore'
+import { useRecitationStore } from '@/store/recitationStore'
+import type { QuizProgressSnapshot } from '@/store/recitationStore'
 import { useFileService } from '@/hooks/useFileService'
 import { AppShell } from '@/components/layout/AppShell'
 
 export default function App() {
   const { theme, setTheme, cssVars } = useTheme()
   const loadFromDisk = useSettingStore((s) => s.loadFromDisk)
+  const loadTTSFromDisk = useTTSSettingStore((s) => s.loadFromDisk)
   const [initialized, setInitialized] = useState(false)
   const fileService = useFileService()
 
@@ -23,7 +27,7 @@ export default function App() {
       settingStoreState.setLastOpenFilePath(path)
       settingStoreState.addRecentFile(path)
     })
-    loadFromDisk().then(async () => {
+    Promise.all([loadFromDisk(), loadTTSFromDisk()]).then(async () => {
       const { lastOpenFilePath } = useSettingStore.getState()
       if (lastOpenFilePath) {
         try {
@@ -35,6 +39,16 @@ export default function App() {
       setInitialized(true)
     })
   }, [loadFromDisk])
+
+  // 启动时从 studywordmode.json 加载暂存的检测进度
+  useEffect(() => {
+    window.electronAPI?.recitationAPI?.getConfig().then((config) => {
+      const saved = config?.saved_quiz_progress as QuizProgressSnapshot | undefined
+      if (saved && saved.questions?.length > 0) {
+        useRecitationStore.getState().hydrateSavedQuizProgress(saved)
+      }
+    }).catch(() => {})
+  }, [])
 
   return initialized ? (
     <div style={{ ...cssVars, height: '100%', width: '100%' }}>

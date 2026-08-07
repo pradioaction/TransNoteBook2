@@ -25,6 +25,7 @@ export function QuizPanel() {
   const selectedBookId = useRecitationStore((s) => s.selectedBookId)
   const pendingSyncResults = useRecitationStore((s) => s.pendingSyncResults)
   const markWordsAsSynced = useRecitationStore((s) => s.markWordsAsSynced)
+  const saveQuizProgress = useRecitationStore((s) => s.saveQuizProgress)
   const [damping, setDamping] = useState(0.9985)
   const [impulse, setImpulse] = useState(8)
   const [kbHoverOptionId, setKbHoverOptionId] = useState<string | null>(null)
@@ -198,8 +199,14 @@ export function QuizPanel() {
       // 用 ref 做同步守卫，防止闭包未更新导致重复答题
       if (answeredRef.current) return
       answerQuestion(quizState.currentIndex, optionId)
+      // 朗读所选选项对应的英文单词
+      const question = quizState?.questions[quizState.currentIndex]
+      const selectedOption = question?.options.find(o => o.id === optionId)
+      if (selectedOption?.word) {
+        speak(selectedOption.word, { rate: 0.9 })
+      }
     },
-    [answerQuestion, quizState?.currentIndex]
+    [answerQuestion, quizState?.currentIndex, quizState?.questions, speak]
   )
 
   // 键盘快捷键（含长按检视）
@@ -291,6 +298,13 @@ export function QuizPanel() {
       if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
     }
   }, [quizState?.currentIndex, quizState?.questions])
+
+  // 翻转卡片弹出时自动朗读单词
+  useEffect(() => {
+    if (isFlipped && flipCardData?.word) {
+      speak(flipCardData.word, { rate: 0.9 })
+    }
+  }, [isFlipped, flipCardData, speak])
 
   if (isComplete) {
     return (
@@ -449,6 +463,14 @@ export function QuizPanel() {
           flexShrink: 0,
         }}
       >
+        {isArticleQuiz && (
+          <ToolButton label={t('quizPanel.pauseAndReturn')} onClick={async () => {
+            await syncPendingWords()
+            saveQuizProgress()
+            useRecitationStore.setState({ articleQuizSource: false })
+            useRecitationStore.getState().deactivate()
+          }} colors={colors} />
+        )}
         <ToolButton label={t('quizPanel.exit')} onClick={() => {
           if (isArticleQuiz) {
             useRecitationStore.setState({ articleQuizSource: false })

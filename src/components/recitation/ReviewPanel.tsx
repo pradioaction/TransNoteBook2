@@ -8,6 +8,7 @@ import { useNotebookStore } from '@/store/notebookStore'
 import { useOutputStore } from '@/store/outputStore'
 import type { BookWithProgress } from '@/recitation/types'
 import { IconClose } from '@/components/icons'
+import { SpeakButton } from '@/components/common/SpeakButton'
 
 export function ReviewPanel() {
   const { t } = useTranslation()
@@ -406,6 +407,7 @@ export function ReviewPanel() {
                 style={{ margin: 0, cursor: 'pointer' }}
               />
               <span style={{ fontWeight: 500 }}>{word}</span>
+              <SpeakButton text={word} />
               {definition && (
                 <>
                   <span style={{ opacity: 0.4 }}>→</span>

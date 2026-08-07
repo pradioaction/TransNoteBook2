@@ -240,6 +240,17 @@ declare global {
       setWorkspaceConfig: (workspacePath: string, key: string, value: unknown) => Promise<boolean>
       onMenuAction: (callback: (action: string) => void) => void
       recitationAPI?: RecitationAPI
+      tts?: {
+        init: () => Promise<unknown>
+        synthesize: (req: { text: string; voiceId: string; speed: number; lang: string }) => Promise<unknown>
+        getVoices: (lang?: string) => Promise<unknown>
+        getStatus: () => Promise<unknown>
+        destroy: () => Promise<unknown>
+      }
+      edgeTts?: {
+        synthesize: (req: { text: string; voiceId: string; rate: number }) => Promise<{ audio: string }>
+        getVoices: () => Promise<Array<{ ShortName: string; FriendlyName: string; Locale: string }>>
+      }
     }
   }
 }

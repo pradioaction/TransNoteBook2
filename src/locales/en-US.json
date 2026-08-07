@@ -54,6 +54,7 @@
   "quizPanel.impulse": "Impulse",
   "quizPanel.answered": "Answered: {{answered}}/{{total}}",
   "quizPanel.exit": "Exit",
+  "quizPanel.pauseAndReturn": "Pause & Return",
   "quizPanel.prev": "Previous",
   "quizPanel.floating": "Float",
   "quizPanel.gather": "Gather",
@@ -200,6 +201,16 @@
   "settings.addModelForm": "Add Model",
   "settings.testModel": "Test",
 
+  "settings.tabTTS": "TTS",
+  "settings.ttsEnabled": "Enable Speech",
+  "settings.ttsProvider": "TTS Provider",
+  "settings.ttsRate": "Speed",
+  "settings.ttsVolume": "Volume",
+  "settings.ttsVoice": "Voice",
+  "settings.ttsTest": "Test",
+  "settings.ttsTesting": "Reading...",
+  "settings.ttsTestText": "Hello, this is a test.",
+
   "sidebar.search": "Search",
   "sidebar.searchPlaceholder": "Search...",
   "sidebar.keyboardShortcuts": "Keyboard Shortcuts",
@@ -321,5 +332,20 @@
   "toolbar.delete": "Delete",
   "toolbar.test": "Test",
   "toolbar.testing": "Preparing...",
-  "toolbar.noFile": "No file"
+  "toolbar.noFile": "No file",
+  "toolbar.resumeQuizConfirm": "Quiz progress saved. Resume where you left off?",
+
+  "tts.speak": "Read",
+  "tts.stop": "Stop",
+  "tts.pause": "Pause",
+  "tts.resume": "Resume",
+  "tts.speeking": "Reading...",
+  "tts.speek": "Spell",
+  "tts.speeling": "Spelling...",
+  "tts.volume": "Volume",
+  "tts.rate": "Speed",
+  "tts.voice": "Voice",
+  "tts.provider": "Voice Engine",
+  "tts.noVoice": "No voice available",
+  "tts.notSupported": "Speech synthesis not supported"
 }

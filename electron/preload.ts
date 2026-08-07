@@ -99,4 +99,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importRemoteBook: (downloadUrl: string, bookName: string) =>
       ipcRenderer.invoke('recitation:import-remote-book', downloadUrl, bookName),
   },
+
+  // ==================== Kokoro TTS API ====================
+  tts: {
+    init: () => ipcRenderer.invoke('tts:init'),
+    synthesize: (req: { text: string; voiceId: string; speed: number; lang: string }) =>
+      ipcRenderer.invoke('tts:synthesize', req),
+    getVoices: (lang?: string) => ipcRenderer.invoke('tts:getVoices', lang),
+    getStatus: () => ipcRenderer.invoke('tts:getStatus'),
+    destroy: () => ipcRenderer.invoke('tts:destroy'),
+  },
+
+  // ==================== Edge TTS API ====================
+  edgeTts: {
+    synthesize: (req: { text: string; voiceId: string; rate: number }) =>
+      ipcRenderer.invoke('tts:edgeSynthesize', req),
+    getVoices: () => ipcRenderer.invoke('tts:edgeGetVoices'),
+  },
 })

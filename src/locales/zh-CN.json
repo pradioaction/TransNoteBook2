@@ -54,6 +54,7 @@
   "quizPanel.impulse": "冲量",
   "quizPanel.answered": "已答: {{answered}}/{{total}}",
   "quizPanel.exit": "退出",
+  "quizPanel.pauseAndReturn": "暂存返回",
   "quizPanel.prev": "上一题",
   "quizPanel.floating": "浮动",
   "quizPanel.gather": "集合",
@@ -200,6 +201,16 @@
   "settings.addModelForm": "添加模型",
   "settings.testModel": "测试",
 
+  "settings.tabTTS": "TTS",
+  "settings.ttsEnabled": "启用语音朗读",
+  "settings.ttsProvider": "TTS 提供者",
+  "settings.ttsRate": "语速",
+  "settings.ttsVolume": "音量",
+  "settings.ttsVoice": "语音",
+  "settings.ttsTest": "测试",
+  "settings.ttsTesting": "朗读中...",
+  "settings.ttsTestText": "Hello, this is a test.",
+
   "sidebar.search": "搜索",
   "sidebar.searchPlaceholder": "搜索...",
   "sidebar.keyboardShortcuts": "快捷键",
@@ -321,6 +332,21 @@
   "toolbar.delete": "删除",
   "toolbar.test": "检测",
   "toolbar.testing": "准备中...",
-  "toolbar.noFile": "无文件"
+  "toolbar.noFile": "无文件",
+  "toolbar.resumeQuizConfirm": "检测进度已暂存，是否继续上次的检测？",
+
+  "tts.speak": "朗读",
+  "tts.stop": "停止",
+  "tts.pause": "暂停",
+  "tts.resume": "恢复",
+  "tts.speeking": "朗读中...",
+  "tts.speek": "拼读",
+  "tts.speeling": "拼读中...",
+  "tts.volume": "音量",
+  "tts.rate": "语速",
+  "tts.voice": "语音",
+  "tts.provider": "语音引擎",
+  "tts.noVoice": "当前引擎无可用语音",
+  "tts.notSupported": "当前浏览器不支持语音朗读"
 }
 

@@ -297,3 +297,24 @@ export function IconReview(props: IconProps) {
     </svg>
   )
 }
+
+// 扬声器/朗读 🔊
+export function IconSpeaker(props: IconProps) {
+  return (
+    <svg {...s(props)}>
+      <path d="M3 5.5h2.5l4-3.5v12l-4-3.5H3a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5z" />
+      <path d="M11.5 5.5a4 4 0 0 1 0 5" opacity={0.7} />
+      <path d="M13.5 3.5a7 7 0 0 1 0 9" opacity={0.4} />
+    </svg>
+  )
+}
+
+// 停止/静音
+export function IconMute(props: IconProps) {
+  return (
+    <svg {...s(props)}>
+      <path d="M3 5.5h2.5l4-3.5v12l-4-3.5H3a.5.5 0 0 1-.5-.5V6a.5.5 0 0 1 .5-.5z" />
+      <path d="M12 6l4 4M16 6l-4 4" />
+    </svg>
+  )
+}

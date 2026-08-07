@@ -1,6 +1,31 @@
 import { create } from 'zustand'
 import type { WordSidebarData, WordSidebarMode } from '@/recitation/wordSidebarTypes'
 import type { QuizState, QuizQuestion } from '@/recitation/quizTypes'
+import { computeAnswerResult, updateSidebarForAnswer, createQuizState } from '@/recitation/quizEngine'
+
+/** 可序列化的检测进度快照（Map 已转为 Record，可直接 JSON 化） */
+export interface QuizProgressSnapshot {
+  questions: QuizQuestion[]
+  currentIndex: number
+  answers: Record<string, string>      // question.id(string) → optionId
+  results: Record<string, boolean>     // question.id(string) → isCorrect
+  startTime: number
+  selectedBookId: number | null
+  selectedBookName: string | null
+  pendingSyncResults: Record<number, boolean>
+  sidebarData: WordSidebarData | null
+}
+
+const SAVED_QUIZ_PROGRESS_KEY = 'saved_quiz_progress'
+
+// 直接通过 electronAPI 持久化，避免 store 对 service 层的循环依赖
+function persistSavedProgress(snapshot: QuizProgressSnapshot | null) {
+  try {
+    window.electronAPI?.recitationAPI?.setConfig(SAVED_QUIZ_PROGRESS_KEY, snapshot)
+  } catch {
+    // 忽略持久化失败
+  }
+}
 
 export interface RecitationStore {
   // === 模式状态 ===
@@ -21,6 +46,9 @@ export interface RecitationStore {
 
   // === 文章测试来源标记（非词书管理发起） ===
   articleQuizSource: boolean
+
+  // === 暂存的检测进度（文章检测专用，持久化到 studywordmode.json） ===
+  savedQuizProgress: QuizProgressSnapshot | null
 
   // === 操作 ===
   activate: () => void
@@ -55,29 +83,15 @@ export interface RecitationStore {
   quizResultsByBook: Record<number, Record<number, boolean>>  // bookId -> { wordId -> isCorrect }
   setQuizResults: (bookId: number, results: Record<number, boolean>) => void
 
+  // === 暂存检测进度操作 ===
+  saveQuizProgress: () => void
+  hasSavedQuizProgress: () => boolean
+  restoreQuizProgress: () => void
+  clearSavedQuizProgress: () => void
+  hydrateSavedQuizProgress: (snapshot: QuizProgressSnapshot | null) => void
+
   // 重置
   reset: () => void
-}
-
-function updateSidebarForAnswer(
-  data: WordSidebarData | null,
-  wordId: number,
-  isCorrect: boolean
-): WordSidebarData | null {
-  if (!data) return null
-
-  return {
-    ...data,
-    newWords: data.newWords.map((w) =>
-      w.id === wordId ? { ...w, isAnswered: true, isCorrect } : w
-    ),
-    reviewWordBatches: data.reviewWordBatches.map((b) => ({
-      ...b,
-      words: b.words.map((w) =>
-        w.id === wordId ? { ...w, isAnswered: true, isCorrect } : w
-      ),
-    })),
-  }
 }
 
 const initialState = {
@@ -90,6 +104,7 @@ const initialState = {
   quizState: null,
   floatingAnimationEnabled: true,
   articleQuizSource: false,
+  savedQuizProgress: null as QuizProgressSnapshot | null,
   pendingSyncResults: {},
   quizResultsByBook: {},
 }
@@ -98,7 +113,7 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
   ...initialState,
 
   activate: () => set({ active: true }),
-  deactivate: () => set({ ...initialState }),
+  deactivate: () => set((state) => ({ ...initialState, savedQuizProgress: state.savedQuizProgress })),
   setPhase: (phase) => set({ phase }),
 
   selectBook: (bookId, bookName) => set({ selectedBookId: bookId, selectedBookName: bookName }),
@@ -204,14 +219,7 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
   // 检测操作
   startQuiz: (questions) => {
     set({
-      quizState: {
-        questions,
-        currentIndex: 0,
-        answers: new Map(),
-        results: new Map(),
-        isComplete: false,
-        startTime: Date.now(),
-      },
+      quizState: createQuizState(questions),
       phase: 'quiz',
       sidebarMode: 'quiz',
     })
@@ -220,56 +228,17 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
   answerQuestion: (questionIndex, selectedOptionId) => {
     set((state) => {
       if (!state.quizState) return state
-      const question = state.quizState.questions[questionIndex]
-      if (!question) return state
-      const isCorrect = question.correctAnswer === selectedOptionId
-
-      // 使用 question.id 作为键，确保每道题的结果独立存储（不因 wordId 相同而被覆盖）
-      const newAnswers = new Map(state.quizState.answers)
-      newAnswers.set(question.id, selectedOptionId)
-      const newResults = new Map(state.quizState.results)
-      newResults.set(question.id, isCorrect)
-
-      // 统计该单词的所有题目中已答的数量
-      const wordQuestions = state.quizState.questions.filter((q) => q.wordId === question.wordId)
-      const answeredCount = wordQuestions.filter((q) => newResults.has(q.id)).length
-      const isFullyAnswered = answeredCount >= wordQuestions.length
-
-      // 判断该单词是否全部答对（所有题目都已答且全部正确）
-      const allCorrect = wordQuestions.every(
-        (q) => newResults.has(q.id) && newResults.get(q.id) === true
-      )
-
-      const newSidebar = updateSidebarForAnswer(
+      const result = computeAnswerResult(
+        state.quizState,
         state.sidebarData,
-        question.wordId,
-        isFullyAnswered && allCorrect // 只有两道题都答完且全部正确才算正确
+        state.pendingSyncResults,
+        questionIndex,
+        selectedOptionId
       )
-
-      // 更新当前题目的 answered 字段
-      const updatedQuestions = state.quizState.questions.map((q, i) =>
-        i === questionIndex ? { ...q, answered: selectedOptionId } : q
-      )
-
-      // 检查是否全部答完: 所有题目都有 answered 字段
-      const allAnswered = updatedQuestions.every((q) => q.answered !== undefined)
-
-      // 如果该单词刚答完两道题，加入待同步队列
-      let newPendingSync = state.pendingSyncResults ? { ...state.pendingSyncResults } : {}
-      if (isFullyAnswered && !newPendingSync[question.wordId]) {
-        newPendingSync[question.wordId] = allCorrect
-      }
-
       return {
-        quizState: {
-          ...state.quizState,
-          questions: updatedQuestions,
-          answers: newAnswers,
-          results: newResults,
-          isComplete: allAnswered,
-        },
-        sidebarData: newSidebar,
-        pendingSyncResults: newPendingSync,
+        quizState: result.quizState,
+        sidebarData: result.sidebarData,
+        pendingSyncResults: result.pendingSyncResults,
       }
     })
   },
@@ -322,5 +291,72 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
     }))
   },
 
-  reset: () => set({ ...initialState, pendingSyncResults: {} }),
+  // === 暂存检测进度操作 ===
+  saveQuizProgress: () => {
+    const state = get()
+    if (!state.quizState) return
+    const snapshot: QuizProgressSnapshot = {
+      questions: state.quizState.questions,
+      currentIndex: state.quizState.currentIndex,
+      answers: Object.fromEntries(state.quizState.answers),
+      results: Object.fromEntries(state.quizState.results),
+      startTime: state.quizState.startTime,
+      selectedBookId: state.selectedBookId,
+      selectedBookName: state.selectedBookName,
+      pendingSyncResults: state.pendingSyncResults,
+      sidebarData: state.sidebarData,
+    }
+    set({ savedQuizProgress: snapshot })
+    persistSavedProgress(snapshot)
+  },
+
+  hasSavedQuizProgress: () => get().savedQuizProgress !== null,
+
+  restoreQuizProgress: () => {
+    const snapshot = get().savedQuizProgress
+    if (!snapshot) return
+
+    const answers = new Map<number, string>()
+    for (const [k, v] of Object.entries(snapshot.answers)) {
+      answers.set(Number(k), v)
+    }
+    const results = new Map<number, boolean>()
+    for (const [k, v] of Object.entries(snapshot.results)) {
+      results.set(Number(k), v)
+    }
+
+    const allAnswered = snapshot.questions.every((q) => q.answered !== undefined)
+
+    set({
+      active: true,
+      phase: 'quiz',
+      sidebarMode: 'quiz',
+      articleQuizSource: true,
+      selectedBookId: snapshot.selectedBookId,
+      selectedBookName: snapshot.selectedBookName,
+      sidebarData: snapshot.sidebarData,
+      pendingSyncResults: snapshot.pendingSyncResults,
+      savedQuizProgress: null,
+      quizState: {
+        questions: snapshot.questions,
+        currentIndex: snapshot.currentIndex,
+        answers,
+        results,
+        isComplete: allAnswered,
+        startTime: snapshot.startTime,
+      },
+    })
+    persistSavedProgress(null)
+  },
+
+  clearSavedQuizProgress: () => {
+    set({ savedQuizProgress: null })
+    persistSavedProgress(null)
+  },
+
+  hydrateSavedQuizProgress: (snapshot) => {
+    set({ savedQuizProgress: snapshot })
+  },
+
+  reset: () => set((state) => ({ ...initialState, pendingSyncResults: {}, savedQuizProgress: state.savedQuizProgress })),
 }))

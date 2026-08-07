@@ -1,5 +1,6 @@
 import type { WordDisplay, WordSidebarMode, ReviewBatchColor } from '@/recitation/wordSidebarTypes'
 import { useTheme } from '@/hooks/useTheme'
+import { SpeakButton } from '@/components/common/SpeakButton'
 
 interface WordListItemProps {
   word: WordDisplay
@@ -92,12 +93,23 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord, inde
         />
       )}
 
-      {/* 单词文本 */}
-      <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+      {/* 单词文本 - 优先显示 */}
+      <span
+        style={{
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          flexShrink: 0,
+          minWidth: '30%',
+          maxWidth: '60%',
+        }}
+      >
         {word.word}
       </span>
+      <SpeakButton text={word.word} />
 
-      {/* 释义 */}
+      {/* 释义 - 空间不足时优先隐藏 */}
       {(mode === 'full' || mode === 'review') && word.definition && (
         <>
           <span style={{ color: colors.border, flexShrink: 0 }}>—</span>
@@ -108,6 +120,7 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord, inde
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              flexShrink: 1,
               minWidth: 0,
               fontSize: 12,
             }}

@@ -52,15 +52,21 @@ export const useOutputStore = create<OutputStore>((set) => ({
       color,
     }
     set((state) => ({ logs: [...state.logs, entry] }))
-
-    // 异步写入当日日志文件
-    const svc = getLogService()
-    const todayPath = svc.getLogPath()
-    if (todayPath) {
-      const levelLabel = level.toUpperCase()
-      svc.appendToFile(todayPath, `[${time}] [${levelLabel}] ${message}\n`)
-    }
   },
 
   clearLogs: () => set({ logs: [] }),
 }))
+
+// 通过 subscribe 将日志异步写入磁盘文件，保持 store action 纯净
+useOutputStore.subscribe((state, prevState) => {
+  if (state.logs.length <= prevState.logs.length) return
+  const lastEntry = state.logs[state.logs.length - 1]
+  if (!lastEntry) return
+
+  const svc = getLogService()
+  const todayPath = svc.getLogPath()
+  if (todayPath) {
+    const levelLabel = lastEntry.level.toUpperCase()
+    svc.appendToFile(todayPath, `[${lastEntry.timestamp}] [${levelLabel}] ${lastEntry.message}\n`)
+  }
+})

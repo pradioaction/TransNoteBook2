@@ -10,6 +10,13 @@
     "electron:compile": "tsc -p tsconfig.node.json",
     "electron:dev": "tsc -p tsconfig.node.json && concurrently -k \"vite\" \"node scripts/dev-electron.js\"",
     "electron:build": "tsc -p tsconfig.node.json && vite build && electron-builder",
+    "electron:build:mac": "tsc -p tsconfig.node.json && vite build && electron-builder --mac",
+    "electron:build:linux": "tsc -p tsconfig.node.json && vite build && electron-builder --linux",
+    "native:build": "cd native/kokoro-trt-native && npx cmake-js build",
+    "native:dist": "node scripts/build-native-dist.js",
+    "dist": "tsc -p tsconfig.node.json && vite build && npm run native:dist && electron-builder",
+    "dist:mac": "tsc -p tsconfig.node.json && vite build && npm run native:dist && electron-builder --mac",
+    "dist:linux": "tsc -p tsconfig.node.json && vite build && npm run native:dist && electron-builder --linux",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -22,9 +29,11 @@
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.10.0",
     "i18next": "^26.3.1",
+    "onnxruntime-node": "^1.27.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^17.0.8",
+    "ws": "^8.21.2",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
@@ -33,6 +42,7 @@
     "@types/marked": "^5.0.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.3.0",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",

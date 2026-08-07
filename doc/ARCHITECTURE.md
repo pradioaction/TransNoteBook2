@@ -1,5 +1,7 @@
 # TSBook2 软件架构文档
 
+> 当前版本: v2.1 | 最后更新: 2026-07-21
+
 本文档为 TSBook2 架构的章节索引。完整内容按模块拆分如下：
 
 ---
@@ -8,7 +10,7 @@
 
 项目定位、核心理念、技术栈、与原项目 TransNb 的对比。
 
-> 完整内容 → [v2.0/architecture/overview.md](v2.0/architecture/overview.md)
+> 完整内容 → [v2.1/architecture/overview.md](v2.1/architecture/overview.md) | v2.0 原始版 → [v2.0/architecture/overview.md](v2.0/architecture/overview.md)
 
 ---
 
@@ -16,62 +18,39 @@
 
 ### 2.1 整体架构图
 
-Electron 主进程（main.ts / handlers/ / preload.ts / recitation/）与 React 渲染进程的完整目录树。
+Electron 主进程与 React 渲染进程的完整目录树。
+
+v2.1 变更：新增 `ttsSettingStore`、`quizEngine.ts`，TTS 服务路径修正。
 
 ### 2.2 进程架构
 
-Main Process ↔ preload.ts (contextBridge) ↔ Renderer Process 的 ASCII 架构图，含模块化 IPC Handler、正常模式与背诵模式的组件树。
+Main Process ↔ preload.ts (contextBridge) ↔ Renderer Process 的 ASCII 架构图。
 
-> 完整内容 → [v2.0/architecture/overview.md](v2.0/architecture/overview.md)
+> 完整内容 → [v2.1/architecture/overview.md](v2.1/architecture/overview.md)
 
 ---
 
 ## 3. 核心模块详解
 
-### 3.1 Electron 主进程
-main.ts（IPC 处理器清单 + 安全设计）/ handlers/（模块化 IPC Handler）/ preload.ts（桥接 API）/ recitation/（DAL + Service）
+v2.1 变更章节：3.14 TTS 模块修正、3.15 quizEngine 新增、3.16 outputStore 解耦、3.17 TranslationService 解耦。
 
-### 3.2 状态管理层
-7 个 Zustand Store（notebookStore / workspaceStore / themeStore / settingStore / recitationStore / outputStore / workspaceConfigStore）
-
-### 3.3 布局层
-AppShell / ActivityBar / Sidebar / StatusBar / Panel
-
-### 3.4-3.7 业务组件
-NotebookEditor / NotebookToolbar / CellContainer / CellEditor / CellOutput / FileExplorer / SettingsDialog
-
-### 3.8 工具层
-fileUtils / useKeyboard（快捷键表）/ useTheme / useBookmark
-
-### 3.9 类型系统
-types/（notebook.ts / electron.ts）/ electron/types.ts / recitation/（types.ts / quizTypes.ts / wordSidebarTypes.ts）
-
-### 3.10 主题系统
-themes.ts（40 颜色键）/ global.css
-
-### 3.11 服务层
-FileService / CellService / TranslationService / RecitationService / LogService 接口定义及实现模式
-
-### 3.12 翻译模块
-TranslationProvider 策略模式 / OllamaProvider / OpenAIProvider / ArkProvider / ProviderFactory
-
-> 完整内容 → [v2.0/architecture/modules.md](v2.0/architecture/modules.md)
+> 完整内容 → [v2.1/architecture/modules.md](v2.1/architecture/modules.md) | v2.0 原始版 → [v2.0/architecture/modules.md](v2.0/architecture/modules.md)
 
 ---
 
 ## 4. 数据流程
 
-文件打开 / 保存 / 导入 / 单元格编辑 / 选中 / 设置加载保存 / 主题切换 / 日志写入 / 单元格收藏 — 完整流程图
+v2.1 更新：日志写入流程（subscribe 解耦）、翻译保存流程（onTranslateComplete 解耦）、设置加载流程（ttsSettingStore 并行加载）。
 
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 5. 扩展点
 
-新增翻译提供者 / 侧边栏面板 / 设置标签页 / 单元格操作 / 主题 / IPC Handler / 工作区级配置项的步骤
+v2.1 新增：TTS 配置项扩展（`ttsSettingStore`）。
 
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
@@ -79,63 +58,58 @@ TranslationProvider 策略模式 / OllamaProvider / OpenAIProvider / ArkProvider
 
 AppShell → 各组件的依赖树
 
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 7. 目录结构
 
-```
-TSBook2/ ├── electron/ ├── src/ └── doc/
-```
+v2.1 新增：`src/store/ttsSettingStore.ts`、`src/recitation/quizEngine.ts`
 
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 8. 设计模式
 
-13 种设计模式及应用位置表
+v2.1 新增：subscribe 解耦模式（outputStore）、回调解耦模式（TranslationService）、纯函数引擎模式（quizEngine）
 
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 9. 与原项目的架构差异
 
-TransNb（PyQt5）与 TSBook2（Electron + React）全方位对比表
-
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 10. 性能考虑
 
-Zustand 不可变更新 / key 优化 / 按需创建 / 主进程 I/O / debounced 持久化 / append-file 直接追加
-
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 11. 安全考虑
 
-contextIsolation / API Key 环境变量 / 文件过滤 / 路径安全
-
-> 完整内容 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整内容 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md)
 
 ---
 
 ## 12. 版本状态
 
-> 当前版本: **v2.0** | 最后更新: 2026-07-03
+### v2.1 — 架构优化（当前）
+- TTSService 单例跨 hook 共享
+- TTS 配置独立 `ttsSettingStore`
+- outputStore 日志副作用解耦（subscribe）
+- TranslationService 保存解耦（onTranslateComplete 回调）
+- 测验引擎提取 `quizEngine.ts`
+- recitationService stub 标记 TODO
 
-### v1.4 完成
-阅读界面计时器 (ReadingTimer)、工作区日志模块 (logService + outputStore 持久化)、工具栏 i18n 国际化、测验结果日志输出、单元格收藏功能 (Cell Bookmark + useBookmark)、工作区级配置 (workspaceConfigStore + ConfigProvider)、IPC 处理器模块化 (handlers/ 5 个模块)、类型安全加固 (P0-2/P0-6)、日志模块重构 (append-file IPC + 清理机制)、outputStore 颜色支持
+### v2.0
+远程词书导入 / 侧边栏搜索 / 词书 UI 改进 / TTS 语音朗读
 
-### v2.0 完成
-远程词书导入（GitHub/Gitee 一键导入词书）、词书界面 UI/UX 改进（状态页背景色跟随主题、统计面板空状态处理）、**侧边栏搜索功能（搜索当前笔记、上下文片段展示、跳转高亮）**
+### v1.4
+IPC Handler 模块化 / 单元格收藏 / 词书操作增强 / 日志模块重构
 
-### 待办
-翻译重试/缓存、AI 批阅功能、提示词模板预览、阅读增强、快捷键补全、自定义主题
-
-> 完整版本清单 → [v2.0/architecture/reference.md](v2.0/architecture/reference.md)
+> 完整清单 → [v2.1/architecture/reference.md](v2.1/architecture/reference.md) | [v2.1/architecture/optimization.md](v2.1/architecture/optimization.md)

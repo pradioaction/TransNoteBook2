@@ -1,6 +1,8 @@
 import { useThemeStore } from '@/store/themeStore'
 import { useSettingStore } from '@/store/settingStore'
+import { useTTSSettingStore } from '@/store/ttsSettingStore'
 import { useTheme } from '@/hooks/useTheme'
+import { useTTSService } from '@/hooks/useTTSService'
 import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createTranslationService } from '@/services/translationService'
@@ -16,12 +18,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const { colors } = useTheme()
   const settingStore = useSettingStore()
   const { t, i18n } = useTranslation()
-  const [activeTab, setActiveTab] = useState<'general' | 'translation' | 'templates' | 'models'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'translation' | 'templates' | 'models' | 'tts'>('general')
   const [newModelOpen, setNewModelOpen] = useState(false)
   const [editingModelName, setEditingModelName] = useState<string | null>(null)
   const [newModel, setNewModel] = useState({
     name: '', apiKeyEnv: '', endpoint: '', model: '', timeout: 120, backend: 'ollama', enabled: true,
   })
+  const ttsEnabled = useTTSSettingStore((s) => s.tts.enabled)
+  const ttsProvider = useTTSSettingStore((s) => s.tts.provider)
+  const setTTSEnabled = (enabled: boolean) => useTTSSettingStore.getState().setTTS({ enabled })
+  const { speak, speaking, providers, setProvider, voices, voiceId, setVoice, rate, setRate, volume, setVolume } = useTTSService()
   const [testingProvider, setTestingProvider] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; error?: string }>>({})
   const [newEnvName, setNewEnvName] = useState('')
@@ -165,6 +171,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           <button style={tabStyle(activeTab === 'translation')} onClick={() => setActiveTab('translation')}>{t('settings.tabTranslation')}</button>
           <button style={tabStyle(activeTab === 'templates')} onClick={() => setActiveTab('templates')}>{t('settings.tabPrompts')}</button>
           <button style={tabStyle(activeTab === 'models')} onClick={() => setActiveTab('models')}>{t('settings.tabModels')}</button>
+          <button style={tabStyle(activeTab === 'tts')} onClick={() => setActiveTab('tts')}>{t('settings.tabTTS')}</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
@@ -480,6 +487,93 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <button onClick={handleAddModel} style={primaryBtn}>{editingModelName ? t('settings.save') : t('settings.add')}</button>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'tts' && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>
+                  <input
+                    type="checkbox"
+                    checked={ttsEnabled}
+                    onChange={(e) => setTTSEnabled(e.target.checked)}
+                  /> {t('settings.ttsEnabled')}
+                </label>
+              </div>
+
+              {ttsEnabled && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>{t('settings.ttsProvider')}</label>
+                    <select
+                      value={providers.find((p) => p.id === ttsProvider)?.id || ''}
+                      onChange={(e) => setProvider(e.target.value)}
+                      style={inputStyle}
+                    >
+                      {providers.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>{t('settings.ttsRate')}</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="range"
+                        min={0.1} max={2.0} step={0.1}
+                        value={rate}
+                        onChange={(e) => setRate(Number(e.target.value))}
+                        style={{ flex: 1 }}
+                      />
+                      <span style={{ fontSize: 13, color: colors.foreground, minWidth: 30 }}>
+                        {rate.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>{t('settings.ttsVolume')}</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="range"
+                        min={0} max={1} step={0.1}
+                        value={volume}
+                        onChange={(e) => setVolume(Number(e.target.value))}
+                        style={{ flex: 1 }}
+                      />
+                      <span style={{ fontSize: 13, color: colors.foreground, minWidth: 30 }}>
+                        {volume.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={labelStyle}>{t('settings.ttsVoice')}</label>
+                    <select
+                      value={voiceId}
+                      onChange={(e) => setVoice(e.target.value)}
+                      style={inputStyle}
+                    >
+                      {voices.length === 0 && <option value="">{t('tts.noVoice')}</option>}
+                      {voices.map((v) => (
+                        <option key={v.voiceId} value={v.voiceId}>{v.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      onClick={() => speak(t('settings.ttsTestText'))}
+                      disabled={speaking}
+                      style={primaryBtn}
+                    >
+                      {speaking ? t('settings.ttsTesting') : t('settings.ttsTest')}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}

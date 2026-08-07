@@ -31,6 +31,9 @@ export function NotebookToolbar() {
   const recitationService = useRecitationService()
   const [importOpen, setImportOpen] = useState(false)
   const [testing, setTesting] = useState(false)
+  const hasSavedQuizProgress = useRecitationStore((s) => s.hasSavedQuizProgress)
+  const restoreQuizProgress = useRecitationStore((s) => s.restoreQuizProgress)
+  const clearSavedQuizProgress = useRecitationStore((s) => s.clearSavedQuizProgress)
 
   const hasSelection = selectedIndices.size > 0
 
@@ -40,6 +43,17 @@ export function NotebookToolbar() {
 
   // 从文章 wordMeta 发起单词检测
   const handleStartArticleQuiz = async () => {
+    // 检查是否有暂存的检测进度
+    if (hasSavedQuizProgress()) {
+      const resume = window.confirm(t('toolbar.resumeQuizConfirm'))
+      if (resume) {
+        restoreQuizProgress()
+        return
+      } else {
+        clearSavedQuizProgress()
+      }
+    }
+
     if (!wordMeta || wordMeta.newWords.length + wordMeta.reviewWords.length === 0) {
       alert('当前文章没有关联的单词数据，请先生成文章。')
       return

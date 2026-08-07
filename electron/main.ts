@@ -7,6 +7,8 @@ import { registerDialogHandlers } from './handlers/dialogHandlers'
 import { registerSettingsHandlers } from './handlers/settingsHandlers'
 import { registerRecitationHandlers } from './handlers/recitationHandlers'
 import { registerWorkspaceConfigHandlers } from './handlers/workspaceConfigHandlers'
+import { registerTtsHandlers } from './handlers/ttsHandlers'
+import { registerEdgeTtsHandlers } from './handlers/edgeTtsHandlers'
 
 const isDev = !app.isPackaged
 
@@ -49,6 +51,8 @@ function registerAllHandlers() {
   registerSettingsHandlers()
   registerRecitationHandlers()
   registerWorkspaceConfigHandlers()
+  registerTtsHandlers()
+  registerEdgeTtsHandlers()
 }
 
 app.whenReady().then(() => {

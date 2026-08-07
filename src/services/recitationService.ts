@@ -130,7 +130,8 @@ export function createRecitationService(): RecitationService {
     },
 
     batchImportWords: async (bookId: number) => {
-      // Stub: for future implementation
+      // TODO: 实现批量导入单词功能 — 需要新增 IPC 通道和 electron 端处理逻辑
+      console.warn('batchImportWords not yet implemented, bookId:', bookId)
       return { success: 0, failed: 0 }
     },
 

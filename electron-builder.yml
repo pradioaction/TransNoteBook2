@@ -7,6 +7,31 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - package.json
+extraResources:
+  # Kokoro 模型 (~600MB, 不打包进 asar)
+  - from: model/kokoro-int8-multi-lang-v1_0
+    to: model/kokoro-int8-multi-lang-v1_0
+    filter:
+      # 只保留运行时需要的文件，排除 TRT 用不到的
+      - model.onnx
+      - tokens.txt
+      - voices.bin
+      - lexicon-us-en.txt
+      - lexicon-gb-en.txt
+      - lexicon-zh.txt
+      - phone-zh.fst
+      - number-zh.fst
+      - date-zh.fst
+      - espeak-ng-data/**/*
+      - dict/**/*
+      - README.md
+      - LICENSE
+  # C++ Napi Addon + ONNX Runtime DLLs
+  - from: native/kokoro-trt-native/dist
+    to: native
+asarUnpack:
+  # .node 文件不能放在 asar 里，必须解压到磁盘
+  - native/**/*.node
 icon: TN.ico
 win:
   target:
@@ -14,3 +39,18 @@ win:
       arch:
         - x64
   artifactName: TSBook2-Portable-${version}.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  artifactName: TSBook2-${version}-${arch}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  artifactName: TSBook2-${version}.${ext}

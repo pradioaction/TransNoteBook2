@@ -2,7 +2,6 @@ import type { TranslationService, OperationStatus, TranslationServiceDeps } from
 import type { ProviderInfo } from '@/translation/types'
 import type { TranslationProvider } from '@/translation/types'
 import { createSystemProviders, createCustomProviders } from '@/translation/providerFactory'
-import { serializeNotebookFile } from '@/utils/fileUtils'
 
 export function createTranslationService(deps: TranslationServiceDeps): TranslationService {
   let systemProviders = createSystemProviders()
@@ -119,15 +118,9 @@ export function createTranslationService(deps: TranslationServiceDeps): Translat
     status.currentContent = undefined
     status.progress = 100
 
-    // 全部翻译完成后自动保存文件，避免内容丢失
-    try {
-      const nb = deps.getNotebook()
-      if (nb?.path && window.electronAPI) {
-        await window.electronAPI.writeFile(nb.path, serializeNotebookFile(nb.cells, nb.wordMeta))
-        deps.setModified(false)
-      }
-    } catch {
-      // 自动保存失败不影响翻译结果
+    // 通知调用方翻译完成（由调用方决定是否保存）
+    if (deps.onTranslateComplete) {
+      await deps.onTranslateComplete()
     }
   }
 
