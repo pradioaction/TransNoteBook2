@@ -100,9 +100,8 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord, inde
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          flexShrink: 0,
-          minWidth: '30%',
-          maxWidth: '60%',
+          flex: '0 1 auto',
+          minWidth: 0,
         }}
       >
         {word.word}
@@ -120,7 +119,7 @@ export function WordListItem({ word, mode, batchColor, onToggle, isNewWord, inde
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              flexShrink: 1,
+              flex: '1 1 0',
               minWidth: 0,
               fontSize: 12,
             }}
