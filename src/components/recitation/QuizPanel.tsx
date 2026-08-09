@@ -5,6 +5,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { useTTSService } from '@/hooks/useTTSService'
+import { useOutputStore } from '@/store/outputStore'
 import { FloatingOptions } from './FloatingOptions'
 import { IconCelebrate } from '@/components/icons'
 
@@ -31,6 +32,7 @@ export function QuizPanel() {
   const [kbHoverOptionId, setKbHoverOptionId] = useState<string | null>(null)
   const [isFlipped, setIsFlipped] = useState(false)
   const [flipOptionId, setFlipOptionId] = useState<string | null>(null)
+  const [showComplete, setShowComplete] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const configLoaded = useRef(false)
   const { speak, stop } = useTTSService()
@@ -45,6 +47,20 @@ export function QuizPanel() {
       if (typeof cfg.quiz_impulse === 'number') setImpulse(cfg.quiz_impulse)
     }).catch(() => {})
   }, [recitationService])
+
+  // 进入测试时输出日志（使用 ref防止 StrictMode 重复执行）
+  const startLogDone = useRef(false)
+  useEffect(() => {
+    if (quizState && !startLogDone.current) {
+      startLogDone.current = true
+      const bookName = useRecitationStore.getState().selectedBookName || '未知词书'
+      const totalQuestions = quizState.questions.length
+      const wordCount = new Set(quizState.questions.map(q => q.wordId)).size
+      useOutputStore.getState().addLog(
+        `【开始检测】词书: ${bookName} | 单词数: ${wordCount} | 总题数: ${totalQuestions}`
+      )
+    }
+  }, [])
 
   // 后台批量同步：将已答完的单词保存到数据库和 JSON
   const syncPendingWords = useCallback(async () => {
@@ -242,16 +258,26 @@ export function QuizPanel() {
         }
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
         const cur = state.quizState.questions[state.quizState.currentIndex]
-        if (cur && cur.answered !== undefined && state.quizState.currentIndex < state.quizState.questions.length - 1) {
+        if (cur && cur.answered !== undefined) {
           if (isFlipped) flipToFront()
-          nextQuestion()
+          // 最后一题且已答完，显示完成页面
+          if (state.quizState.currentIndex >= state.quizState.questions.length - 1 && state.quizState.isComplete) {
+            setShowComplete(true)
+          } else if (state.quizState.currentIndex < state.quizState.questions.length - 1) {
+            nextQuestion()
+          }
         }
       } else if (e.key === ' ') {
         e.preventDefault()
         const cur = state.quizState.questions[state.quizState.currentIndex]
-        if (cur && cur.answered !== undefined && state.quizState.currentIndex < state.quizState.questions.length - 1) {
+        if (cur && cur.answered !== undefined) {
           if (isFlipped) flipToFront()
-          nextQuestion()
+          // 最后一题且已答完，显示完成页面
+          if (state.quizState.currentIndex >= state.quizState.questions.length - 1 && state.quizState.isComplete) {
+            setShowComplete(true)
+          } else if (state.quizState.currentIndex < state.quizState.questions.length - 1) {
+            nextQuestion()
+          }
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
         e.preventDefault()
@@ -306,7 +332,26 @@ export function QuizPanel() {
     }
   }, [isFlipped, flipCardData, speak])
 
-  if (isComplete) {
+  // 进入查看结果页面时输出日志（使用 ref防止 StrictMode 重复执行）
+  const completeLogDone = useRef(false)
+  useEffect(() => {
+    if (showComplete && quizState && !completeLogDone.current) {
+      completeLogDone.current = true
+      const total = quizState.questions.length
+      const correctCount = [...quizState.results.values()].filter(Boolean).length
+      const wrongCount = total - correctCount
+      const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
+      const elapsed = Math.round((Date.now() - quizState.startTime) / 1000)
+      const mm = Math.floor(elapsed / 60)
+      const ss = elapsed % 60
+      const bookName = useRecitationStore.getState().selectedBookName || '未知词书'
+      useOutputStore.getState().addLog(
+        `【检测完成】词书: ${bookName} | 总题数: ${total} | 正确: ${correctCount} | 错误: ${wrongCount} | 正确率: ${accuracy}% | 用时: ${mm}分${ss}秒`
+      )
+    }
+  }, [showComplete])
+
+  if (showComplete) {
     return (
       <div
         style={{
@@ -497,10 +542,15 @@ export function QuizPanel() {
             const cur = quizState.questions[quizState.currentIndex]
             if (cur && cur.answered !== undefined) {
               if (isFlipped) flipToFront()
-              nextQuestion()
+              // 最后一题且已答完，显示完成页面
+              if (quizState.currentIndex >= total - 1 && isComplete) {
+                setShowComplete(true)
+              } else {
+                nextQuestion()
+              }
             }
           }}
-          disabled={quizState.currentIndex >= total - 1}
+          disabled={quizState.currentIndex >= total - 1 && !isComplete}
           colors={colors}
         />
       </div>
