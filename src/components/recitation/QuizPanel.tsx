@@ -176,14 +176,19 @@ export function QuizPanel() {
       }
     }
     // 点击题目卡片或按 F 键 → 展示题目主单词的完整数据
+    const correctText = q.options.find(o => o.id === q.correctAnswer)?.text
     return {
       type: q.type,
-      word: q.type === 'word-to-meaning' ? q.word
-        : (q.options.find(o => o.id === q.correctAnswer)?.text ?? q.word),
+      word: q.type === 'word-to-meaning' || q.type === 'cloze' ? q.word
+        : (correctText ?? q.word),
       phonetic: q.phonetic,
       definition: q.definition,
       example: q.example,
       stage: q.stage,
+      // 完形填空：翻转卡片中展示已填入答案的完整句子
+      sentence: q.type === 'cloze'
+        ? q.clozeSentence?.replace('____', correctText ?? '')
+        : undefined,
     }
   }, [isFlipped, quizState, flipOptionId])
 

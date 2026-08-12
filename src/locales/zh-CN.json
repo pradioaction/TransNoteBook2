@@ -141,6 +141,8 @@
   "floatingOptions.stageProficient": "熟练",
   "floatingOptions.stageMastered": "已掌握",
   "floatingOptions.clickToFlipBack": "点击空白区域翻回原位",
+  "floatingOptions.cloze": "完形填空",
+  "floatingOptions.selectWordInBlank": "选择单词填入空格",
 
   "settings.language": "Language / 语言",
   "settings.langChinese": "中文",

@@ -1,4 +1,4 @@
-export type QuizQuestionType = 'word-to-meaning' | 'meaning-to-word'
+export type QuizQuestionType = 'word-to-meaning' | 'meaning-to-word' | 'cloze'
 
 export interface QuizOption {
   id: 'A' | 'B' | 'C' | 'D'
@@ -20,6 +20,7 @@ export interface QuizQuestion {
   correctAnswer: string
   options: QuizOption[]
   answered?: string   // 用户选择的选项 ID  'A'|'B'|'C'|'D'
+  clozeSentence?: string  // 完形填空句子（含 ____ 占位符）
   // 翻转卡片展示的单词详细信息
   phonetic?: string   // 音标
   definition?: string // 完整释义

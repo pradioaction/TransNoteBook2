@@ -23,8 +23,8 @@ export interface NotebookData {
 export interface ArticleWordMeta {
   bookId: number
   bookName: string
-  newWords: { id: number; word: string }[]
-  reviewWords: { id: number; word: string }[]
+  newWords: { id: number; word: string; sentences?: string[] }[]
+  reviewWords: { id: number; word: string; sentences?: string[] }[]
 }
 
 export interface NotebookFile {

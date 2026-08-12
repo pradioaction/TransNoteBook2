@@ -14,6 +14,7 @@ import type { WordSidebarData } from '@/recitation/wordSidebarTypes'
 import { IconDot } from '@/components/icons'
 import { ReadingTimer } from '@/components/reading/ReadingTimer'
 import { useTranslation } from 'react-i18next'
+import { extractClozeSentences } from '@/utils/articleUtils'
 
 export function NotebookToolbar() {
   const { t } = useTranslation()
@@ -114,7 +115,29 @@ export function NotebookToolbar() {
         selectedWords.map((w: any) => [w.word, w])
       )
 
-      // 生成题目（每个单词 2 道题：word→meaning + meaning→word）
+      // === 兜底：旧文章无 sentences 时，从当前文章内容实时提取 ===
+      // wordMeta.sentences 是生成文章时的快照；旧 .transnb 没有该字段，
+      // 检测时直接从 cells 文章文本提取，保证旧文件也能出完形填空（仅内存使用，不写回文件）
+      const allMetaWords = [...wordMeta.newWords, ...wordMeta.reviewWords]
+      const missingSentenceWords = allMetaWords.filter((w) => (w.sentences || []).length === 0)
+      if (missingSentenceWords.length > 0) {
+        const paragraphs = (useNotebookStore.getState().notebook?.cells ?? []).map((c) => c.content)
+        if (paragraphs.length > 0) {
+          const extracted = extractClozeSentences(paragraphs, missingSentenceWords)
+          for (const w of missingSentenceWords) {
+            const s = extracted[w.id]
+            if (s && s.length) w.sentences = s
+          }
+        }
+      }
+
+      // 有句子的单词（将生成完形填空，释义题只保留 1 道，避免一个单词测 3 次）
+      const clozeWordIds = new Set<number>()
+      for (const w of allMetaWords) {
+        if ((w.sentences || []).length > 0) clozeWordIds.add(w.id)
+      }
+
+      // 生成题目（每个单词：有句子 → 1 道释义题 + 1 道完形填空；无句子 → 2 道释义题）
       const questions: QuizQuestion[] = selectedWords.flatMap((w) => {
         const wordDistractors = selectedWords
           .filter((d) => d.id !== w.id)
@@ -136,7 +159,7 @@ export function NotebookToolbar() {
         const wordOptions = [...wordDistractors, w.word].sort(() => Math.random() - 0.5)
         const wordCorrect = String.fromCharCode(65 + wordOptions.indexOf(w.word))
 
-        return [
+        const pair: QuizQuestion[] = [
           {
             id: w.id * 2,
             type: 'word-to-meaning' as const,
@@ -183,7 +206,58 @@ export function NotebookToolbar() {
             example: w.example,
           },
         ]
+        // 有句子的单词只保留 1 道释义题（完形填空另行生成），避免重复测 3 次
+        return clozeWordIds.has(w.id) ? [pair[Math.random() < 0.5 ? 0 : 1]] : pair
       })
+
+      // 生成完形填空（cloze）题目（新词 + 复习词各 1 道，基于文章提取的句子）
+      for (const w of [...wordMeta.newWords, ...wordMeta.reviewWords]) {
+        const sentences = w.sentences || []
+        if (sentences.length === 0) continue
+
+        // 优先选择 ≤80 字符的短句，没有则取第一条
+        const clozeSentence = sentences.sort((a, b) => a.length - b.length).find((s) => s.length <= 80) ?? sentences[0]
+
+        // 3 个干扰项从 selectedWords 中随机抽取其他单词
+        const clozeDistractors = selectedWords
+          .filter((d: { id: number; word: string }) => d.id !== w.id)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3)
+          .map((d: { word: string }) => d.word)
+        while (clozeDistractors.length < 3) clozeDistractors.push('(备选单词)')
+
+        const clozeOptions = [...clozeDistractors, w.word].sort(() => Math.random() - 0.5)
+        const clozeCorrect = String.fromCharCode(65 + clozeOptions.indexOf(w.word))
+
+        // wordMeta 元素无完整单词数据，从 selectedWords 中取
+        const sourceWord = selectedWords.find(
+          (sw: { id: number; word: string; definition?: string; phonetic?: string; example?: string }) => sw.id === w.id
+        )
+
+        questions.push({
+          id: w.id * 2 + 100000,
+          type: 'cloze' as const,
+          wordId: w.id,
+          word: w.word,
+          clozeSentence,
+          correctAnswer: clozeCorrect,
+          options: clozeOptions.map((text, i) => {
+            const wordData = wordDataMap.get(text)
+            return {
+              id: (['A', 'B', 'C', 'D'] as const)[i],
+              text,
+              pairText: wordData?.definition ?? wordToDef.get(text) ?? text,
+              word: text,
+              phonetic: wordData?.phonetic,
+              definition: wordData?.definition,
+              example: wordData?.example,
+            }
+          }),
+          phonetic: sourceWord?.phonetic,
+          definition: sourceWord?.definition,
+          example: sourceWord?.example,
+        })
+      }
 
       // 打乱题目顺序，避免同一单词的两道题连续出现
       const shuffled = questions.sort(() => Math.random() - 0.5)

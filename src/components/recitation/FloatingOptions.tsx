@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { Fragment, useRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SpeakButton } from '@/components/common/SpeakButton'
 import { useTheme } from '@/hooks/useTheme'
@@ -24,6 +24,8 @@ interface FloatingOptionsProps {
     definition?: string
     example?: string
     stage?: number
+    /** 完形填空：已填入答案的完整句子 */
+    sentence?: string
   } | null
   /** 点击遮罩翻回的回调 */
   onFlipBack?: () => void
@@ -35,6 +37,8 @@ const OPTION_W = 210
 const OPTION_H = 52
 const CARD_W = 500
 const CARD_H = 130
+/** 完形填空题目卡片高度（句子可换行，需要更高） */
+const CARD_H_CLOZE = 170
 
 const STAGE_LABELS_KEY = [
   'floatingOptions.stageUnstudied',
@@ -86,6 +90,13 @@ export function FloatingOptions({
   impulseRef.current = impulse
   const localAnsweredRef = useRef<string | null>(null)
 
+  // 题目卡片高度：完形填空句子可换行，需要更高
+  const cardH = question.type === 'cloze' ? CARD_H_CLOZE : CARD_H
+  const cardHRef = useRef(cardH)
+  cardHRef.current = cardH
+  // 完形填空句子按占位符拆分，用于高亮 ____
+  const clozeParts = question.clozeSentence?.split('____') ?? []
+
   useEffect(() => {
     localAnsweredRef.current = null
   }, [questionKey])
@@ -135,7 +146,7 @@ export function FloatingOptions({
       const halfW = areaW / 2
       const halfH = areaH / 2
       const cardTop = -halfH
-      const cardCenterY = cardTop + CARD_H / 2
+      const cardCenterY = cardTop + cardHRef.current / 2
 
       const bodies = bodiesRef.current
 
@@ -166,7 +177,7 @@ export function FloatingOptions({
       }
 
       for (const b of bodies) {
-        const [hit, px, py] = overlap(b.x, b.y, OPTION_W, OPTION_H, 0, cardCenterY, CARD_W, CARD_H)
+        const [hit, px, py] = overlap(b.x, b.y, OPTION_W, OPTION_H, 0, cardCenterY, CARD_W, cardHRef.current)
         if (hit) {
           b.x += px; b.y += py
           if (px !== 0) b.vx = -b.vx * 0.5
@@ -235,7 +246,7 @@ export function FloatingOptions({
           top: 0,
           transform: 'translateX(-50%)',
           width: CARD_W,
-          height: CARD_H,
+          height: cardH,
           padding: '20px 32px',
           backgroundColor: colors.quizCardBackground,
           border: `1px solid ${colors.quizCardBorder}`,
@@ -249,20 +260,42 @@ export function FloatingOptions({
         }}
       >
         <div style={{ fontSize: 11, color: colors.foreground, opacity: 0.5, marginBottom: 8, textTransform: 'uppercase' }}>
-          {question.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
+          {question.type === 'word-to-meaning'
+            ? t('floatingOptions.wordToMeaning')
+            : question.type === 'cloze'
+              ? t('floatingOptions.cloze')
+              : t('floatingOptions.meaningToWord')}
         </div>
-        <div style={{ fontSize: 22, fontWeight: 600, color: colors.foreground, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'auto' }}>
-          <span style={{ verticalAlign: 'middle' }}>{question.word}</span>
-          <SpeakButton
-            text={question.type === 'meaning-to-word'
-              ? (question.options.find(o => o.id === question.correctAnswer)?.text ?? question.word)
-              : question.word
-            }
-            size={16}
-          />
-        </div>
+        {question.type === 'cloze' ? (
+          <div style={{ fontSize: 15, color: colors.foreground, lineHeight: 1.6, whiteSpace: 'normal', wordBreak: 'break-word', pointerEvents: 'auto' }}>
+            {clozeParts.map((part, i) => (
+              <Fragment key={i}>
+                {part}
+                {i < clozeParts.length - 1 && (
+                  <span style={{ color: colors.primaryButton, fontWeight: 700 }}>____</span>
+                )}
+              </Fragment>
+            ))}
+            <SpeakButton text={question.word} size={16} />
+          </div>
+        ) : (
+          <div style={{ fontSize: 22, fontWeight: 600, color: colors.foreground, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pointerEvents: 'auto' }}>
+            <span style={{ verticalAlign: 'middle' }}>{question.word}</span>
+            <SpeakButton
+              text={question.type === 'meaning-to-word'
+                ? (question.options.find(o => o.id === question.correctAnswer)?.text ?? question.word)
+                : question.word
+              }
+              size={16}
+            />
+          </div>
+        )}
         <div style={{ fontSize: 13, color: colors.foreground, opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {question.type === 'word-to-meaning' ? t('floatingOptions.selectDefinition') : t('floatingOptions.selectWord')}
+          {question.type === 'word-to-meaning'
+            ? t('floatingOptions.selectDefinition')
+            : question.type === 'cloze'
+              ? t('floatingOptions.selectWordInBlank')
+              : t('floatingOptions.selectWord')}
         </div>
       </div>
 
@@ -368,8 +401,17 @@ export function FloatingOptions({
                 }}
               >
                 <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 3, opacity: 0.5, marginBottom: 12 }}>
-                  {flipCardData?.type === 'word-to-meaning' ? t('floatingOptions.wordToMeaning') : t('floatingOptions.meaningToWord')}
+                  {flipCardData?.type === 'word-to-meaning'
+                    ? t('floatingOptions.wordToMeaning')
+                    : flipCardData?.type === 'cloze'
+                      ? t('floatingOptions.cloze')
+                      : t('floatingOptions.meaningToWord')}
                 </div>
+                {flipCardData?.sentence && (
+                  <div style={{ fontSize: 15, opacity: 0.8, fontStyle: 'italic', marginBottom: 16, lineHeight: 1.5 }}>
+                    {flipCardData.sentence}
+                  </div>
+                )}
                 <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
                   <span>{displayWord}</span>
                   <SpeakButton text={displayWord} size={24} />

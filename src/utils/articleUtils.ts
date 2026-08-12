@@ -120,10 +120,23 @@ export function processArticleText(
   // 6. 提取标题（第一个段落的第一句话）
   const title = extractTitle(rawParagraphs)
 
+  // 7. 提取每个单词（新词 + 复习词）的完形填空句子
+  const clozeSentences = extractClozeSentences(rawParagraphs, [...newWords, ...reviewWords])
+  const newWordsWithSentences = newWords.map((w) => ({
+    id: w.id,
+    word: w.word,
+    sentences: clozeSentences[w.id] || [],
+  }))
+  const reviewWordsWithSentences = reviewWords.map((w) => ({
+    id: w.id,
+    word: w.word,
+    sentences: clozeSentences[w.id] || [],
+  }))
+
   return {
     title,
     markedParagraphs: rawParagraphs,
-    wordMeta: { bookId, bookName, newWords, reviewWords },
+    wordMeta: { bookId, bookName, newWords: newWordsWithSentences, reviewWords: reviewWordsWithSentences },
   }
 }
 
@@ -143,4 +156,68 @@ function extractTitle(paragraphs: string[]): string {
   if (match) return match[0].trim()
   // 回退：取前 80 个字
   return clean.slice(0, 80).trim() || 'Untitled'
+}
+
+/**
+ * 从文章中提取每个单词（新词 + 复习词）所在的句子，供完形填空使用
+ * - 按句边界（. ? !）切分段落为句子
+ * - 找到包含该单词标记（`**word**` 新词 / `<u>word</u>` 复习词，大小写不敏感）的句子
+ * - 将该词自身的标记（可能被 AI 的 `**` 嵌套包裹）替换为占位符 `____`
+ * - 清除其他标注标记：`**...**` 去星号保留文字，`<u>` / `</u>` 标签去掉
+ * - 结果去重，每个单词最多收集 3 条
+ * @param paragraphs  已标注的段落列表
+ * @param words       新词 + 复习词列表
+ * @returns 单词 id → 句子列表
+ */
+export function extractClozeSentences(
+  paragraphs: string[],
+  words: { id: number; word: string }[],
+): Record<number, string[]> {
+  // 单词 id → 词形集合（小写），用于识别句子中该单词对应的标记
+  const formMap = new Map<number, Set<string>>()
+  for (const w of words) {
+    const forms = new Set(generateWordForms(w.word).map((f) => f.toLowerCase()))
+    formMap.set(w.id, forms)
+  }
+
+  const result: Record<number, string[]> = {}
+
+  for (const w of words) {
+    const forms = formMap.get(w.id)!
+    const sentences: string[] = []
+
+    for (const para of paragraphs) {
+      // 按句边界切分
+      const parts = para.match(/[^.!?]+[.!?]?/g) || []
+      for (const rawSentence of parts) {
+        if (sentences.length >= 3) break
+        // 查找该单词的标记（**word** 或 <u>word</u>，标记内是原文词形，可能与原型不同）
+        const starMarkers = rawSentence.match(/\*\*([^*]+)\*\*/gi) || []
+        const uMarkers = rawSentence.match(/<u>([^<]+)<\/u>/gi) || []
+        const ownMarker = [...starMarkers, ...uMarkers].find((m) => {
+          const content = m.replace(/\*\*/g, '').replace(/<\/?u>/g, '').toLowerCase()
+          return forms.has(content)
+        })
+        if (!ownMarker) continue
+
+        // 该词标记整体替换为占位符 ____（若被 AI 的 ** 外层包裹，后续统一清理）
+        let sentence = rawSentence.split(ownMarker).join('____')
+        // 其他 **...** 标记去掉星号保留文字
+        sentence = sentence.replace(/\*\*([^*]+)\*\*/g, '$1')
+        // 去掉 <u> 与 </u> 标签
+        sentence = sentence.replace(/<\/?u>/g, '')
+        sentence = sentence.trim()
+
+        // 去重
+        if (sentence && !sentences.includes(sentence)) {
+          sentences.push(sentence)
+        }
+      }
+      if (sentences.length >= 3) break
+    }
+
+    result[w.id] = sentences
+  }
+
+  return result
 }

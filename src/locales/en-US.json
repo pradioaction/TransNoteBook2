@@ -141,6 +141,8 @@
   "floatingOptions.stageProficient": "Proficient",
   "floatingOptions.stageMastered": "Mastered",
   "floatingOptions.clickToFlipBack": "Click blank area to flip back",
+  "floatingOptions.cloze": "Cloze",
+  "floatingOptions.selectWordInBlank": "Select a word to fill the blank",
 
   "settings.language": "Language / 语言",
   "settings.langChinese": "中文",
