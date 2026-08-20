@@ -7,7 +7,38 @@ import { useNotebookStore } from '@/store/notebookStore'
 import { useRecitationStore } from '@/store/recitationStore'
 import type { QuizProgressSnapshot } from '@/store/recitationStore'
 import { useFileService } from '@/hooks/useFileService'
+import { useRecitationService } from '@/hooks/useRecitationService'
+import { useWorkspaceStore } from '@/store/workspaceStore'
 import { AppShell } from '@/components/layout/AppShell'
+
+// 启动时从 studywordmode.json 加载暂存的检测进度（按槽位：'article' | `book_${bookId}`）
+async function loadSavedQuizSlots() {
+  try {
+    const config = await window.electronAPI?.recitationAPI?.getConfig()
+    if (!config) return
+    const hydrate = useRecitationStore.getState().hydrateSavedQuizProgressSlot
+    for (const [key, value] of Object.entries(config)) {
+      try {
+        if (key === 'saved_quiz_progress') {
+          const saved = value as QuizProgressSnapshot | null
+          if (saved && saved.questions?.length > 0) {
+            hydrate('article', saved)
+          }
+        } else if (key.startsWith('saved_quiz_progress_book_')) {
+          const bookId = key.slice('saved_quiz_progress_book_'.length)
+          const saved = value as QuizProgressSnapshot | null
+          if (saved && saved.questions?.length > 0) {
+            hydrate(`book_${bookId}`, saved)
+          }
+        }
+      } catch {
+        // 忽略单个槽位加载失败
+      }
+    }
+  } catch {
+    // 忽略加载失败
+  }
+}
 
 export default function App() {
   const { theme, setTheme, cssVars } = useTheme()
@@ -15,6 +46,8 @@ export default function App() {
   const loadTTSFromDisk = useTTSSettingStore((s) => s.loadFromDisk)
   const [initialized, setInitialized] = useState(false)
   const fileService = useFileService()
+  const workspacePath = useWorkspaceStore((s) => s.workspacePath)
+  const recitationService = useRecitationService()
 
   useEffect(() => {
     const settingStore = useSettingStore.getState()
@@ -40,15 +73,22 @@ export default function App() {
     })
   }, [loadFromDisk])
 
-  // 启动时从 studywordmode.json 加载暂存的检测进度
+  // 工作区就绪且背诵服务 init 成功后，再加载暂存的检测进度快照（服务就绪前 get-config 返回 {}）
   useEffect(() => {
-    window.electronAPI?.recitationAPI?.getConfig().then((config) => {
-      const saved = config?.saved_quiz_progress as QuizProgressSnapshot | undefined
-      if (saved && saved.questions?.length > 0) {
-        useRecitationStore.getState().hydrateSavedQuizProgress(saved)
-      }
-    }).catch(() => {})
-  }, [])
+    if (!workspacePath) return
+    let cancelled = false
+    recitationService
+      .init(workspacePath)
+      .then((ok: boolean) => {
+        if (cancelled) return
+        useRecitationStore.getState().clearSavedQuizProgressSlots()
+        if (ok) loadSavedQuizSlots()
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [workspacePath, recitationService])
 
   return initialized ? (
     <div style={{ ...cssVars, height: '100%', width: '100%' }}>

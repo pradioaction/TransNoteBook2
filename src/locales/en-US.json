@@ -39,6 +39,8 @@
 
   "bookManager.export": "Export",
   "bookManager.noSearchResults": "No books matching your search",
+  "bookManager.resumeQuizConfirm": "Quiz progress saved. Resume where you left off?",
+  "bookManager.switchBookResumeConfirm": "Saved progress belongs to \"{{bookName}}\". Switch and continue?",
 
   "bookCard.studied": "{{studied}}/{{total}} studied",
   "bookCard.pendingReview": "Pending review: {{count}}",
@@ -59,7 +61,8 @@
   "quizPanel.floating": "Float",
   "quizPanel.gather": "Gather",
   "quizPanel.next": "Next",
-  "quizPanel.shortcutHint": "1/2/3/4 select · hold to inspect · ←/→/Enter/Space navigate · Ctrl+Tab float/gather · F/dblclick flip details",
+  "quizPanel.dontKnow": "View meaning",
+  "quizPanel.shortcutHint": "1/2/3/4 select · hold to inspect · ←/→/Enter/Space navigate · Ctrl+Tab float/gather · F before answer = don't know / after = details",
 
   "reviewPanel.noData": "No review data",
   "reviewPanel.title": "Quiz Review",

@@ -39,6 +39,8 @@
 
   "bookManager.export": "导出",
   "bookManager.noSearchResults": "没有找到匹配的词书",
+  "bookManager.resumeQuizConfirm": "检测进度已暂存，是否继续上次的检测？",
+  "bookManager.switchBookResumeConfirm": "检测进度属于词书「{{bookName}}」，是否切换并继续？",
 
   "bookCard.studied": "{{studied}}/{{total}} 已学",
   "bookCard.pendingReview": "待复习: {{count}}",
@@ -59,7 +61,8 @@
   "quizPanel.floating": "浮动",
   "quizPanel.gather": "集合",
   "quizPanel.next": "下一题",
-  "quizPanel.shortcutHint": "1/2/3/4 选择 · 长按数字检视 · ←/→/Enter/Space 切换 · Ctrl+Tab 集合/浮动 · F 翻转查看详情",
+  "quizPanel.dontKnow": "查看意思",
+  "quizPanel.shortcutHint": "1/2/3/4 选择 · 长按数字检视 · ←/→/Enter/Space 切换 · Ctrl+Tab 集合/浮动 · F 作答前=不认识/作答后=详情",
 
   "reviewPanel.noData": "暂无检测数据",
   "reviewPanel.title": "检测回顾",

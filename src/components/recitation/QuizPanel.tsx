@@ -230,6 +230,18 @@ export function QuizPanel() {
     [answerQuestion, quizState?.currentIndex, quizState?.questions, speak]
   )
 
+  // “不认识”按钮：提交一个错误选项（后台记错）+ 翻卡查看意思
+  const handleDontKnow = useCallback(() => {
+    const s = useRecitationStore.getState()
+    const cur = s.quizState?.questions[s.quizState.currentIndex]
+    if (!cur || cur.answered !== undefined) return
+    // 选一个非正确选项提交，使该单词判定为记忆失败
+    const wrongId = cur.options.find((o) => o.id !== cur.correctAnswer)?.id
+    if (!wrongId) return
+    answerQuestion(s.quizState.currentIndex, wrongId)
+    flipToBack()
+  }, [answerQuestion, flipToBack])
+
   // 键盘快捷键（含长按检视）
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -289,7 +301,13 @@ export function QuizPanel() {
         toggleFloatingAnimation()
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault()
-        toggleFlip()
+        const cur = state.quizState.questions[state.quizState.currentIndex]
+        // 作答前：视为“不认识”（记录错误 + 翻卡看意思）；作答后：翻转查看详情
+        if (cur && cur.answered !== undefined) {
+          toggleFlip()
+        } else {
+          handleDontKnow()
+        }
       }
     }
 
@@ -309,7 +327,7 @@ export function QuizPanel() {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [handleSelect, prevQuestion, nextQuestion, toggleFloatingAnimation, toggleFlip, isFlipped, flipToFront])
+  }, [handleSelect, handleDontKnow, prevQuestion, nextQuestion, toggleFloatingAnimation, toggleFlip, isFlipped, flipToFront])
 
   // 切换题目时清除键盘悬停、关闭翻转、自动朗读当前题目
   useEffect(() => {
@@ -513,14 +531,19 @@ export function QuizPanel() {
           flexShrink: 0,
         }}
       >
-        {isArticleQuiz && (
-          <ToolButton label={t('quizPanel.pauseAndReturn')} onClick={async () => {
-            await syncPendingWords()
-            saveQuizProgress()
+        <ToolButton label={t('quizPanel.pauseAndReturn')} onClick={async () => {
+          await syncPendingWords()
+          if (isArticleQuiz) {
+            saveQuizProgress('article')
             useRecitationStore.setState({ articleQuizSource: false })
             useRecitationStore.getState().deactivate()
-          }} colors={colors} />
-        )}
+          } else {
+            saveQuizProgress('book')
+            useRecitationStore.setState({ quizState: null })
+            setSidebarMode('full')
+            setPhase('book-manager')
+          }
+        }} colors={colors} />
         <ToolButton label={t('quizPanel.exit')} onClick={() => {
           if (isArticleQuiz) {
             useRecitationStore.setState({ articleQuizSource: false })
@@ -530,6 +553,12 @@ export function QuizPanel() {
             setPhase('book-manager')
           }
         }} colors={colors} />
+        <ToolButton
+          label={t('quizPanel.dontKnow')}
+          onClick={handleDontKnow}
+          disabled={question.answered !== undefined}
+          colors={colors}
+        />
         <ToolButton
           label={t('quizPanel.prev')}
           onClick={() => { if (isFlipped) flipToFront(); prevQuestion() }}

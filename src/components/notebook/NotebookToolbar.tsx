@@ -45,13 +45,13 @@ export function NotebookToolbar() {
   // 从文章 wordMeta 发起单词检测
   const handleStartArticleQuiz = async () => {
     // 检查是否有暂存的检测进度
-    if (hasSavedQuizProgress()) {
+    if (hasSavedQuizProgress('article')) {
       const resume = window.confirm(t('toolbar.resumeQuizConfirm'))
       if (resume) {
-        restoreQuizProgress()
+        restoreQuizProgress('article')
         return
       } else {
-        clearSavedQuizProgress()
+        clearSavedQuizProgress('article')
       }
     }
 

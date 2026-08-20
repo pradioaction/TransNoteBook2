@@ -216,6 +216,37 @@ export function BookManagerPanel() {
   const handleStartQuiz = useCallback(
     async (bookId: number) => {
       const state = useRecitationStore.getState()
+      const slots = state.savedQuizProgress
+      const currentSlotKey = `book_${bookId}`
+
+      // 当前词书有暂存检测进度 → 询问是否继续上次的检测
+      if (slots[currentSlotKey]) {
+        const resume = window.confirm(t('bookManager.resumeQuizConfirm'))
+        if (resume) {
+          state.restoreQuizProgress(currentSlotKey)
+          return
+        }
+        state.clearSavedQuizProgress(currentSlotKey)
+      } else {
+        // 其他词书有暂存 → 询问是否切换词书并继续
+        const otherKey = Object.keys(slots).find(
+          (k) => k.startsWith('book_') && k !== currentSlotKey && slots[k]
+        )
+        if (otherKey) {
+          const otherSnapshot = slots[otherKey]
+          const bookName = otherSnapshot?.selectedBookName || ''
+          const switchBook = window.confirm(t('bookManager.switchBookResumeConfirm', { bookName }))
+          if (switchBook) {
+            if (otherSnapshot?.selectedBookId != null) {
+              state.selectBook(otherSnapshot.selectedBookId, otherSnapshot.selectedBookName || '')
+            }
+            state.restoreQuizProgress(otherKey)
+            return
+          }
+          state.clearSavedQuizProgress(otherKey)
+        }
+      }
+
       const sd = state.sidebarData
       if (!sd) return
 
@@ -437,6 +468,7 @@ export function BookManagerPanel() {
       try {
         await recitationService.deleteBook(bookId)
         await loadBooks()
+        useRecitationStore.getState().clearSavedQuizProgress(`book_${bookId}`)
       } catch {
         console.error('删除词书失败')
       }

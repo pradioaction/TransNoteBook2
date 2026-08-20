@@ -1,5 +1,16 @@
 import { create } from 'zustand'
 import type { FileEntry } from '@/types/notebook'
+import { createRecitationService } from '@/services/recitationService'
+import type { RecitationService } from '@/services/types'
+
+let _recitationService: RecitationService | null = null
+
+function getRecitationService(): RecitationService {
+  if (!_recitationService) {
+    _recitationService = createRecitationService()
+  }
+  return _recitationService
+}
 
 export interface WorkspaceStore {
   workspacePath: string | null
@@ -29,6 +40,10 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     set({ workspacePath: path, workspaceFiles: [] })
     if (path) {
       get().scanWorkspaceFiles()
+      // 工作区加载后立即尝试初始化背诵数据库（无需等待首次点击）
+      getRecitationService().init(path).catch((err) => {
+        console.error('[Recitation] 工作区加载后自动初始化数据库失败:', err)
+      })
     }
   },
 

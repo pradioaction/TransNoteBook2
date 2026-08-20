@@ -5,6 +5,7 @@ import { computeAnswerResult, updateSidebarForAnswer, createQuizState } from '@/
 
 /** 可序列化的检测进度快照（Map 已转为 Record，可直接 JSON 化） */
 export interface QuizProgressSnapshot {
+  source?: 'article' | 'book'
   questions: QuizQuestion[]
   currentIndex: number
   answers: Record<string, string>      // question.id(string) → optionId
@@ -19,9 +20,12 @@ export interface QuizProgressSnapshot {
 const SAVED_QUIZ_PROGRESS_KEY = 'saved_quiz_progress'
 
 // 直接通过 electronAPI 持久化，避免 store 对 service 层的循环依赖
-function persistSavedProgress(snapshot: QuizProgressSnapshot | null) {
+// 槽位 → config key 映射：'article' → 'saved_quiz_progress'；`book_${bookId}` → `saved_quiz_progress_book_${bookId}`
+function persistSavedProgress(slotKey: string, snapshot: QuizProgressSnapshot | null) {
   try {
-    window.electronAPI?.recitationAPI?.setConfig(SAVED_QUIZ_PROGRESS_KEY, snapshot)
+    const configKey =
+      slotKey === 'article' ? SAVED_QUIZ_PROGRESS_KEY : `saved_quiz_progress_book_${slotKey.slice('book_'.length)}`
+    window.electronAPI?.recitationAPI?.setConfig(configKey, snapshot)
   } catch {
     // 忽略持久化失败
   }
@@ -47,8 +51,8 @@ export interface RecitationStore {
   // === 文章测试来源标记（非词书管理发起） ===
   articleQuizSource: boolean
 
-  // === 暂存的检测进度（文章检测专用，持久化到 studywordmode.json） ===
-  savedQuizProgress: QuizProgressSnapshot | null
+  // === 暂存的检测进度（按槽位：'article' | `book_${bookId}`，持久化到 studywordmode.json） ===
+  savedQuizProgress: Record<string, QuizProgressSnapshot | null>
 
   // === 操作 ===
   activate: () => void
@@ -84,11 +88,12 @@ export interface RecitationStore {
   setQuizResults: (bookId: number, results: Record<number, boolean>) => void
 
   // === 暂存检测进度操作 ===
-  saveQuizProgress: () => void
-  hasSavedQuizProgress: () => boolean
-  restoreQuizProgress: () => void
-  clearSavedQuizProgress: () => void
-  hydrateSavedQuizProgress: (snapshot: QuizProgressSnapshot | null) => void
+  saveQuizProgress: (source: 'article' | 'book') => void
+  hasSavedQuizProgress: (slotKey: string) => boolean
+  restoreQuizProgress: (slotKey: string) => void
+  clearSavedQuizProgress: (slotKey: string) => void
+  hydrateSavedQuizProgressSlot: (slotKey: string, snapshot: QuizProgressSnapshot | null) => void
+  clearSavedQuizProgressSlots: () => void
 
   // 重置
   reset: () => void
@@ -104,7 +109,7 @@ const initialState = {
   quizState: null,
   floatingAnimationEnabled: true,
   articleQuizSource: false,
-  savedQuizProgress: null as QuizProgressSnapshot | null,
+  savedQuizProgress: {} as Record<string, QuizProgressSnapshot | null>,
   pendingSyncResults: {},
   quizResultsByBook: {},
 }
@@ -292,10 +297,11 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
   },
 
   // === 暂存检测进度操作 ===
-  saveQuizProgress: () => {
+  saveQuizProgress: (source) => {
     const state = get()
     if (!state.quizState) return
     const snapshot: QuizProgressSnapshot = {
+      source,
       questions: state.quizState.questions,
       currentIndex: state.quizState.currentIndex,
       answers: Object.fromEntries(state.quizState.answers),
@@ -306,14 +312,18 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
       pendingSyncResults: state.pendingSyncResults,
       sidebarData: state.sidebarData,
     }
-    set({ savedQuizProgress: snapshot })
-    persistSavedProgress(snapshot)
+    const slotKey = source === 'article' ? 'article' : `book_${state.selectedBookId}`
+    set({ savedQuizProgress: { ...state.savedQuizProgress, [slotKey]: snapshot } })
+    persistSavedProgress(slotKey, snapshot)
   },
 
-  hasSavedQuizProgress: () => get().savedQuizProgress !== null,
+  hasSavedQuizProgress: (slotKey) => {
+    const snapshot = get().savedQuizProgress[slotKey]
+    return snapshot !== null && snapshot !== undefined
+  },
 
-  restoreQuizProgress: () => {
-    const snapshot = get().savedQuizProgress
+  restoreQuizProgress: (slotKey) => {
+    const snapshot = get().savedQuizProgress[slotKey]
     if (!snapshot) return
 
     const answers = new Map<number, string>()
@@ -331,12 +341,11 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
       active: true,
       phase: 'quiz',
       sidebarMode: 'quiz',
-      articleQuizSource: true,
+      articleQuizSource: snapshot.source !== 'book',
       selectedBookId: snapshot.selectedBookId,
       selectedBookName: snapshot.selectedBookName,
       sidebarData: snapshot.sidebarData,
       pendingSyncResults: snapshot.pendingSyncResults,
-      savedQuizProgress: null,
       quizState: {
         questions: snapshot.questions,
         currentIndex: snapshot.currentIndex,
@@ -346,17 +355,35 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
         startTime: snapshot.startTime,
       },
     })
-    persistSavedProgress(null)
+
+    // 恢复词书槽位时同步当前词书
+    if (slotKey !== 'article') {
+      try {
+        window.electronAPI?.recitationAPI?.setConfig('current_book_id', snapshot.selectedBookId)
+      } catch {
+        // 忽略失败
+      }
+    }
+
+    // 恢复成功后删除该槽并持久化
+    const next = { ...get().savedQuizProgress }
+    delete next[slotKey]
+    set({ savedQuizProgress: next })
+    persistSavedProgress(slotKey, null)
   },
 
-  clearSavedQuizProgress: () => {
-    set({ savedQuizProgress: null })
-    persistSavedProgress(null)
+  clearSavedQuizProgress: (slotKey) => {
+    const next = { ...get().savedQuizProgress }
+    delete next[slotKey]
+    set({ savedQuizProgress: next })
+    persistSavedProgress(slotKey, null)
   },
 
-  hydrateSavedQuizProgress: (snapshot) => {
-    set({ savedQuizProgress: snapshot })
+  hydrateSavedQuizProgressSlot: (slotKey, snapshot) => {
+    set({ savedQuizProgress: { ...get().savedQuizProgress, [slotKey]: snapshot } })
   },
+
+  clearSavedQuizProgressSlots: () => set({ savedQuizProgress: {} }),
 
   reset: () => set((state) => ({ ...initialState, pendingSyncResults: {}, savedQuizProgress: state.savedQuizProgress })),
 }))
