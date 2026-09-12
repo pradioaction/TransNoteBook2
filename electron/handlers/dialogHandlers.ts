@@ -55,7 +55,7 @@ export function registerDialogHandlers() {
     const result = await dialog.showOpenDialog(recitationState.mainWindow, {
       properties: ['openFile'],
       filters: [
-        { name: 'JSON Book Files', extensions: ['json'] },
+        { name: 'Book Files (JSON/JSONL)', extensions: ['json', 'jsonl'] },
         { name: 'All Files', extensions: ['*'] },
       ],
     })

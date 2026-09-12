@@ -11,8 +11,8 @@ export class OllamaProvider implements TranslationProvider {
 
   constructor(config?: Partial<OllamaConfig>) {
     this.config = {
-      baseUrl: config?.baseUrl || 'http://localhost:11434',
-      model: config?.model || 'qwen2.5:0.5b',
+      baseUrl: (config?.baseUrl ?? '').trim() || 'http://localhost:11434',
+      model: (config?.model ?? '').trim() || 'qwen2.5:0.5b',
       timeout: config?.timeout || 30,
     }
   }

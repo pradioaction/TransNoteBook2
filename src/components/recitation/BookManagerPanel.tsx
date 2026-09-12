@@ -465,6 +465,7 @@ export function BookManagerPanel() {
   // 删除词书
   const handleDelete = useCallback(
     async (bookId: number) => {
+      if (!window.confirm(t('bookManager.confirmDelete', { bookName: selectedBookName || '' }))) return
       try {
         await recitationService.deleteBook(bookId)
         await loadBooks()
@@ -473,7 +474,7 @@ export function BookManagerPanel() {
         console.error('删除词书失败')
       }
     },
-    [recitationService, loadBooks]
+    [recitationService, loadBooks, selectedBookName, t]
   )
 
   // 双击进度段 → 打开 WordManagerDialog 并过滤阶段

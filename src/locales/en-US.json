@@ -21,6 +21,7 @@
   "bookManager.startQuiz": "Start Quiz",
   "bookManager.generateArticle": "Generate Article",
   "bookManager.delete": "Delete Book",
+  "bookManager.confirmDelete": "Delete the book \"{{bookName}}\"? The book and its learning progress will be permanently removed.",
   "bookManager.generating": "Generating article...",
   "bookManager.dailyNew": "Daily New",
   "bookManager.review": "Review",

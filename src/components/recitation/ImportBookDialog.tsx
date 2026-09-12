@@ -203,11 +203,15 @@ export function ImportBookDialog({ open, onClose, onImportComplete }: ImportBook
       const file = bookList.find(b => b.downloadUrl === url)
       if (!file) continue
 
+      // 书名 = 去扩展名的文件名 + 目录标识，避免不同目录下同名文件（如 full/正序、simple/正序 的 雅思.jsonl）重名
+      const baseName = file.name.replace(/\.[^.]+$/, '')
+      const bookName = file.dir ? `${baseName} (${file.dir.replace(/\/+$/, '')})` : baseName
+
       setImportStatus(`正在导入 ${file.name} (${i + 1}/${selectedUrls.length})`)
       addLog(`开始导入: ${file.name} (${i + 1}/${selectedUrls.length})`, 'info')
       const importStart = Date.now()
       try {
-        const result = await recitationService.importRemoteBook(file.downloadUrl, file.name)
+        const result = await recitationService.importRemoteBook(file.downloadUrl, bookName)
         const elapsed = Date.now() - importStart
         if (!result.success) {
           failedItems.push(file.name)
@@ -421,7 +425,7 @@ export function ImportBookDialog({ open, onClose, onImportComplete }: ImportBook
             {/* 空状态提示 */}
             {!loading && bookList.length === 0 && !error && (
               <p style={{ fontSize: 13, color: colors.foreground, opacity: 0.6, marginBottom: 12, textAlign: 'center', padding: 20 }}>
-                该目录下没有 JSON 词书文件
+                该目录下没有 JSON / JSONL 词书文件
               </p>
             )}
 

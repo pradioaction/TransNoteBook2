@@ -14,25 +14,25 @@ export class ArkProvider implements TranslationProvider {
     this.id = `custom_${name}`
     this.name = `自定义: ${name}`
     this.config = {
-      endpoint: config?.endpoint || 'https://ark.cn-beijing.volces.com/api/v3',
-      model: config?.model || '',
-      apiKeyEnv: config?.apiKeyEnv || 'ARK_API_KEY',
+      endpoint: (config?.endpoint ?? '').trim() || 'https://ark.cn-beijing.volces.com/api/v3',
+      model: (config?.model ?? '').trim(),
+      apiKeyEnv: (config?.apiKeyEnv ?? '').trim() || 'ARK_API_KEY',
       timeout: config?.timeout || 120,
     }
   }
 
   private resolveApiKey(): string {
-    const envName = this.config.apiKeyEnv || 'ARK_API_KEY'
+    const envName = (this.config.apiKeyEnv || 'ARK_API_KEY').trim()
     // 优先从 settingStore 的环境变量配置中读取
     const storeVars = useSettingStore.getState().envVars
-    const match = storeVars.find((v: { name: string; value: string; description: string }) => v.name === envName)
-    if (match && match.value) return match.value
+    const match = storeVars.find((v: { name: string; value: string; description: string }) => v.name.trim() === envName)
+    if (match && match.value.trim()) return match.value.trim()
     // 回退到 process.env
     try {
       // @ts-ignore
       if (typeof process !== 'undefined' && process.env && process.env[envName]) {
         // @ts-ignore
-        return process.env[envName] as string
+        return (process.env[envName] as string).trim()
       }
     } catch { /* ignore */ }
     return ''

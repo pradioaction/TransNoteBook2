@@ -21,6 +21,7 @@
   "bookManager.startQuiz": "开始检测",
   "bookManager.generateArticle": "生成文章",
   "bookManager.delete": "删除词书",
+  "bookManager.confirmDelete": "确定删除词书「{{bookName}}」？该词书及其学习记录将被删除，且不可恢复。",
   "bookManager.generating": "正在生成文章...",
   "bookManager.dailyNew": "每日新学",
   "bookManager.review": "复习",

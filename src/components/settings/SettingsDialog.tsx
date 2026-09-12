@@ -110,11 +110,20 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   }
 
   const handleAddModel = () => {
-    if (!newModel.name || !newModel.endpoint) return
+    const name = newModel.name.trim()
+    const endpoint = newModel.endpoint.trim()
+    if (!name || !endpoint) return
+    const model = {
+      ...newModel,
+      name,
+      endpoint,
+      model: newModel.model.trim(),
+      apiKeyEnv: newModel.apiKeyEnv.trim(),
+    }
     if (editingModelName) {
       settingStore.removeCustomModel(editingModelName)
     }
-    settingStore.addCustomModel({ ...newModel })
+    settingStore.addCustomModel(model)
     setNewModel({ name: '', apiKeyEnv: '', endpoint: '', model: '', timeout: 120, backend: 'ollama', enabled: true })
     setNewModelOpen(false)
     setEditingModelName(null)
@@ -140,7 +149,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   return (
     <div
-      onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -148,7 +156,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
           width: 640, maxHeight: '80vh',
           backgroundColor: colors.editorBackground,

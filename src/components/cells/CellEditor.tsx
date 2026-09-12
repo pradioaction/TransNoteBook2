@@ -212,7 +212,7 @@ export function CellEditor({
   `
 
   return (
-    <div style={{ position: 'relative', flex: 1 }}>
+    <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
       {editing && (
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: 6,
@@ -249,7 +249,7 @@ export function CellEditor({
           <EditorContent editor={editor} />
         </div>
       ) : (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
           <style>{markdownBodyCss}</style>
           <div
             onDoubleClick={() => setEditing(true)}
@@ -257,6 +257,7 @@ export function CellEditor({
             className="md-body"
             style={{
               ...readingStyle,
+              flex: 1,
               backgroundColor: colors.editorBackground,
               color: colors.editorForeground,
             }}

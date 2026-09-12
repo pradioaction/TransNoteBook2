@@ -1,5 +1,11 @@
 export type QuizQuestionType = 'word-to-meaning' | 'meaning-to-word' | 'cloze'
 
+/**
+ * 「不认识」专用作答标记：不指向任何选项（A-D），
+ * 用于记录记忆失败，界面不会高亮任何错误选项。
+ */
+export const DONT_KNOW_ANSWER = 'N'
+
 export interface QuizOption {
   id: 'A' | 'B' | 'C' | 'D'
   text: string

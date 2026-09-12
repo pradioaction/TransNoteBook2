@@ -33,7 +33,7 @@ export class BookImporter {
       }
 
       const content = fs.readFileSync(filePath, 'utf-8')
-      const data = JSON.parse(content)
+      const data = this._parseContent(content)
 
       const pathObj = path.parse(filePath)
       const bookName = pathObj.name
@@ -60,7 +60,7 @@ export class BookImporter {
    */
   importFromContent(content: string, bookName: string): ImportResult {
     try {
-      const data = JSON.parse(content)
+      const data = this._parseContent(content)
       const words = this._parseWords(data)
       return {
         book: {
@@ -73,6 +73,32 @@ export class BookImporter {
     } catch (err) {
       console.error(`[BookImporter] Import from content failed: ${err}`)
       return { book: null, words: [] }
+    }
+  }
+
+  /**
+   * 解析词书文本：优先按整体 JSON 解析；
+   * 失败时按 JSON Lines（.jsonl，每行一个 JSON 对象）解析。
+   */
+  private _parseContent(content: string): unknown {
+    const trimmed = content.trim()
+    if (!trimmed) return null
+
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      // 兼容 .jsonl：逐行解析，跳过空行与损坏行
+      const items: unknown[] = []
+      for (const line of trimmed.split(/\r?\n/)) {
+        const text = line.trim()
+        if (!text) continue
+        try {
+          items.push(JSON.parse(text))
+        } catch (err) {
+          console.warn(`[BookImporter] Skip malformed JSONL line: ${err}`)
+        }
+      }
+      return items
     }
   }
 

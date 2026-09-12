@@ -15,26 +15,26 @@ export class OpenAIProvider implements TranslationProvider {
     this.name = customName ? `自定义: ${customName}` : 'OpenAI Compatible'
     this.type = customName ? 'custom' : 'system'
     this.config = {
-      baseUrl: config?.baseUrl || 'https://api.openai.com/v1',
-      model: config?.model || 'gpt-3.5-turbo',
-      apiKeyEnv: config?.apiKeyEnv || 'OPENAI_API_KEY',
+      baseUrl: (config?.baseUrl ?? '').trim() || 'https://api.openai.com/v1',
+      model: (config?.model ?? '').trim() || 'gpt-3.5-turbo',
+      apiKeyEnv: (config?.apiKeyEnv ?? '').trim() || 'OPENAI_API_KEY',
       timeout: config?.timeout || 60,
-      proxy: config?.proxy || '',
+      proxy: (config?.proxy ?? '').trim(),
     }
   }
 
   private resolveApiKey(): string {
-    const envName = this.config.apiKeyEnv || 'OPENAI_API_KEY'
+    const envName = (this.config.apiKeyEnv || 'OPENAI_API_KEY').trim()
     // 优先从 settingStore 的环境变量配置中读取
     const storeVars = useSettingStore.getState().envVars
-    const match = storeVars.find((v: { name: string; value: string; description: string }) => v.name === envName)
-    if (match && match.value) return match.value
+    const match = storeVars.find((v: { name: string; value: string; description: string }) => v.name.trim() === envName)
+    if (match && match.value.trim()) return match.value.trim()
     // 回退到 process.env
     try {
       // @ts-ignore
       if (typeof process !== 'undefined' && process.env && process.env[envName]) {
         // @ts-ignore
-        return process.env[envName] as string
+        return (process.env[envName] as string).trim()
       }
     } catch { /* ignore */ }
     return ''

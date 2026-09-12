@@ -143,10 +143,11 @@ export class GitHubBookFetcher {
 
       const entry = item as Record<string, unknown>
 
-      // 只处理 blob（文件）类型且以 .json 结尾
+      // 只处理 blob（文件）类型且以 .json / .jsonl 结尾
       if (entry.type !== 'blob') continue
       if (typeof entry.path !== 'string') continue
-      if (!entry.path.toLowerCase().endsWith('.json')) continue
+      const lowerPath = entry.path.toLowerCase()
+      if (!lowerPath.endsWith('.json') && !lowerPath.endsWith('.jsonl')) continue
 
       // 从完整路径中提取文件名和目录
       const pathParts = entry.path.split('/')

@@ -7,6 +7,7 @@ import { useRecitationService } from '@/hooks/useRecitationService'
 import { useTTSService } from '@/hooks/useTTSService'
 import { useOutputStore } from '@/store/outputStore'
 import { FloatingOptions } from './FloatingOptions'
+import { DONT_KNOW_ANSWER } from '@/recitation/quizTypes'
 import { IconCelebrate } from '@/components/icons'
 
 export function QuizPanel() {
@@ -230,15 +231,13 @@ export function QuizPanel() {
     [answerQuestion, quizState?.currentIndex, quizState?.questions, speak]
   )
 
-  // “不认识”按钮：提交一个错误选项（后台记错）+ 翻卡查看意思
+  // “不认识”按钮：以特殊标记作答（后台记错）+ 翻卡查看意思
   const handleDontKnow = useCallback(() => {
     const s = useRecitationStore.getState()
     const cur = s.quizState?.questions[s.quizState.currentIndex]
     if (!cur || cur.answered !== undefined) return
-    // 选一个非正确选项提交，使该单词判定为记忆失败
-    const wrongId = cur.options.find((o) => o.id !== cur.correctAnswer)?.id
-    if (!wrongId) return
-    answerQuestion(s.quizState.currentIndex, wrongId)
+    // DONT_KNOW_ANSWER 不指向任何选项：判定为记忆失败，且不高亮某个错误选项
+    answerQuestion(s.quizState.currentIndex, DONT_KNOW_ANSWER)
     flipToBack()
   }, [answerQuestion, flipToBack])
 
