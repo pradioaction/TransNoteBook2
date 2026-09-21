@@ -216,6 +216,12 @@
   "settings.ttsTest": "测试",
   "settings.ttsTesting": "朗读中...",
   "settings.ttsTestText": "Hello, this is a test.",
+  "settings.ttsAutoRead": "自动朗读",
+  "settings.ttsAutoReadDesc": "控制答题过程中的自动朗读，手动点击喇叭按钮不受影响。",
+  "settings.ttsAutoReadQuestion": "切题时朗读题干单词",
+  "settings.ttsAutoReadHintWord": "答题前朗读答案单词（提示模式，会提前听到答案）",
+  "settings.ttsAutoReadAnswer": "作答后朗读所选单词",
+  "settings.ttsAutoReadFlip": "翻卡时朗读卡片单词",
 
   "sidebar.search": "搜索",
   "sidebar.searchPlaceholder": "搜索...",

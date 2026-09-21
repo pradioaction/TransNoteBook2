@@ -1,6 +1,6 @@
 # TSBook2 API 接口文档
 
-> 当前版本: v2.2 | 最后更新: 2026-09-20
+> 当前版本: v2.2 | 最后更新: 2026-09-21
 
 本文档为 TSBook2 API 的章节索引，完整内容按模块拆分到版本目录下。
 
@@ -191,6 +191,8 @@ scripts/dev-electron.js：检测 5173 端口 → 未占用则 wait-on 等待 TCP
 > 完整内容 → [v2.2/api/tts.md](v2.2/api/tts.md)、[v2.1/api/tts.md](v2.1/api/tts.md) | 引擎专题 → [docs/tts-kokoro-20260722.md](../docs/tts-kokoro-20260722.md)
 
 **核对结论**：Kokoro / Edge 两个 Provider 受 `SHOW_DEV_TTS_PROVIDERS = false` 隐藏，**默认仅 WebSpeechProvider 生效**。
+
+**v2.2 新增**：答题自动朗读开关 `TTSAutoReadSettings`（`question` / `hint` / `answer` / `flip`），随 `ttsSettingStore.tts.autoRead` 持久化，由 `useTTSService` 暴露给 `QuizPanel` 与设置页 → [tts.md §13.5](v2.2/api/tts.md#135-答题自动朗读开关autoread--v22-新增)。
 
 ---
 

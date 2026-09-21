@@ -43,8 +43,11 @@ export function QuizPanel() {
   const [showComplete, setShowComplete] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const configLoaded = useRef(false)
-  const { speak, stop } = useTTSService()
+  const { speak, stop, autoRead } = useTTSService()
   const autoReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 自动朗读开关取 ref 快照：在触发时机读取，避免开关变化引起切题副作用重跑
+  const autoReadRef = useRef(autoRead)
+  autoReadRef.current = autoRead
 
   // 从 studywordmode.json 加载阻尼和冲量
   useEffect(() => {
@@ -236,7 +239,7 @@ export function QuizPanel() {
       // 朗读所选选项对应的英文单词
       const question = quizState?.questions[quizState.currentIndex]
       const selectedOption = question?.options.find(o => o.id === optionId)
-      if (selectedOption?.word) {
+      if (selectedOption?.word && autoReadRef.current.answer) {
         speak(selectedOption.word, { rate: 0.9 })
       }
     },
@@ -349,9 +352,17 @@ export function QuizPanel() {
     if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
     autoReadTimerRef.current = setTimeout(() => {
       const q = quizState?.questions[quizState.currentIndex]
-      // 题目是中文时不自动朗读
-      if (q && q.type === 'word-to-meaning') {
-        speak(q.word, { rate: 0.9 })
+      if (!q) return
+      const auto = autoReadRef.current
+      if (q.type === 'word-to-meaning') {
+        // 英文题干：朗读题干单词本身，不涉及答案
+        if (auto.question) speak(q.word, { rate: 0.9 })
+      } else if (auto.hint) {
+        // 中文题干 / 完形填空：朗读答案单词属于提示，默认关闭。
+        // 注意：meaning-to-word 的 q.word 存的是中文释义（题干本身），
+        // 唯一稳定的「答案单词」取法是从正确选项取文本
+        const correctText = q.options.find((o) => o.id === q.correctAnswer)?.text
+        if (correctText) speak(correctText, { rate: 0.9 })
       }
     }, 100)
     return () => {
@@ -361,7 +372,7 @@ export function QuizPanel() {
 
   // 翻转卡片弹出时自动朗读单词
   useEffect(() => {
-    if (isFlipped && flipCardData?.word) {
+    if (isFlipped && flipCardData?.word && autoReadRef.current.flip) {
       speak(flipCardData.word, { rate: 0.9 })
     }
   }, [isFlipped, flipCardData, speak])

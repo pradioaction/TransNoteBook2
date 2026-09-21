@@ -240,3 +240,64 @@ v2.1 文档保持冻结，以下差异在此集中修正。其中**检测页翻�
 | `src/locales/{zh-CN,en-US}.json` | 新增 `errorBoundary.*` 文案 |
 | `tests/store/searchStore.test.ts`、`tests/components/SearchPanel.test.tsx` | 新建：搜索会话语义 / 生命周期收口 / 无文件时挂载回归 |
 
+---
+
+## 3.28 答题自动朗读开关（autoRead）— v2.2 新增
+
+### 需求
+
+v2.1 起检测页存在 3 处硬编码的自动朗读（切题朗读题干、作答后朗读所选单词、翻卡朗读单词），用户无法按场景关闭；且 `meaning-to-word`（看中文释义选英文单词）题型完全不朗读，无法把朗读当作难度提示使用。
+
+### 方案：4 个按「使用场景」划分的开关
+
+```typescript
+// src/store/ttsSettingStore.ts
+export interface TTSAutoReadSettings {
+  question: boolean   // 切题时朗读题干单词（仅英文题干题型，不泄露答案）
+  hint: boolean       // 答题前朗读答案单词作为提示（会提前听到答案）
+  answer: boolean     // 作答后朗读所选选项的单词
+  flip: boolean       // 翻卡时朗读卡片上的单词
+}
+```
+
+默认 `{ question: true, hint: false, answer: true, flip: true }`：前三项沿用 v2.1 行为，`hint` 默认关闭以免降低题目难度。
+
+| 开关 | 触发时机 | 朗读内容 | 位置 |
+|---|---|---|---|
+| `question` | 切题（延迟 100ms） | 题干英文单词 | [QuizPanel.tsx](../../../src/components/recitation/QuizPanel.tsx#L347-L371) |
+| `hint` | 切题（延迟 100ms） | 正确选项文本（答案单词） | 同上 `else` 分支 |
+| `answer` | 作答后 | 所选选项的单词 | [QuizPanel.tsx](../../../src/components/recitation/QuizPanel.tsx#L242) |
+| `flip` | 翻卡 | 卡片单词 | [QuizPanel.tsx](../../../src/components/recitation/QuizPanel.tsx#L373-L377) |
+
+### 解耦要点
+
+| 约束 | 说明 |
+|---|---|
+| 决策在 QuizPanel，执行在 TTS | `ttsService` / Provider 对「答题」场景零感知，依赖方向单向：`QuizPanel → useTTSService → ttsSettingStore`。若把场景判断下沉进 `ttsService`，才会形成反向耦合 |
+| 命名按场景，不按题型 | 字段名不含 `quizTypes` 术语，题型增删不波及配置层 |
+| 手动朗读独立 | `SpeakButton` 不受 `autoRead.*` 约束，仅 `tts.enabled` 可全局静音 |
+| ref 快照读取 | `autoReadRef`（[QuizPanel.tsx#L46-L50](../../../src/components/recitation/QuizPanel.tsx#L46-L50)）避免把 `autoRead` 加入切题 `useEffect` 依赖后，改设置触发 `setIsFlipped(false)` 等副作用重跑 |
+| 旧配置兼容 | `loadFromDisk()` 对 `autoRead` 逐层兜底，旧 `settings.json` 无该字段时回落默认值 |
+
+### 顺带修正：答案单词取法
+
+实现 `hint` 时暴露出 `QuizQuestion.word` 的语义随题型漂移：
+
+| 题型 | `word` 实际内容 |
+|---|---|
+| `word-to-meaning` | 英文单词（= 题干） |
+| `meaning-to-word` | **中文释义（= 题干）** |
+| `cloze` | 英文单词（= 答案） |
+
+故「答案单词」一律取正确选项文本 `q.options.find(o => o.id === q.correctAnswer)?.text`（与 [QuizPanel.tsx#L195](../../../src/components/recitation/QuizPanel.tsx#L195) 翻转卡数据、[FloatingOptions.tsx#L285-L287](../../../src/components/recitation/FloatingOptions.tsx#L285-L287) 题干朗读按钮一致）。字段语义本身未改，`QuizQuestion` 仍保留该陷阱，详见 [api/tts.md §13.5](../api/tts.md#135-答题自动朗读开关autoread--v22-新增)。
+
+### 涉及文件
+
+| 文件 | 变更 |
+|---|---|
+| `src/store/ttsSettingStore.ts` | 新增 `TTSAutoReadSettings` / `setAutoRead()`；`loadFromDisk()` 改逐层兜底 |
+| `src/hooks/useTTSService.ts` | 返回值新增 `autoRead` / `setAutoRead` |
+| `src/components/recitation/QuizPanel.tsx` | 4 处自动朗读按开关 gate；新增 `autoReadRef` 快照 |
+| `src/components/settings/SettingsDialog.tsx` | TTS 页新增「自动朗读」分组（4 个复选框） |
+| `src/locales/{zh-CN,en-US}.json` | 新增 `settings.ttsAutoRead*` 文案 |
+

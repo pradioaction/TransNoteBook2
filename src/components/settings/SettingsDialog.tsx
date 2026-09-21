@@ -27,7 +27,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const ttsEnabled = useTTSSettingStore((s) => s.tts.enabled)
   const ttsProvider = useTTSSettingStore((s) => s.tts.provider)
   const setTTSEnabled = (enabled: boolean) => useTTSSettingStore.getState().setTTS({ enabled })
-  const { speak, speaking, providers, setProvider, voices, voiceId, setVoice, rate, setRate, volume, setVolume } = useTTSService()
+  const { speak, speaking, providers, setProvider, voices, voiceId, setVoice, rate, setRate, volume, setVolume, autoRead, setAutoRead } = useTTSService()
   const [testingProvider, setTestingProvider] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, { success: boolean; error?: string }>>({})
   const [newEnvName, setNewEnvName] = useState('')
@@ -579,6 +579,51 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     >
                       {speaking ? t('settings.ttsTesting') : t('settings.ttsTest')}
                     </button>
+                  </div>
+
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${colors.border}` }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: colors.foreground, marginBottom: 4 }}>
+                      {t('settings.ttsAutoRead')}
+                    </div>
+                    <div style={{ fontSize: 12, color: colors.foreground, opacity: 0.6, marginBottom: 10 }}>
+                      {t('settings.ttsAutoReadDesc')}
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <label style={labelStyle}>
+                        <input
+                          type="checkbox"
+                          checked={autoRead.question}
+                          onChange={(e) => setAutoRead({ question: e.target.checked })}
+                        /> {t('settings.ttsAutoReadQuestion')}
+                      </label>
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <label style={labelStyle}>
+                        <input
+                          type="checkbox"
+                          checked={autoRead.hint}
+                          onChange={(e) => setAutoRead({ hint: e.target.checked })}
+                        /> {t('settings.ttsAutoReadHintWord')}
+                      </label>
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <label style={labelStyle}>
+                        <input
+                          type="checkbox"
+                          checked={autoRead.answer}
+                          onChange={(e) => setAutoRead({ answer: e.target.checked })}
+                        /> {t('settings.ttsAutoReadAnswer')}
+                      </label>
+                    </div>
+                    <div>
+                      <label style={labelStyle}>
+                        <input
+                          type="checkbox"
+                          checked={autoRead.flip}
+                          onChange={(e) => setAutoRead({ flip: e.target.checked })}
+                        /> {t('settings.ttsAutoReadFlip')}
+                      </label>
+                    </div>
                   </div>
                 </>
               )}

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { getTTSService } from '@/services/ttsService'
 import type { TTSVoice, TTSProviderInfo, SpeakOptions } from '@/tts/types'
+import type { TTSAutoReadSettings } from '@/store/ttsSettingStore'
 import { useTTSSettingStore } from '@/store/ttsSettingStore'
 
 const ttsService = getTTSService()
@@ -17,6 +18,7 @@ export function useTTSService() {
   const ttsRate = useTTSSettingStore((s) => s.tts.rate)
   const ttsVolume = useTTSSettingStore((s) => s.tts.volume)
   const ttsProvider = useTTSSettingStore((s) => s.tts.provider)
+  const ttsAutoRead = useTTSSettingStore((s) => s.tts.autoRead)
 
   // Load voices on mount and initialise voiceId from store
   useEffect(() => {
@@ -100,6 +102,10 @@ export function useTTSService() {
     useTTSSettingStore.getState().setTTS({ volume })
   }, [])
 
+  const setAutoRead = useCallback((settings: Partial<TTSAutoReadSettings>) => {
+    useTTSSettingStore.getState().setAutoRead(settings)
+  }, [])
+
   return {
     speak,
     stop,
@@ -117,5 +123,7 @@ export function useTTSService() {
     setRate,
     volume: ttsVolume,
     setVolume,
+    autoRead: ttsAutoRead,
+    setAutoRead,
   }
 }

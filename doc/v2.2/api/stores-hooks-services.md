@@ -98,18 +98,30 @@ useOutputStore.subscribe((state, prevState) => {
 ### 4.4 useTTSSettingStore — [ttsSettingStore.ts](../../../src/store/ttsSettingStore.ts)
 
 ```typescript
+export interface TTSAutoReadSettings {   // v2.2 新增
+  question: boolean   // 切题时朗读题干单词（仅英文题干题型）
+  hint: boolean       // 答题前朗读答案单词（提示模式，会泄露答案）
+  answer: boolean     // 作答后朗读所选选项的单词
+  flip: boolean       // 翻卡时朗读卡片上的单词
+}
+
 export interface TTSSettings {
   enabled: boolean
   provider: string
   rate: number
   volume: number
   voiceId: string
+  autoRead: TTSAutoReadSettings   // v2.2 新增
 }
+
+setAutoRead(settings: Partial<TTSAutoReadSettings>): void   // v2.2 新增
 ```
 
-默认值：`{ enabled: true, provider: 'system_WebSpeech', rate: 0.9, volume: 1.0, voiceId: '' }`
+默认值：`{ enabled: true, provider: 'system_WebSpeech', rate: 0.9, volume: 1.0, voiceId: '', autoRead: { question: true, hint: false, answer: true, flip: true } }`
 
 `saveToDisk()` 先 `getSettings()` 读取全量，合并 `tts` 字段后再整体写回，避免覆盖其他设置。
+
+`setAutoRead()` 对 `autoRead` 做浅合并（不覆盖同组其他字段）；`loadFromDisk()` 对 `autoRead` 逐层兜底（`{ ...defaultAutoRead, ...(stored.autoRead ?? {}) }`），兼容不含该字段的旧 `settings.json`。开关语义与设计约束见 [tts.md §13.5](./tts.md#135-答题自动朗读开关autoread--v22-新增)。
 
 ### 4.5 useSearchStore — [searchStore.ts](../../../src/store/searchStore.ts)（v2.2 新增）
 
@@ -205,10 +217,14 @@ function useTTSService(): {
   setVoice(voiceId: string): void
   rate: number;  setRate(rate: number): void
   volume: number; setVolume(volume: number): void
+  autoRead: TTSAutoReadSettings                            // v2.2 新增
+  setAutoRead(settings: Partial<TTSAutoReadSettings>): void // v2.2 新增
 }
 ```
 
 模块顶层 `const ttsService = getTTSService()`，与 `useSpeek` 共用同一实例。
+
+`autoRead` 为响应式订阅（`useTTSSettingStore((s) => s.tts.autoRead)`）；`QuizPanel` 另用 `useRef` 持有其快照，仅在触发时机读取，避免把 `autoRead` 加入 `useEffect` 依赖导致副作用重跑（见 [tts.md §13.5](./tts.md#135-答题自动朗读开关autoread--v22-新增)）。
 
 ### 5.4 useSpeek — [useSpeek.ts](../../../src/hooks/useSpeek.ts)
 

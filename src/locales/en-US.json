@@ -216,6 +216,12 @@
   "settings.ttsTest": "Test",
   "settings.ttsTesting": "Reading...",
   "settings.ttsTestText": "Hello, this is a test.",
+  "settings.ttsAutoRead": "Auto Read",
+  "settings.ttsAutoReadDesc": "Controls automatic speaking during quizzes. Manual speaker buttons are unaffected.",
+  "settings.ttsAutoReadQuestion": "Read the word when a question appears",
+  "settings.ttsAutoReadHintWord": "Read the answer word before answering (hint mode, reveals the answer)",
+  "settings.ttsAutoReadAnswer": "Read the selected word after answering",
+  "settings.ttsAutoReadFlip": "Read the word when the card flips",
 
   "sidebar.search": "Search",
   "sidebar.searchPlaceholder": "Search...",

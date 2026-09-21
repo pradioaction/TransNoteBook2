@@ -1,6 +1,6 @@
 # TSBook2 v2.2 开发路线图
 
-> 基于 v2.1 | 最后更新: 2026-09-20
+> 基于 v2.1 | 最后更新: 2026-09-21
 
 ## ✅ 已完成 — v2.2 检测体验与数据健壮性
 
@@ -24,6 +24,7 @@
 | P2 | 高亮注入安全化 | `<mark>` 注入改为文本节点级（`TreeWalker`），关键词命中标签名/属性时不再破坏 HTML 结构 | — |
 | P2 | 出题纯函数化 | 旧文章兜底提取的句子与完形填空选句不再原地改写 `wordMeta.sentences` | — |
 | P2 | v2.1 文档勘误 | 14 项差异集中修正，见 [architecture/modules.md](architecture/modules.md#326-v21-文档勘误补记)；另补 E-15（v2.0 搜索高亮行为） | — |
+| P1 | 答题自动朗读开关 | 新增 `TTSAutoReadSettings`（`question` / `hint` / `answer` / `flip`），按场景控制检测页自动朗读；`hint` 默认关闭；手动朗读不受影响；顺带修正「答案单词」取法（`QuizQuestion.word` 语义随题型漂移） | — |
 
 ### ✅ 搜索稳定性与搜索会话收口 (Search Stability & Session Scoping)
 
@@ -59,6 +60,29 @@
 - `tests/components/SearchPanel.test.tsx`（新建）
 
 > 架构说明 → [architecture/modules.md §3.27](architecture/modules.md#327-搜索面板稳定性与搜索会话收口--v22-补记)
+
+### ✅ 答题自动朗读开关 (Quiz Auto Read Toggles)
+
+**文件**：`src/store/ttsSettingStore.ts`（修改）、`src/components/recitation/QuizPanel.tsx`（修改）
+
+**功能**：
+- [x] 新增 `TTSAutoReadSettings`：`question` / `hint` / `answer` / `flip` 四个按「使用场景」划分的开关
+- [x] `hint`（答题前朗读答案单词，提示模式）默认关闭，保证升级后题目难度不变
+- [x] 手动朗读（`SpeakButton`）不受开关约束，仅 `tts.enabled` 可全局静音
+- [x] `loadFromDisk()` 对 `autoRead` 逐层兜底，兼容无该字段的旧 `settings.json`
+- [x] 开关值经 `autoReadRef` 快照在触发时机读取，避免切题 `useEffect` 副作用被重跑
+- [x] 设置页「TTS」新增「自动朗读」分组（4 个复选框 + 说明文字）
+- [x] 修正 `hint` 的朗读内容：`meaning-to-word` / `cloze` 下改从正确选项文本取「答案单词」（原先误用 `q.word`，`meaning-to-word` 的 `q.word` 实为中文释义）
+
+**新增/修改文件**：
+- `src/store/ttsSettingStore.ts`（修改：`TTSAutoReadSettings` / `setAutoRead()` / `loadFromDisk()` 兜底）
+- `src/hooks/useTTSService.ts`（修改：返回值新增 `autoRead` / `setAutoRead`）
+- `src/components/recitation/QuizPanel.tsx`（修改：4 处自动朗读按开关 gate）
+- `src/components/settings/SettingsDialog.tsx`（修改：TTS 页新增自动朗读分组）
+- `src/locales/zh-CN.json` / `en-US.json`（修改：`settings.ttsAutoRead*`）
+
+> 架构说明 → [architecture/modules.md §3.28](architecture/modules.md#328-答题自动朗读开关autoread--v22-新增)
+> API 细节 → [api/tts.md §13.5](api/tts.md#135-答题自动朗读开关autoread--v22-新增)
 
 ## ⏳ 待办（从 v2.0 / v2.1 继承）
 

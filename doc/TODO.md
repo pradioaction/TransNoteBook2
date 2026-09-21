@@ -1,6 +1,6 @@
 # TSBook2 待办事项
 
-> 最后更新: 2026-09-20 | 当前版本: v2.2
+> 最后更新: 2026-09-21 | 当前版本: v2.2
 
 ***
 
@@ -17,6 +17,7 @@
 | 工作区自动初始化 | `workspaceStore.setWorkspace()` 后立即初始化背诵数据库 |
 | 输入归一化 | SettingsDialog 与三个翻译 Provider 统一 `trim()` |
 | 搜索稳定性修复 | 新增 `SearchStore` 统一搜索会话；稳定选择器修复「点击搜索即白屏」；分区 ErrorBoundary；检测模式快捷键守卫 / 计时器生命周期 / 待同步结果快照化 |
+| 答题自动朗读开关 | `TTSAutoReadSettings`（`question` / `hint` / `answer` / `flip`）按场景控制检测页自动朗读；`hint` 默认关闭；手动朗读不受影响 |
 | 文档整理 | 新增 v2.2 API/架构文档；修正 v2.1 文档 14 项不符之处 + v2.0 搜索高亮行为（E-15） |
 
 > 详情 → [v2.2/TODO_v2.2.md](v2.2/TODO_v2.2.md) | [v2.2/architecture/modules.md](v2.2/architecture/modules.md)
