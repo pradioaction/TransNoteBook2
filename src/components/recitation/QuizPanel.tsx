@@ -48,6 +48,8 @@ export function QuizPanel() {
   // 自动朗读开关取 ref 快照：在触发时机读取，避免开关变化引起切题副作用重跑
   const autoReadRef = useRef(autoRead)
   autoReadRef.current = autoRead
+  // 标记本次翻卡由「答错自动弹出」触发：朗读归属 autoRead.answer，而非 autoRead.flip
+  const autoFlipFromAnswerRef = useRef(false)
 
   // 从 studywordmode.json 加载阻尼和冲量
   useEffect(() => {
@@ -236,14 +238,23 @@ export function QuizPanel() {
       // 用 ref 做同步守卫，防止闭包未更新导致重复答题
       if (answeredRef.current) return
       answerQuestion(quizState.currentIndex, optionId)
-      // 朗读所选选项对应的英文单词
       const question = quizState?.questions[quizState.currentIndex]
       const selectedOption = question?.options.find(o => o.id === optionId)
-      if (selectedOption?.word && autoReadRef.current.answer) {
+      if (!selectedOption?.word) return
+
+      if (optionId !== question?.correctAnswer) {
+        // 答错：先弹出该选项的单词卡片；朗读交给下面的翻卡 effect 统一处理，
+        // 用标记把这次的朗读归属到「作答后朗读」，避免与它重复发声
+        autoFlipFromAnswerRef.current = true
+        handleFlipToOption(optionId)
+        return
+      }
+      // 答对：直接朗读所选选项对应的英文单词
+      if (autoReadRef.current.answer) {
         speak(selectedOption.word, { rate: 0.9 })
       }
     },
-    [answerQuestion, quizState?.currentIndex, quizState?.questions, speak]
+    [answerQuestion, quizState?.currentIndex, quizState?.questions, speak, handleFlipToOption]
   )
 
   // “不认识”按钮：以特殊标记作答（后台记错）+ 翻卡查看意思
@@ -372,7 +383,12 @@ export function QuizPanel() {
 
   // 翻转卡片弹出时自动朗读单词
   useEffect(() => {
-    if (isFlipped && flipCardData?.word && autoReadRef.current.flip) {
+    if (!isFlipped || !flipCardData?.word) return
+    const auto = autoReadRef.current
+    // 答错自动弹出的卡片按「作答后朗读」开关，手动翻卡按「翻卡朗读」开关
+    const fromAnswer = autoFlipFromAnswerRef.current
+    autoFlipFromAnswerRef.current = false
+    if (fromAnswer ? auto.answer : auto.flip) {
       speak(flipCardData.word, { rate: 0.9 })
     }
   }, [isFlipped, flipCardData, speak])
