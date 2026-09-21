@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
+import { useRecitationStore } from '@/store/recitationStore'
 import { useCellService } from './useCellService'
 import { useFileService } from './useFileService'
 import { useTranslationService } from './useTranslationService'
@@ -195,6 +196,8 @@ export function useKeyboard() {
       const target = e.target as HTMLElement
       const isEditing = target.closest('.tiptap') || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
       if (isEditing) return
+      // 检测模式下阅读态已卸载：此时快捷键（Delete/方向键等）不应作用到阅读数据上
+      if (useRecitationStore.getState().active) return
 
       for (const shortcut of shortcuts) {
         const ctrlMatch = shortcut.ctrl ? (e.ctrlKey || e.metaKey) : !(e.ctrlKey || e.metaKey)

@@ -10,6 +10,14 @@ import { FloatingOptions } from './FloatingOptions'
 import { DONT_KNOW_ANSWER } from '@/recitation/quizTypes'
 import { IconCelebrate } from '@/components/icons'
 
+/** 待同步结果的快照：卸载兜底时不再依赖可能已被清空的 store */
+interface PendingSyncSnapshot {
+  bookId: number
+  results: Record<number, boolean>
+  newWordIds: number[]
+  reviewIds: number[]
+}
+
 export function QuizPanel() {
   const { t } = useTranslation()
   const { colors } = useTheme()
@@ -24,7 +32,6 @@ export function QuizPanel() {
   const setPhase = useRecitationStore((s) => s.setPhase)
   const setSidebarMode = useRecitationStore((s) => s.setSidebarMode)
   const isArticleQuiz = useRecitationStore((s) => s.articleQuizSource)
-  const selectedBookId = useRecitationStore((s) => s.selectedBookId)
   const pendingSyncResults = useRecitationStore((s) => s.pendingSyncResults)
   const markWordsAsSynced = useRecitationStore((s) => s.markWordsAsSynced)
   const saveQuizProgress = useRecitationStore((s) => s.saveQuizProgress)
@@ -63,35 +70,65 @@ export function QuizPanel() {
     }
   }, [])
 
-  // 后台批量同步：将已答完的单词保存到数据库和 JSON
-  const syncPendingWords = useCallback(async () => {
+  // 后台批量同步：将已答完的单词保存到数据库和 JSON。
+  // 同步以「快照」为单位：退出/切换活动栏等路径会先 reset()/deactivate() 清空 store，
+  // 若同步时再读 store 就会读到空数据，导致未满 10 条的已答单词丢失。
+  const buildPendingSnapshot = useCallback((): PendingSyncSnapshot | null => {
     const state = useRecitationStore.getState()
-    const pending = state.pendingSyncResults
-    const wordIds = Object.keys(pending).map(Number)
-    if (wordIds.length === 0 || !selectedBookId) return
-
+    const results = state.pendingSyncResults
+    const ids = Object.keys(results).map(Number)
+    if (ids.length === 0 || !state.selectedBookId) return null
     // 根据 sidebarData 区分新学/复习单词
-    const newWordIdSet = new Set(state.sidebarData?.newWords.map(w => w.id) || [])
-    const newIds: number[] = []
-    const reviewIds: number[] = []
-    for (const id of wordIds) {
-      if (newWordIdSet.has(id)) newIds.push(id)
-      else reviewIds.push(id)
+    const newWordIdSet = new Set(state.sidebarData?.newWords.map((w) => w.id) || [])
+    return {
+      bookId: state.selectedBookId,
+      results,
+      newWordIds: ids.filter((id) => newWordIdSet.has(id)),
+      reviewIds: ids.filter((id) => !newWordIdSet.has(id)),
     }
+  }, [])
 
-    try {
-      for (const wordId of wordIds) {
-        await recitationService.startStudyWord(selectedBookId, wordId)
-        await recitationService.reviewWord(selectedBookId, wordId, pending[wordId])
+  const flushingRef = useRef(false)
+  // 卸载兜底用的最后一份快照（渲染期赋值，不依赖卸载时的 store 状态）
+  const pendingSnapshotRef = useRef<PendingSyncSnapshot | null>(null)
+
+  const flushPendingSnapshot = useCallback(
+    async (snapshot: PendingSyncSnapshot) => {
+      if (flushingRef.current) return
+      flushingRef.current = true
+      const wordIds = Object.keys(snapshot.results).map(Number)
+      try {
+        for (const wordId of wordIds) {
+          await recitationService.startStudyWord(snapshot.bookId, wordId)
+          await recitationService.reviewWord(snapshot.bookId, wordId, snapshot.results[wordId])
+        }
+        await recitationService.markWordsAsTested(
+          snapshot.bookId,
+          snapshot.newWordIds,
+          snapshot.reviewIds,
+          snapshot.results,
+        )
+        markWordsAsSynced(wordIds)
+        // 保存答题结果用于侧边栏颜色标记
+        useRecitationStore.getState().setQuizResults(snapshot.bookId, snapshot.results)
+        // 已消费：清掉卸载兜底快照，避免同批结果被同步两次
+        if (pendingSnapshotRef.current === snapshot) pendingSnapshotRef.current = null
+      } catch (err) {
+        console.error('[QuizPanel] Pending sync failed:', err)
+      } finally {
+        flushingRef.current = false
       }
-      await recitationService.markWordsAsTested(selectedBookId, newIds, reviewIds)
-      markWordsAsSynced(wordIds)
-      // 保存答题结果用于侧边栏颜色标记
-      state.setQuizResults(selectedBookId!, pending)
-    } catch (err) {
-      console.error('[QuizPanel] Batch sync failed:', err)
-    }
-  }, [selectedBookId, recitationService, markWordsAsSynced])
+    },
+    [recitationService, markWordsAsSynced],
+  )
+
+  const syncPendingWords = useCallback(async () => {
+    const snapshot = buildPendingSnapshot()
+    if (!snapshot) return
+    await flushPendingSnapshot(snapshot)
+  }, [buildPendingSnapshot, flushPendingSnapshot])
+
+  pendingSnapshotRef.current = buildPendingSnapshot()
 
   // 监听 pending 达到 10 个时自动同步
   useEffect(() => {
@@ -101,40 +138,15 @@ export function QuizPanel() {
     }
   }, [pendingSyncResults, syncPendingWords])
 
-  // 组件卸载时同步剩余
+  // 组件卸载时同步剩余（覆盖「退出」/点击活动栏等未显式同步的退出路径）
   useEffect(() => {
     return () => {
-      const state = useRecitationStore.getState()
-      if (Object.keys(state.pendingSyncResults || {}).length > 0) {
-        // 异步同步，不阻塞卸载
-        const doSync = async () => {
-          const s = useRecitationStore.getState()
-          const p = s.pendingSyncResults
-          const ids = Object.keys(p).map(Number)
-          if (ids.length === 0 || !s.selectedBookId) return
-          // 根据 sidebarData 区分新学/复习单词
-          const newWordIdSet = new Set(s.sidebarData?.newWords.map(w => w.id) || [])
-          const newIds: number[] = []
-          const reviewIds: number[] = []
-          for (const id of ids) {
-            if (newWordIdSet.has(id)) newIds.push(id)
-            else reviewIds.push(id)
-          }
-          try {
-            for (const wordId of ids) {
-              await recitationService.startStudyWord(s.selectedBookId, wordId)
-              await recitationService.reviewWord(s.selectedBookId, wordId, p[wordId])
-            }
-            await recitationService.markWordsAsTested(s.selectedBookId, newIds, reviewIds, p)
-            s.markWordsAsSynced(ids)
-          } catch (err) {
-            console.error('[QuizPanel] Cleanup sync failed:', err)
-          }
-        }
-        doSync()
-      }
+      const snapshot = pendingSnapshotRef.current
+      if (!snapshot) return
+      // 异步同步，不阻塞卸载
+      void flushPendingSnapshot(snapshot)
     }
-  }, [recitationService])
+  }, [flushPendingSnapshot])
 
   // 翻转卡片
   const flipToBack = useCallback(() => {
@@ -176,7 +188,7 @@ export function QuizPanel() {
         stage: opt.stage,
       }
     }
-    // 点击题目卡片或按 F 键 → 展示题目主单词的完整数据
+    // 点击题目卡片或按 F/0 键 → 展示题目主单词的完整数据
     const correctText = q.options.find(o => o.id === q.correctAnswer)?.text
     return {
       type: q.type,
@@ -298,10 +310,10 @@ export function QuizPanel() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
         e.preventDefault()
         toggleFloatingAnimation()
-      } else if (e.key === 'f' || e.key === 'F') {
+      } else if (e.key === 'f' || e.key === 'F' || e.key === '0') {
         e.preventDefault()
         const cur = state.quizState.questions[state.quizState.currentIndex]
-        // 作答前：视为“不认识”（记录错误 + 翻卡看意思）；作答后：翻转查看详情
+        // 作答前：视为“不认识”（记录错误 + 翻卡看意思）；作答后：翻转查看详情（F/0 等价，0 便于右手区单手操作）
         if (cur && cur.answered !== undefined) {
           toggleFlip()
         } else {

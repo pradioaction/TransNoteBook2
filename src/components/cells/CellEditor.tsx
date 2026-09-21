@@ -7,7 +7,7 @@ import { marked } from 'marked'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
 import { useSettingStore } from '@/store/settingStore'
-import { useNotebookStore } from '@/store/notebookStore'
+import { useSearchStore } from '@/store/searchStore'
 import { ContextMenu } from '@/components/common/ContextMenu'
 import type { NotebookCell } from '@/types/notebook'
 import type { ContextMenuItem } from '@/components/common/ContextMenu'
@@ -42,6 +42,40 @@ function stripHtml(html: string): string {
   return walkNodes(doc.body)
 }
 
+// 在文本节点级别包裹 <mark>：只处理文本内容，不触碰标签名与属性
+function highlightTextNodes(root: HTMLElement, text: string): void {
+  if (!text) return
+  const lower = text.toLowerCase()
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  const targets: Text[] = []
+  let node = walker.nextNode()
+  while (node) {
+    const textNode = node as Text
+    if (textNode.nodeValue && textNode.nodeValue.toLowerCase().includes(lower)) {
+      targets.push(textNode)
+    }
+    node = walker.nextNode()
+  }
+
+  for (const textNode of targets) {
+    const value = textNode.nodeValue ?? ''
+    const fragment = document.createDocumentFragment()
+    const valueLower = value.toLowerCase()
+    let pos = 0
+    let hit = valueLower.indexOf(lower, pos)
+    while (hit !== -1) {
+      if (hit > pos) fragment.appendChild(document.createTextNode(value.slice(pos, hit)))
+      const mark = document.createElement('mark')
+      mark.textContent = value.slice(hit, hit + text.length)
+      fragment.appendChild(mark)
+      pos = hit + text.length
+      hit = valueLower.indexOf(lower, pos)
+    }
+    if (pos < value.length) fragment.appendChild(document.createTextNode(value.slice(pos)))
+    textNode.parentNode?.replaceChild(fragment, textNode)
+  }
+}
+
 export function CellEditor({
   cell,
   onContentChange,
@@ -52,7 +86,7 @@ export function CellEditor({
   const { colors } = useTheme()
   const { t } = useTranslation()
   const { readingFontSize } = useSettingStore()
-  const searchHighlightText = useNotebookStore((s) => s.searchHighlightText)
+  const searchHighlightText = useSearchStore((s) => s.highlightText)
   const [editing, setEditing] = useState(false)
   const lastSyncedRef = useRef('')
 
@@ -146,7 +180,7 @@ export function CellEditor({
 
   useEffect(() => {
     if (editing) {
-      useNotebookStore.getState().clearSearchHighlight()
+      useSearchStore.getState().clearHighlight()
     }
   }, [editing])
 
@@ -154,12 +188,12 @@ export function CellEditor({
     if (!cell.content) return ''
     // Strip HTML to get raw text, then render as Markdown
     const text = stripHtml(cell.content)
-    let html = marked.parse(text) as string
-    if (searchHighlightText) {
-      const escaped = searchHighlightText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      html = html.replace(new RegExp(escaped, 'gi'), '<mark>$&</mark>')
-    }
-    return html
+    const html = marked.parse(text) as string
+    if (!searchHighlightText) return html
+    // 在文本节点级别插入 <mark>，避免关键词命中标签名/属性时破坏 HTML 结构
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    highlightTextNodes(doc.body, searchHighlightText)
+    return doc.body.innerHTML
   }, [cell.content, searchHighlightText])
 
   const readingStyle: React.CSSProperties = {

@@ -1,5 +1,6 @@
 import { useRef, useLayoutEffect, useState, useEffect } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
+import { useSearchStore } from '@/store/searchStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 import { useCellService } from '@/hooks/useCellService'
@@ -7,7 +8,9 @@ import { CellContainer } from '@/components/cells/CellContainer'
 import { useSettingStore } from '@/store/settingStore'
 
 export function NotebookEditor() {
-  const { notebook, selectedIndices, selectCell, scrollToCellIndex, setScrollToCell } = useNotebookStore()
+  const { notebook, selectedIndices, selectCell } = useNotebookStore()
+  const scrollToCellIndex = useSearchStore((s) => s.scrollToCellIndex)
+  const setScrollToCell = useSearchStore((s) => s.setScrollToCell)
   const cellService = useCellService()
   const { colors } = useTheme()
   const { t } = useTranslation()

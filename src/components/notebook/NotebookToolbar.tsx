@@ -7,7 +7,6 @@ import { useCellService } from '@/hooks/useCellService'
 import { useTranslationService } from '@/hooks/useTranslationService'
 import { useRecitationService } from '@/hooks/useRecitationService'
 import { useRecitationStore } from '@/store/recitationStore'
-import { useReadingTimerStore } from '@/store/readingTimerStore'
 import { ImportDialog } from '@/components/import/ImportDialog'
 import type { QuizQuestion } from '@/recitation/quizTypes'
 import type { WordSidebarData } from '@/recitation/wordSidebarTypes'
@@ -117,25 +116,27 @@ export function NotebookToolbar() {
 
       // === 兜底：旧文章无 sentences 时，从当前文章内容实时提取 ===
       // wordMeta.sentences 是生成文章时的快照；旧 .transnb 没有该字段，
-      // 检测时直接从 cells 文章文本提取，保证旧文件也能出完形填空（仅内存使用，不写回文件）
+      // 检测时直接从 cells 文章文本提取，保证旧文件也能出完形填空。
+      // 提取结果只落在本地 Map，不回写 wordMeta（避免污染阅读数据并被保存进文件）
       const allMetaWords = [...wordMeta.newWords, ...wordMeta.reviewWords]
-      const missingSentenceWords = allMetaWords.filter((w) => (w.sentences || []).length === 0)
+      const sentencesByWordId = new Map<number, string[]>()
+      for (const w of allMetaWords) {
+        if (w.sentences?.length) sentencesByWordId.set(w.id, w.sentences)
+      }
+      const missingSentenceWords = allMetaWords.filter((w) => !sentencesByWordId.has(w.id))
       if (missingSentenceWords.length > 0) {
         const paragraphs = (useNotebookStore.getState().notebook?.cells ?? []).map((c) => c.content)
         if (paragraphs.length > 0) {
           const extracted = extractClozeSentences(paragraphs, missingSentenceWords)
           for (const w of missingSentenceWords) {
             const s = extracted[w.id]
-            if (s && s.length) w.sentences = s
+            if (s && s.length) sentencesByWordId.set(w.id, s)
           }
         }
       }
 
       // 有句子的单词（将生成完形填空，释义题只保留 1 道，避免一个单词测 3 次）
-      const clozeWordIds = new Set<number>()
-      for (const w of allMetaWords) {
-        if ((w.sentences || []).length > 0) clozeWordIds.add(w.id)
-      }
+      const clozeWordIds = new Set<number>(sentencesByWordId.keys())
 
       // 生成题目（每个单词：有句子 → 1 道释义题 + 1 道完形填空；无句子 → 2 道释义题）
       const questions: QuizQuestion[] = selectedWords.flatMap((w) => {
@@ -211,12 +212,12 @@ export function NotebookToolbar() {
       })
 
       // 生成完形填空（cloze）题目（新词 + 复习词各 1 道，基于文章提取的句子）
-      for (const w of [...wordMeta.newWords, ...wordMeta.reviewWords]) {
-        const sentences = w.sentences || []
+      for (const w of allMetaWords) {
+        const sentences = sentencesByWordId.get(w.id) ?? []
         if (sentences.length === 0) continue
 
-        // 优先选择 ≤80 字符的短句，没有则取第一条
-        const clozeSentence = sentences.sort((a, b) => a.length - b.length).find((s) => s.length <= 80) ?? sentences[0]
+        // 优先选择 ≤80 字符的短句，没有则取第一条（排序副本，避免改动原数组）
+        const clozeSentence = [...sentences].sort((a, b) => a.length - b.length).find((s) => s.length <= 80) ?? sentences[0]
 
         // 3 个干扰项从 selectedWords 中随机抽取其他单词
         const clozeDistractors = selectedWords
@@ -262,10 +263,8 @@ export function NotebookToolbar() {
       // 打乱题目顺序，避免同一单词的两道题连续出现
       const shuffled = questions.sort(() => Math.random() - 0.5)
 
-      // 停止阅读计时器（必须在布局切换前执行）
-      useReadingTimerStore.getState().stopTimer(' (quiz started)')
-
       // 设置背诵 store：激活 + 标记为文章来源 + 选中词书 + 开始检测
+      // （activate() 内部统一收口：清空搜索会话 + 停止阅读计时器）
       const recStore = useRecitationStore.getState()
       recStore.selectBook(wordMeta.bookId, wordMeta.bookName)
       recStore.activate()

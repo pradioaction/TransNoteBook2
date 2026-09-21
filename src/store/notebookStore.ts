@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { NotebookCell, NotebookFile, NotebookStore } from '@/types/notebook'
+import { useSearchStore } from './searchStore'
 
 let _nextUntitled = 1
 
@@ -42,13 +43,6 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   notebook: null,
   openFileCount: 0,
 
-  // === 搜索功能 ===
-  searchHighlightText: '',
-  scrollToCellIndex: null,
-  setSearchHighlight: (text) => set({ searchHighlightText: text }),
-  clearSearchHighlight: () => set({ searchHighlightText: '' }),
-  setScrollToCell: (index) => set({ scrollToCellIndex: index }),
-
   _onFileOpened: null,
   setOnFileOpened: (cb) => set({ _onFileOpened: cb }),
 
@@ -57,6 +51,8 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
     const key = fileKey(normalizedFile)
     const map = new Map(get().openFiles)
     map.set(key, { ...normalizedFile })
+    // 切换到另一篇笔记时，旧的关键词/结果/高亮对新内容无意义
+    useSearchStore.getState().resetSearch()
     set({
       openFiles: map,
       activeFilePath: key,
@@ -69,6 +65,7 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
   },
 
   closeNotebook: () => {
+    useSearchStore.getState().resetSearch()
     set({ openFiles: new Map(), activeFilePath: null, selectedIndices: new Set(), notebook: null, openFileCount: 0 })
   },
 
@@ -98,6 +95,7 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
     if (!map.has(key)) return
     const sel = new Set<number>()
     const nb = { ...map.get(key)! }
+    useSearchStore.getState().resetSearch()
     set({
       activeFilePath: key,
       selectedIndices: sel,
@@ -112,6 +110,7 @@ export const useNotebookStore = create<NotebookStore>((set, get) => ({
     const map = new Map(get().openFiles)
     map.set(key, { ...normalizedNb })
     const sel = new Set<number>()
+    useSearchStore.getState().resetSearch()
     set({
       openFiles: map,
       activeFilePath: key,

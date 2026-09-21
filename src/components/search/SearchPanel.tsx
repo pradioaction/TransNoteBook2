@@ -1,19 +1,16 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useRef, useCallback, useEffect, useMemo } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
+import { useSearchStore } from '@/store/searchStore'
+import type { SearchResult } from '@/store/searchStore'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 import type { NotebookCell } from '@/types/notebook'
 
-// ==================== 类型 ====================
-
-interface SearchResult {
-  cellIndex: number
-  matchedText: string
-  matchCount: number
-  contextSnippet: string
-}
-
 // ==================== 工具函数 ====================
+
+// zustand v5 的 useStore 直接以选择器结果作为 useSyncExternalStore 的快照，
+// 选择器必须返回稳定引用（`?? []` 每次都会新建数组，会触发无限重渲染）。
+const EMPTY_CELLS: NotebookCell[] = []
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '')
@@ -86,13 +83,15 @@ function searchInCells(cells: NotebookCell[], keyword: string): SearchResult[] {
 export function SearchPanel() {
   const { t } = useTranslation()
   const { colors } = useTheme()
-  const cells = useNotebookStore((s) => s.notebook?.cells ?? [])
-  const setScrollToCell = useNotebookStore((s) => s.setScrollToCell)
-  const setSearchHighlight = useNotebookStore((s) => s.setSearchHighlight)
+  const cells = useNotebookStore((s) => s.notebook?.cells ?? EMPTY_CELLS)
 
-  const [keyword, setKeyword] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const keyword = useSearchStore((s) => s.keyword)
+  const results = useSearchStore((s) => s.results)
+  const selectedIndex = useSearchStore((s) => s.selectedIndex)
+  const setKeyword = useSearchStore((s) => s.setKeyword)
+  const setResults = useSearchStore((s) => s.setResults)
+  const selectResult = useSearchStore((s) => s.selectResult)
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleChange = useCallback(
@@ -106,10 +105,9 @@ export function SearchPanel() {
 
       debounceRef.current = setTimeout(() => {
         setResults(searchInCells(cells, value))
-        setSelectedIndex(null)
       }, 300)
     },
-    [cells],
+    [cells, setKeyword, setResults],
   )
 
   // 组件卸载时清理 debounce
@@ -128,11 +126,9 @@ export function SearchPanel() {
 
   const handleResultClick = useCallback(
     (result: SearchResult) => {
-      setSelectedIndex(result.cellIndex)
-      setScrollToCell(result.cellIndex)
-      setSearchHighlight(result.matchedText)
+      selectResult(result.cellIndex, result.matchedText)
     },
-    [setScrollToCell, setSearchHighlight],
+    [selectResult],
   )
 
   // ==================== 样式 ====================

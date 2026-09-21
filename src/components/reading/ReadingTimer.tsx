@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useNotebookStore } from '@/store/notebookStore'
-import { useOutputStore } from '@/store/outputStore'
 import { useReadingTimerStore } from '@/store/readingTimerStore'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -41,14 +40,12 @@ export function ReadingTimer() {
     pathRef.current = notebookPath
   })
 
-  // 组件卸载时兜底：如果计时器仍在运行则输出日志
+  // 组件卸载时兜底：计时器仍在运行则停止（stopTimer 内部负责写日志与归零）
   useEffect(() => {
     return () => {
       const state = useReadingTimerStore.getState()
       if (!state.running || state.elapsed === 0) return
-      const name = state.notebookPath?.split(/[/\\]/).pop() || 'untitled'
-      const timeStr = formatTime(state.elapsed)
-      useOutputStore.getState().addLog(`Reading: ${timeStr} on ${name}`)
+      state.stopTimer(' (reading view closed)')
     }
   }, [])
 

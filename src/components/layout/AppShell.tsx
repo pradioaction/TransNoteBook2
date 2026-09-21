@@ -6,6 +6,7 @@ import { NotebookToolbar } from '@/components/notebook/NotebookToolbar'
 import { NotebookEditor } from '@/components/notebook/NotebookEditor'
 import { WelcomePage } from '@/components/welcome/WelcomePage'
 import { RecitationShell } from '@/components/recitation/RecitationShell'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useTranslationService } from '@/hooks/useTranslationService'
 import { useNotebookStore } from '@/store/notebookStore'
@@ -34,9 +35,11 @@ export function AppShell() {
         {!isRecitationMode && <Sidebar />}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {isRecitationMode ? (
-            <RecitationShell />
+            <ErrorBoundary section="recitation">
+              <RecitationShell />
+            </ErrorBoundary>
           ) : (
-            <>
+            <ErrorBoundary section="reading">
               <NotebookToolbar />
               {showWelcome ? (
                 <WelcomePage />
@@ -44,7 +47,7 @@ export function AppShell() {
                 <NotebookEditor />
               )}
               <Panel operationStatus={status} />
-            </>
+            </ErrorBoundary>
           )}
         </div>
       </div>

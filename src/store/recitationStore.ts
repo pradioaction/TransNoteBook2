@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import type { WordSidebarData, WordSidebarMode } from '@/recitation/wordSidebarTypes'
 import type { QuizState, QuizQuestion } from '@/recitation/quizTypes'
 import { computeAnswerResult, updateSidebarForAnswer, createQuizState } from '@/recitation/quizEngine'
+import { useSearchStore } from './searchStore'
+import { useReadingTimerStore } from './readingTimerStore'
 
 /** 可序列化的检测进度快照（Map 已转为 Record，可直接 JSON 化） */
 export interface QuizProgressSnapshot {
@@ -18,6 +20,15 @@ export interface QuizProgressSnapshot {
 }
 
 const SAVED_QUIZ_PROGRESS_KEY = 'saved_quiz_progress'
+
+// === v2.2 新增：进入检测模式的统一收口 ===
+// active=true 会让阅读态（Sidebar/SearchPanel/NotebookEditor）整体卸载，而搜索会话与
+// 阅读计时器是各自独立的全局状态：不在此收束，中途退出检测返回阅读时会残留旧关键词高亮，
+// 计时器也会跨模式继续累计。「检测文章」的恢复进度分支同样经过这里。
+function enterRecitationMode() {
+  useSearchStore.getState().resetSearch()
+  useReadingTimerStore.getState().stopTimer(' (quiz started)')
+}
 
 // 直接通过 electronAPI 持久化，避免 store 对 service 层的循环依赖
 // 槽位 → config key 映射：'article' → 'saved_quiz_progress'；`book_${bookId}` → `saved_quiz_progress_book_${bookId}`
@@ -117,7 +128,10 @@ const initialState = {
 export const useRecitationStore = create<RecitationStore>((set, get) => ({
   ...initialState,
 
-  activate: () => set({ active: true }),
+  activate: () => {
+    enterRecitationMode()
+    set({ active: true })
+  },
   deactivate: () => set((state) => ({ ...initialState, savedQuizProgress: state.savedQuizProgress })),
   setPhase: (phase) => set({ phase }),
 
@@ -337,6 +351,7 @@ export const useRecitationStore = create<RecitationStore>((set, get) => ({
 
     const allAnswered = snapshot.questions.every((q) => q.answered !== undefined)
 
+    enterRecitationMode()
     set({
       active: true,
       phase: 'quiz',
