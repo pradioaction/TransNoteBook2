@@ -379,7 +379,10 @@ export function QuizPanel() {
     return () => {
       if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
     }
-  }, [quizState?.currentIndex, quizState?.questions])
+    // 依赖刻意不含 quizState.questions：答题也会换新数组引用，
+    // 若列入依赖，答题后会重跑本 effect 并立即 setIsFlipped(false)，
+    // 抹掉「答错自动弹卡」，还会重复朗读一次题干
+  }, [quizState?.currentIndex, quizState?.startTime])
 
   // 翻转卡片弹出时自动朗读单词
   useEffect(() => {
