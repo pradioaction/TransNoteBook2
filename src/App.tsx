@@ -91,7 +91,7 @@ export default function App() {
   }, [workspacePath, recitationService])
 
   return initialized ? (
-    <div style={{ ...cssVars, height: '100%', width: '100%' }}>
+    <div className="app-root" style={{ ...cssVars, height: '100%', width: '100%' }}>
       <AppShell />
     </div>
   ) : (
