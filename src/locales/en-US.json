@@ -136,6 +136,8 @@
   "floatingOptions.meaningToWord": "Definition → Word",
   "floatingOptions.selectDefinition": "Select the correct definition",
   "floatingOptions.selectWord": "Select the correct word",
+  "floatingOptions.yourChoice": "Wrong",
+  "floatingOptions.correctAnswer": "Correct",
   "floatingOptions.ebbinghaus": "Ebbinghaus·",
   "floatingOptions.stageN": "Stage {{n}}",
   "floatingOptions.stageUnstudied": "Unstudied",

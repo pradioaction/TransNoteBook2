@@ -24,6 +24,8 @@ export const lightTheme: ThemeConfig = {
   toolbarHover: '#e0e0e0',
   primaryButton: '#007acc',
   primaryButtonHover: '#005a9e',
+  // 浅色主题下需足够深，才能压在 35% 绿/红卡片底上保持可读
+  link: '#4527a0',
   errorBackground: '#ffebee',
   errorBorder: '#ef9a9a',
   errorText: '#c62828',
@@ -85,6 +87,8 @@ export const darkTheme: ThemeConfig = {
   toolbarHover: '#3c3c3c',
   primaryButton: '#0e639c',
   primaryButtonHover: '#1177bb',
+  // 沿用深色主题下此前作为兜底值在用的淡紫
+  link: '#b0a8ff',
   errorBackground: '#5a1d1d',
   errorBorder: '#be1100',
   errorText: '#f48771',

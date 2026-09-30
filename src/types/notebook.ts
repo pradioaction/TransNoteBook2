@@ -83,6 +83,8 @@ export interface ThemeConfig {
   toolbarHover: string
   primaryButton: string
   primaryButtonHover: string
+  /** 强调/链接色：用于释义文字、朗读激活态等需要与正文区分的场合 */
+  link: string
   errorBackground: string
   errorBorder: string
   errorText: string

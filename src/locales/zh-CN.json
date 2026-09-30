@@ -136,6 +136,8 @@
   "floatingOptions.meaningToWord": "释义选单词",
   "floatingOptions.selectDefinition": "请选择正确的释义",
   "floatingOptions.selectWord": "请选择对应的单词",
+  "floatingOptions.yourChoice": "错误",
+  "floatingOptions.correctAnswer": "正确",
   "floatingOptions.ebbinghaus": "艾宾浩斯·",
   "floatingOptions.stageN": "第 {{n}} 阶段",
   "floatingOptions.stageUnstudied": "未学习",

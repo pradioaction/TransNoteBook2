@@ -7,6 +7,7 @@ import { useRecitationService } from '@/hooks/useRecitationService'
 import { useTTSService } from '@/hooks/useTTSService'
 import { useOutputStore } from '@/store/outputStore'
 import { FloatingOptions } from './FloatingOptions'
+import type { FlipCardData } from './FloatingOptions'
 import { DONT_KNOW_ANSWER } from '@/recitation/quizTypes'
 import { IconCelebrate } from '@/components/icons'
 
@@ -38,8 +39,8 @@ export function QuizPanel() {
   const [damping, setDamping] = useState(0.9985)
   const [impulse, setImpulse] = useState(8)
   const [kbHoverOptionId, setKbHoverOptionId] = useState<string | null>(null)
-  const [isFlipped, setIsFlipped] = useState(false)
-  const [flipOptionId, setFlipOptionId] = useState<string | null>(null)
+  const [flipOptionIds, setFlipOptionIds] = useState<string[] | null>(null)
+  const isFlipped = flipOptionIds !== null
   const [showComplete, setShowComplete] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const configLoaded = useRef(false)
@@ -155,47 +156,45 @@ export function QuizPanel() {
 
   // 翻转卡片
   const flipToBack = useCallback(() => {
-    if (isFlipped) return
-    setIsFlipped(true)
-  }, [isFlipped])
+    setFlipOptionIds((prev) => prev ?? [])
+  }, [])
 
   const flipToFront = useCallback(() => {
-    setIsFlipped(false)
-    setFlipOptionId(null)
+    setFlipOptionIds(null)
   }, [])
 
   const toggleFlip = useCallback(() => {
-    if (isFlipped) flipToFront()
-    else flipToBack()
-  }, [isFlipped, flipToFront, flipToBack])
+    setFlipOptionIds((prev) => (prev === null ? [] : null))
+  }, [])
 
   // 点击已答题的选项 → 翻转到该选项单词的卡片
-  const handleFlipToOption = useCallback((optionId: string) => {
-    setFlipOptionId(optionId)
-    flipToBack()
-  }, [flipToBack])
+  const handleFlipToOption = useCallback((id: string) => {
+    setFlipOptionIds([id])
+  }, [])
 
   // 计算翻转卡片要展示的数据
-  const flipCardData = useMemo(() => {
-    if (!isFlipped || !quizState) return null
+  const flipCards = useMemo<FlipCardData[]>(() => {
+    if (flipOptionIds === null || !quizState) return []
     const q = quizState.questions[quizState.currentIndex]
-    if (!q) return null
-    if (flipOptionId) {
-      // 点击选项触发翻转 → 使用该选项自身携带的完整单词数据
-      const opt = q.options.find(o => o.id === flipOptionId)
-      if (!opt) return null
-      return {
-        type: q.type,
-        word: opt.word ?? opt.pairText,
-        phonetic: opt.phonetic,
-        definition: opt.definition,
-        example: opt.example,
-        stage: opt.stage,
-      }
+    if (!q) return []
+    if (flipOptionIds.length > 0) {
+      // 点击选项 / 答错对比 → 按 id 顺序映射各选项自身携带的完整单词数据
+      return flipOptionIds.flatMap((id) => {
+        const opt = q.options.find((o) => o.id === id)
+        if (!opt) return []
+        return [{
+          type: q.type,
+          word: opt.word ?? opt.pairText,
+          phonetic: opt.phonetic,
+          definition: opt.definition,
+          example: opt.example,
+          stage: opt.stage,
+        }]
+      })
     }
     // 点击题目卡片或按 F/0 键 → 展示题目主单词的完整数据
     const correctText = q.options.find(o => o.id === q.correctAnswer)?.text
-    return {
+    return [{
       type: q.type,
       word: q.type === 'word-to-meaning' || q.type === 'cloze' ? q.word
         : (correctText ?? q.word),
@@ -207,8 +206,8 @@ export function QuizPanel() {
       sentence: q.type === 'cloze'
         ? q.clozeSentence?.replace('____', correctText ?? '')
         : undefined,
-    }
-  }, [isFlipped, quizState, flipOptionId])
+    }]
+  }, [flipOptionIds, quizState])
 
   if (!quizState || quizState.questions.length === 0) {
     return (
@@ -242,11 +241,12 @@ export function QuizPanel() {
       const selectedOption = question?.options.find(o => o.id === optionId)
       if (!selectedOption?.word) return
 
-      if (optionId !== question?.correctAnswer) {
-        // 答错：先弹出该选项的单词卡片；朗读交给下面的翻卡 effect 统一处理，
-        // 用标记把这次的朗读归属到「作答后朗读」，避免与它重复发声
+      const correctAnswer = question?.correctAnswer
+      if (optionId !== correctAnswer) {
+        // 答错：并排弹出「所选单词」与「正确单词」两张对比卡片；朗读交给下面的翻卡
+        // effect 统一处理，用标记把这次的朗读归属到「作答后朗读」，避免与它重复发声
         autoFlipFromAnswerRef.current = true
-        handleFlipToOption(optionId)
+        setFlipOptionIds(correctAnswer ? [optionId, correctAnswer] : [optionId])
         return
       }
       // 答对：直接朗读所选选项对应的英文单词
@@ -254,7 +254,7 @@ export function QuizPanel() {
         speak(selectedOption.word, { rate: 0.9 })
       }
     },
-    [answerQuestion, quizState?.currentIndex, quizState?.questions, speak, handleFlipToOption]
+    [answerQuestion, quizState?.currentIndex, quizState?.questions, speak]
   )
 
   // “不认识”按钮：以特殊标记作答（后台记错）+ 翻卡查看意思
@@ -357,8 +357,7 @@ export function QuizPanel() {
   // 切换题目时清除键盘悬停、关闭翻转、自动朗读当前题目
   useEffect(() => {
     setKbHoverOptionId(null)
-    setIsFlipped(false)
-    setFlipOptionId(null)
+    setFlipOptionIds(null)
     // 延迟 100ms 后自动朗读当前题目单词，让页面切换动画先执行
     if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
     autoReadTimerRef.current = setTimeout(() => {
@@ -380,21 +379,23 @@ export function QuizPanel() {
       if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
     }
     // 依赖刻意不含 quizState.questions：答题也会换新数组引用，
-    // 若列入依赖，答题后会重跑本 effect 并立即 setIsFlipped(false)，
+    // 若列入依赖，答题后会重跑本 effect 并立即 setFlipOptionIds(null)，
     // 抹掉「答错自动弹卡」，还会重复朗读一次题干
   }, [quizState?.currentIndex, quizState?.startTime])
 
-  // 翻转卡片弹出时自动朗读单词
+  // 翻转卡片弹出时自动朗读单词（只读第一张卡）
   useEffect(() => {
-    if (!isFlipped || !flipCardData?.word) return
+    if (!isFlipped) return
+    const word = flipCards[0]?.word
+    if (!word) return
     const auto = autoReadRef.current
     // 答错自动弹出的卡片按「作答后朗读」开关，手动翻卡按「翻卡朗读」开关
     const fromAnswer = autoFlipFromAnswerRef.current
     autoFlipFromAnswerRef.current = false
     if (fromAnswer ? auto.answer : auto.flip) {
-      speak(flipCardData.word, { rate: 0.9 })
+      speak(word, { rate: 0.9 })
     }
-  }, [isFlipped, flipCardData, speak])
+  }, [isFlipped, flipCards, speak])
 
   // 进入查看结果页面时输出日志（使用 ref防止 StrictMode 重复执行）
   const completeLogDone = useRef(false)
@@ -539,7 +540,7 @@ export function QuizPanel() {
         onClick={() => {
           // 答题后单击题目卡片或空白区域 → 翻转查看题目单词
           if (question?.answered && !isFlipped) {
-            setFlipOptionId(null)
+            setFlipOptionIds(null)
             flipToBack()
           }
         }}
@@ -554,7 +555,7 @@ export function QuizPanel() {
           impulse={impulse}
           kbHoveredOptionId={kbHoverOptionId}
           flipped={isFlipped}
-          flipCardData={flipCardData}
+          flipCards={flipCards}
           onFlipBack={flipToFront}
           onFlipToOption={handleFlipToOption}
         />

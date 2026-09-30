@@ -5,6 +5,17 @@ import { useTheme } from '@/hooks/useTheme'
 import { useRecitationStore } from '@/store/recitationStore'
 import type { QuizQuestion, QuizQuestionType } from '@/recitation/quizTypes'
 
+export interface FlipCardData {
+  type: QuizQuestionType
+  word: string
+  phonetic?: string
+  definition?: string
+  example?: string
+  stage?: number
+  /** 完形填空：已填入答案的完整句子 */
+  sentence?: string
+}
+
 interface FloatingOptionsProps {
   question: QuizQuestion
   onSelect: (optionId: string) => void
@@ -16,17 +27,8 @@ interface FloatingOptionsProps {
   kbHoveredOptionId?: string | null
   /** 是否处于翻转放大状态 */
   flipped?: boolean
-  /** 翻转卡片展示的数据 */
-  flipCardData?: {
-    type: QuizQuestionType
-    word: string
-    phonetic?: string
-    definition?: string
-    example?: string
-    stage?: number
-    /** 完形填空：已填入答案的完整句子 */
-    sentence?: string
-  } | null
+  /** 翻转卡片展示的数据：单卡时长度为 1；答错对比时长度为 2（[错误卡, 正确卡]） */
+  flipCards?: FlipCardData[]
   /** 点击遮罩翻回的回调 */
   onFlipBack?: () => void
   /** 点击已答题的选项触发翻转（传入选项ID） */
@@ -73,7 +75,7 @@ function overlap(
 export function FloatingOptions({
   question, onSelect, selectedOptionId, disabled, questionKey,
   damping = 0.9985, impulse = 8, kbHoveredOptionId,
-  flipped = false, flipCardData, onFlipBack, onFlipToOption,
+  flipped = false, flipCards = [], onFlipBack, onFlipToOption,
 }: FloatingOptionsProps) {
   const { t } = useTranslation()
   const gather = !useRecitationStore((s) => s.floatingAnimationEnabled)
@@ -81,6 +83,22 @@ export function FloatingOptions({
   const [hoveredOptionId, setHoveredOptionId] = useState<string | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // 卡片容器实际宽度：右侧常驻词书侧边栏（200~500px）会占掉视口宽度，
+  // 因此不能用 window.innerWidth 判定；且容器带 overflow:hidden，溢出会被直接裁切
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width
+      if (typeof width === 'number') setContainerWidth(width)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   const bodiesRef = useRef<Body[]>([])
   const [offsets, setOffsets] = useState<{ x: number; y: number }[]>([])
   const areaRef = useRef({ w: 700, h: 460 })
@@ -223,13 +241,10 @@ export function FloatingOptions({
     return { bg, bd, fg, isSelected }
   }
 
-  // 翻转卡片上展示的单词
-  const displayWord = flipCardData?.word ?? ''
-
-  // 阶段标签
-  const stageLabel = flipCardData?.stage != null
-    ? t(STAGE_LABELS_KEY[Math.min(flipCardData.stage, STAGE_LABELS_KEY.length - 1)])
-    : ''
+  // 双卡模式：flipCards[0] 为错误卡（居中红色），flipCards[1] 为正确卡（贴左侧绿色）
+  const isDual = flipCards.length === 2
+  // 容器可用宽度不足时降级：只渲染主卡（不能用视口宽度判定，见上方容器宽度注释）
+  const showCorrectCard = isDual && containerWidth >= 1100
 
   return (
     <div
@@ -382,79 +397,31 @@ export function FloatingOptions({
               zIndex: 101,
             }}
           >
-            {/* 动画层：只做缩放淡入 */}
+            {/* 动画层：只做缩放淡入（双卡模式额外固定宽度，保证两卡等宽） */}
             <div
               style={{
                 animation: 'floatingCardPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
                 minWidth: 340,
                 maxWidth: '90vw',
+                ...(isDual ? { width: 340 } : {}),
               }}
             >
+              {flipCards[0] && <FlipCard card={flipCards[0]} role={isDual ? 'wrong' : 'plain'} />}
+            </div>
+            {/* 正确卡：贴主卡左侧 24px */}
+            {showCorrectCard && flipCards[1] && (
               <div
                 style={{
-                  background: `linear-gradient(135deg, ${colors.quizCardBackground}, ${colors.recitationBackground})`,
-                  border: `1px solid ${colors.primaryButton}40`,
-                  borderRadius: 20,
-                  padding: '40px 36px',
-                  textAlign: 'center',
-                  boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+                  position: 'absolute',
+                  top: 0,
+                  right: 'calc(100% + 24px)',
+                  animation: 'floatingCardPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+                  minWidth: 340, maxWidth: '90vw', width: 340,
                 }}
               >
-                <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 3, opacity: 0.5, marginBottom: 12 }}>
-                  {flipCardData?.type === 'word-to-meaning'
-                    ? t('floatingOptions.wordToMeaning')
-                    : flipCardData?.type === 'cloze'
-                      ? t('floatingOptions.cloze')
-                      : t('floatingOptions.meaningToWord')}
-                </div>
-                {flipCardData?.sentence && (
-                  <div style={{ fontSize: 15, opacity: 0.8, fontStyle: 'italic', marginBottom: 16, lineHeight: 1.5 }}>
-                    {flipCardData.sentence}
-                  </div>
-                )}
-                <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                  <span>{displayWord}</span>
-                  <SpeakButton text={displayWord} size={24} />
-                </div>
-                {flipCardData?.phonetic && (
-                  <div style={{ fontSize: 16, opacity: 0.6, fontFamily: "'Times New Roman', serif", marginBottom: 16 }}>
-                    {flipCardData.phonetic}
-                  </div>
-                )}
-                <div style={{
-                  width: 60, height: 3,
-                  background: `linear-gradient(90deg, transparent, ${colors.primaryButton}, transparent)`,
-                  borderRadius: 2, margin: '0 auto 20px',
-                }} />
-                {flipCardData?.definition && (
-                  <div style={{ fontSize: 20, fontWeight: 500, color: colors.link || '#b0a8ff', lineHeight: 1.4, marginBottom: 16 }}>
-                    {flipCardData.definition}
-                  </div>
-                )}
-                {flipCardData?.example && (
-                  <div style={{ fontSize: 15, opacity: 0.7, fontStyle: 'italic', marginBottom: 20, lineHeight: 1.5 }}>
-                    &ldquo;{flipCardData.example}&rdquo;
-                  </div>
-                )}
-                {flipCardData?.stage != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, fontSize: 13, flexWrap: 'wrap' }}>
-                    <span style={{ opacity: 0.5 }}>{t('floatingOptions.ebbinghaus')}</span>
-                    <span style={{
-                      padding: '4px 14px', borderRadius: 20,
-                      background: `${colors.primaryButton}26`,
-                      border: `1px solid ${colors.primaryButton}4D`,
-                      color: colors.link || '#b0a8ff', fontWeight: 600,
-                    }}>
-                      {t('floatingOptions.stageN', { n: flipCardData.stage })}
-                    </span>
-                    <span style={{ opacity: 0.5 }}>{stageLabel}</span>
-                  </div>
-                )}
-                <div style={{ fontSize: 11, opacity: 0.25, letterSpacing: 1 }}>
-                  {t('floatingOptions.clickToFlipBack')}
-                </div>
+                <FlipCard card={flipCards[1]} role="correct" />
               </div>
-            </div>
+            )}
           </div>
         </>
       )}
@@ -471,6 +438,109 @@ export function FloatingOptions({
           }}
         />
       )}
+    </div>
+  )
+}
+
+/**
+ * 翻转详情卡片的展示单元。role 决定配色与顶部角色标签：
+ * 'plain' 沿用原有样式（不上色），'wrong' 红色错误卡，'correct' 绿色正确卡。
+ */
+function FlipCard({ card, role }: { card: FlipCardData; role: 'plain' | 'wrong' | 'correct' }) {
+  const { t } = useTranslation()
+  const { colors } = useTheme()
+
+  const roleColor = role === 'wrong'
+    ? colors.quizOptionWrong
+    : role === 'correct'
+      ? colors.quizOptionCorrect
+      : undefined
+  // 约 35% 透明度的角色色，用于卡身叠色
+  const tint = roleColor ? `${roleColor}59` : undefined
+
+  const displayWord = card.word
+  const stageLabel = card.stage != null
+    ? t(STAGE_LABELS_KEY[Math.min(card.stage, STAGE_LABELS_KEY.length - 1)])
+    : ''
+
+  return (
+    <div
+      style={{
+        // 卡面基础文字色：题型标签 / 句子 / 音标 / 例句 / 阶段标签 / 底部提示
+        // 等未单独设色的元素均沿用它，避免暗色主题下回落成浏览器默认黑
+        color: colors.foreground,
+        background: roleColor
+          ? `linear-gradient(${tint}, ${tint}), linear-gradient(135deg, ${colors.quizCardBackground}, ${colors.recitationBackground})`
+          : `linear-gradient(135deg, ${colors.quizCardBackground}, ${colors.recitationBackground})`,
+        border: roleColor ? `2px solid ${roleColor}` : `1px solid ${colors.primaryButton}40`,
+        borderRadius: 20,
+        padding: '40px 36px',
+        textAlign: 'center',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+      }}
+    >
+      {role !== 'plain' && (
+        <div style={{
+          display: 'inline-block', padding: '2px 10px', borderRadius: 10,
+          fontSize: 12, fontWeight: 700, color: '#fff',
+          background: roleColor, marginBottom: 10,
+        }}>
+          {role === 'wrong' ? t('floatingOptions.yourChoice') : t('floatingOptions.correctAnswer')}
+        </div>
+      )}
+      <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 3, opacity: 0.5, marginBottom: 12 }}>
+        {card.type === 'word-to-meaning'
+          ? t('floatingOptions.wordToMeaning')
+          : card.type === 'cloze'
+            ? t('floatingOptions.cloze')
+            : t('floatingOptions.meaningToWord')}
+      </div>
+      {card.sentence && (
+        <div style={{ fontSize: 15, opacity: 0.8, fontStyle: 'italic', marginBottom: 16, lineHeight: 1.5 }}>
+          {card.sentence}
+        </div>
+      )}
+      <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <span style={{ color: roleColor }}>{displayWord}</span>
+        <SpeakButton text={displayWord} size={24} />
+      </div>
+      {card.phonetic && (
+        <div style={{ fontSize: 16, opacity: 0.6, fontFamily: "'Times New Roman', serif", marginBottom: 16 }}>
+          {card.phonetic}
+        </div>
+      )}
+      <div style={{
+        width: 60, height: 3,
+        background: `linear-gradient(90deg, transparent, ${colors.primaryButton}, transparent)`,
+        borderRadius: 2, margin: '0 auto 20px',
+      }} />
+      {card.definition && (
+        <div style={{ fontSize: 20, fontWeight: 500, color: colors.link || '#b0a8ff', lineHeight: 1.4, marginBottom: 16 }}>
+          {card.definition}
+        </div>
+      )}
+      {card.example && (
+        <div style={{ fontSize: 15, opacity: 0.7, fontStyle: 'italic', marginBottom: 20, lineHeight: 1.5 }}>
+          &ldquo;{card.example}&rdquo;
+        </div>
+      )}
+      {card.stage != null && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, fontSize: 13, flexWrap: 'wrap' }}>
+          <span style={{ opacity: 0.5 }}>{t('floatingOptions.ebbinghaus')}</span>
+          <span style={{
+            padding: '4px 14px', borderRadius: 20,
+            background: `${colors.primaryButton}26`,
+            border: `1px solid ${colors.primaryButton}4D`,
+            color: colors.link || '#b0a8ff', fontWeight: 600,
+          }}>
+            {t('floatingOptions.stageN', { n: card.stage })}
+          </span>
+          <span style={{ opacity: 0.5 }}>{stageLabel}</span>
+        </div>
+      )}
+      <div style={{ fontSize: 11, opacity: 0.25, letterSpacing: 1 }}>
+        {t('floatingOptions.clickToFlipBack')}
+      </div>
     </div>
   )
 }
