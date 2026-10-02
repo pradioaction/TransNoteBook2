@@ -29,6 +29,7 @@
   "bookManager.noBooks": "No books. Click \"Import Book\" to add one.",
   "bookManager.bookCount": "{{count}} book(s) total",
   "bookManager.alertFewWords": "Please select at least 4 words for the quiz (check them in the right sidebar).",
+  "bookManager.alertNoWords": "Please select at least 1 word to learn (check them in the right sidebar)",
   "bookManager.newBook": "New",
   "bookManager.searchPlaceholder": "Search books...",
   "bookManager.createBook": "Create Book",
@@ -46,6 +47,7 @@
   "bookCard.studied": "{{studied}}/{{total}} studied",
   "bookCard.pendingReview": "Pending review: {{count}}",
   "bookCard.viewWords": "View Words",
+  "bookCard.learn": "Learn",
   "bookCard.doubleClickRename": "Double-click to rename",
 
   "quizPanel.noQuestions": "No quiz questions",

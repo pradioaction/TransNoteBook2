@@ -1,10 +1,15 @@
-export type QuizQuestionType = 'word-to-meaning' | 'meaning-to-word' | 'cloze'
+export type QuizQuestionType = 'word-to-meaning' | 'meaning-to-word' | 'cloze' | 'spelling'
 
 /**
  * 「不认识」专用作答标记：不指向任何选项（A-D），
  * 用于记录记忆失败，界面不会高亮任何错误选项。
  */
 export const DONT_KNOW_ANSWER = 'N'
+
+/**
+ * 拼写题「曾拼错」专用作答标记：以非答案串提交，使结果落为 false。
+ */
+export const SPELLING_MISS_SENTINEL = '__MISSPELL__'
 
 export interface QuizOption {
   id: 'A' | 'B' | 'C' | 'D'

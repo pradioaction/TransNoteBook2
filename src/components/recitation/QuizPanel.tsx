@@ -8,7 +8,8 @@ import { useTTSService } from '@/hooks/useTTSService'
 import { useOutputStore } from '@/store/outputStore'
 import { FloatingOptions } from './FloatingOptions'
 import type { FlipCardData } from './FloatingOptions'
-import { DONT_KNOW_ANSWER } from '@/recitation/quizTypes'
+import { SpellingCard } from './SpellingCard'
+import { DONT_KNOW_ANSWER, SPELLING_MISS_SENTINEL } from '@/recitation/quizTypes'
 import { IconCelebrate } from '@/components/icons'
 
 /** 待同步结果的快照：卸载兜底时不再依赖可能已被清空的 store */
@@ -231,6 +232,7 @@ export function QuizPanel() {
   const total = quizState.questions.length
   const answeredCount = quizState.questions.filter((q) => q.answered !== undefined).length
   const isComplete = quizState.isComplete
+  const isSpelling = question?.type === 'spelling'
 
   const handleSelect = useCallback(
     (optionId: string) => {
@@ -267,6 +269,28 @@ export function QuizPanel() {
     flipToBack()
   }, [answerQuestion, flipToBack])
 
+  // 拼写题拼对：以单词原文（首答）或 MISS 标记（曾拼错）作答，随后自动进入下一题
+  const handleSpellingSolved = useCallback((firstTry: boolean) => {
+    const s = useRecitationStore.getState()
+    const st = s.quizState
+    if (!st) return
+    const cur = st.questions[st.currentIndex]
+    if (!cur || cur.answered !== undefined) return
+    const answeredIndex = st.currentIndex
+    answerQuestion(answeredIndex, firstTry ? cur.word : SPELLING_MISS_SENTINEL)
+    setTimeout(() => {
+      const latest = useRecitationStore.getState().quizState
+      if (!latest) return
+      // 用户已手动切题则不再自动前进，避免跳题
+      if (latest.currentIndex !== answeredIndex) return
+      if (latest.currentIndex >= latest.questions.length - 1 && latest.isComplete) {
+        setShowComplete(true)
+      } else {
+        nextQuestion()
+      }
+    }, 600)
+  }, [answerQuestion, nextQuestion])
+
   // 键盘快捷键（含长按检视）
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -277,9 +301,11 @@ export function QuizPanel() {
 
       const keyToOptId: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' }
       const optId = keyToOptId[e.key]
+      const cur = state.quizState.questions[state.quizState.currentIndex]
+      // 拼写题：数字键与 f/0 不适用，仅保留方向键 / Enter / 空格的导航
+      const isSpelling = cur?.type === 'spelling'
 
-      if (optId) {
-        const cur = state.quizState.questions[state.quizState.currentIndex]
+      if (optId && !isSpelling) {
         if (cur?.answered) {
           // 已答完：启动长按定时器，用于键盘悬停检视
           if (longPressTimer.current) clearTimeout(longPressTimer.current)
@@ -299,7 +325,6 @@ export function QuizPanel() {
           prevQuestion()
         }
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter') {
-        const cur = state.quizState.questions[state.quizState.currentIndex]
         if (cur && cur.answered !== undefined) {
           if (isFlipped) flipToFront()
           // 最后一题且已答完，显示完成页面
@@ -311,7 +336,6 @@ export function QuizPanel() {
         }
       } else if (e.key === ' ') {
         e.preventDefault()
-        const cur = state.quizState.questions[state.quizState.currentIndex]
         if (cur && cur.answered !== undefined) {
           if (isFlipped) flipToFront()
           // 最后一题且已答完，显示完成页面
@@ -324,9 +348,8 @@ export function QuizPanel() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
         e.preventDefault()
         toggleFloatingAnimation()
-      } else if (e.key === 'f' || e.key === 'F' || e.key === '0') {
+      } else if ((e.key === 'f' || e.key === 'F' || e.key === '0') && !isSpelling) {
         e.preventDefault()
-        const cur = state.quizState.questions[state.quizState.currentIndex]
         // 作答前：视为“不认识”（记录错误 + 翻卡看意思）；作答后：翻转查看详情（F/0 等价，0 便于右手区单手操作）
         if (cur && cur.answered !== undefined) {
           toggleFlip()
@@ -363,6 +386,11 @@ export function QuizPanel() {
     autoReadTimerRef.current = setTimeout(() => {
       const q = quizState?.questions[quizState.currentIndex]
       if (!q) return
+      // 拼写题：无论 autoRead 开关如何，直接朗读目标单词供听音拼写
+      if (q.type === 'spelling') {
+        speak(q.word, { rate: 0.9 })
+        return
+      }
       const auto = autoReadRef.current
       if (q.type === 'word-to-meaning') {
         // 英文题干：朗读题干单词本身，不涉及答案
@@ -486,7 +514,10 @@ export function QuizPanel() {
           </span>
         </span>
 
-        {/* 居中调参滑轨 */}
+        {/* 居中调参滑轨（拼写题隐藏，保留占位） */}
+        {isSpelling ? (
+          <div style={{ flex: 1 }} />
+        ) : (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, fontSize: 11, opacity: 0.8 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {t('quizPanel.damping')}
@@ -523,6 +554,7 @@ export function QuizPanel() {
             <span style={{ minWidth: 24 }}>{impulse}</span>
           </label>
         </div>
+        )}
 
         <span style={{ opacity: 0.6, flexShrink: 0 }}>
           {t('quizPanel.answered', { answered: answeredCount, total })}
@@ -538,6 +570,8 @@ export function QuizPanel() {
           overflow: 'hidden',
         }}
         onClick={() => {
+          // 拼写题不参与点击翻卡
+          if (isSpelling) return
           // 答题后单击题目卡片或空白区域 → 翻转查看题目单词
           if (question?.answered && !isFlipped) {
             setFlipOptionIds(null)
@@ -545,20 +579,29 @@ export function QuizPanel() {
           }
         }}
       >
-        <FloatingOptions
-          question={question}
-          onSelect={handleSelect}
-          selectedOptionId={question.answered}
-          disabled={!!question.answered}
-          questionKey={quizState.currentIndex}
-          damping={damping}
-          impulse={impulse}
-          kbHoveredOptionId={kbHoverOptionId}
-          flipped={isFlipped}
-          flipCards={flipCards}
-          onFlipBack={flipToFront}
-          onFlipToOption={handleFlipToOption}
-        />
+        {isSpelling ? (
+          <SpellingCard
+            key={question.id}
+            question={question}
+            locked={question.answered !== undefined}
+            onSolved={handleSpellingSolved}
+          />
+        ) : (
+          <FloatingOptions
+            question={question}
+            onSelect={handleSelect}
+            selectedOptionId={question.answered}
+            disabled={!!question.answered}
+            questionKey={quizState.currentIndex}
+            damping={damping}
+            impulse={impulse}
+            kbHoveredOptionId={kbHoverOptionId}
+            flipped={isFlipped}
+            flipCards={flipCards}
+            onFlipBack={flipToFront}
+            onFlipToOption={handleFlipToOption}
+          />
+        )}
       </div>
 
       {/* 底部工具栏 */}
@@ -573,19 +616,21 @@ export function QuizPanel() {
           flexShrink: 0,
         }}
       >
-        <ToolButton label={t('quizPanel.pauseAndReturn')} onClick={async () => {
-          await syncPendingWords()
-          if (isArticleQuiz) {
-            saveQuizProgress('article')
-            useRecitationStore.setState({ articleQuizSource: false })
-            useRecitationStore.getState().deactivate()
-          } else {
-            saveQuizProgress('book')
-            useRecitationStore.setState({ quizState: null })
-            setSidebarMode('full')
-            setPhase('book-manager')
-          }
-        }} colors={colors} />
+        {!isSpelling && (
+          <ToolButton label={t('quizPanel.pauseAndReturn')} onClick={async () => {
+            await syncPendingWords()
+            if (isArticleQuiz) {
+              saveQuizProgress('article')
+              useRecitationStore.setState({ articleQuizSource: false })
+              useRecitationStore.getState().deactivate()
+            } else {
+              saveQuizProgress('book')
+              useRecitationStore.setState({ quizState: null })
+              setSidebarMode('full')
+              setPhase('book-manager')
+            }
+          }} colors={colors} />
+        )}
         <ToolButton label={t('quizPanel.exit')} onClick={() => {
           if (isArticleQuiz) {
             useRecitationStore.setState({ articleQuizSource: false })
@@ -595,23 +640,27 @@ export function QuizPanel() {
             setPhase('book-manager')
           }
         }} colors={colors} />
-        <ToolButton
-          label={t('quizPanel.dontKnow')}
-          onClick={handleDontKnow}
-          disabled={question.answered !== undefined}
-          colors={colors}
-        />
+        {!isSpelling && (
+          <ToolButton
+            label={t('quizPanel.dontKnow')}
+            onClick={handleDontKnow}
+            disabled={question.answered !== undefined}
+            colors={colors}
+          />
+        )}
         <ToolButton
           label={t('quizPanel.prev')}
           onClick={() => { if (isFlipped) flipToFront(); prevQuestion() }}
           disabled={quizState.currentIndex === 0}
           colors={colors}
         />
-        <ToolButton
-          label={t(floatingAnimationEnabled ? 'quizPanel.gather' : 'quizPanel.floating')}
-          onClick={toggleFloatingAnimation}
-          colors={colors}
-        />
+        {!isSpelling && (
+          <ToolButton
+            label={t(floatingAnimationEnabled ? 'quizPanel.gather' : 'quizPanel.floating')}
+            onClick={toggleFloatingAnimation}
+            colors={colors}
+          />
+        )}
         <ToolButton
           label={t('quizPanel.next')}
           onClick={() => {

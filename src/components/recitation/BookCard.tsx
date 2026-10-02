@@ -12,6 +12,12 @@ interface BookCardProps {
   stageSummary?: StageSummary
   onDoubleClickSegment?: (bookId: number, bookName: string, stageFilter: StageFilter) => void
   onRename?: (bookId: number, newName: string) => void
+  onStartQuiz?: (bookId: number, bookName: string) => void
+  onStartLearning?: (bookId: number, bookName: string) => void
+  onGenerateArticle?: (bookId: number, bookName: string) => void
+  onRefreshToday?: (bookId: number, bookName: string) => void
+  // 临时：文章生成中时禁用「生成文章」按钮（后续需正式化，见 doc/TODO.md）
+  isGenerating?: boolean
 }
 
 const STAGE_LABELS: Array<{ key: keyof StageSummary; label: string }> = [
@@ -52,6 +58,11 @@ export function BookCard({
   stageSummary,
   onDoubleClickSegment,
   onRename,
+  onStartQuiz,
+  onStartLearning,
+  onGenerateArticle,
+  onRefreshToday,
+  isGenerating,
 }: BookCardProps) {
   const { colors } = useTheme()
   const { t } = useTranslation()
@@ -226,6 +237,64 @@ export function BookCard({
           }}
         >
           {t('bookCard.viewWords')}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onStartLearning?.(bookInfo.id!, bookInfo.name) }}
+          style={{
+            padding: '4px 10px',
+            fontSize: 12,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 4,
+            backgroundColor: 'transparent',
+            color: colors.foreground,
+            cursor: 'pointer',
+          }}
+        >
+          {t('bookCard.learn')}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onStartQuiz?.(bookInfo.id!, bookInfo.name) }}
+          style={{
+            padding: '4px 10px',
+            fontSize: 12,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 4,
+            backgroundColor: 'transparent',
+            color: colors.foreground,
+            cursor: 'pointer',
+          }}
+        >
+          {t('bookManager.startQuiz')}
+        </button>
+        <button
+          disabled={isGenerating}
+          onClick={(e) => { e.stopPropagation(); onGenerateArticle?.(bookInfo.id!, bookInfo.name) }}
+          style={{
+            padding: '4px 10px',
+            fontSize: 12,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 4,
+            backgroundColor: 'transparent',
+            color: colors.foreground,
+            cursor: isGenerating ? 'not-allowed' : 'pointer',
+            opacity: isGenerating ? 0.5 : 1,
+          }}
+        >
+          {t('bookManager.generateArticle')}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onRefreshToday?.(bookInfo.id!, bookInfo.name) }}
+          style={{
+            padding: '4px 10px',
+            fontSize: 12,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 4,
+            backgroundColor: 'transparent',
+            color: colors.foreground,
+            cursor: 'pointer',
+          }}
+        >
+          {t('bookManager.refreshToday')}
         </button>
       </div>
     </div>

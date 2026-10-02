@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useTheme } from '@/hooks/useTheme'
 import { useTranslation } from 'react-i18next'
 import { useRecitationStore } from '@/store/recitationStore'
@@ -15,6 +15,7 @@ import { processArticleText } from '@/utils/articleUtils'
 import { serializeNotebookFile } from '@/utils/fileUtils'
 import type { BookWithProgress, StageSummary, StageFilter } from '@/recitation/types'
 import type { WordSidebarData, ReviewWordBatch, WordDisplay } from '@/recitation/wordSidebarTypes'
+import type { QuizQuestion } from '@/recitation/quizTypes'
 import type { NotebookCell } from '@/types/notebook'
 import { mergeToSixStages } from '@/recitation/types'
 
@@ -51,6 +52,112 @@ function computeReviewBatches(
     }))
 }
 
+// 根据选中的单词生成检测题目（每个单词 2 道题：word→meaning + meaning→word），并打乱顺序
+function buildQuizQuestions(selectedWords: WordDisplay[]): QuizQuestion[] {
+  // 构建正向/反向映射，用于填充 pairText
+  const defToWord = new Map(selectedWords.map((w) => [w.definition, w.word]))
+  const wordToDef = new Map(selectedWords.map((w) => [w.word, w.definition]))
+  // 构建单词→完整数据映射，用于选项翻转卡片展示
+  const wordDataMap = new Map(selectedWords.map((w) => [w.word, w]))
+
+  // 生成题目: 每个单词 2 道题 (word→meaning + meaning→word)
+  const questions = selectedWords.flatMap((w) => {
+    const wordDistractors = selectedWords
+      .filter((d) => d.id !== w.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((d) => d.word)
+    const defDistractors = selectedWords
+      .filter((d) => d.id !== w.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((d) => d.definition)
+
+    // 补全干扰项
+    while (wordDistractors.length < 3) wordDistractors.push('(备选单词)')
+    while (defDistractors.length < 3) defDistractors.push('(备选释义)')
+
+    // word→meaning: 展示单词，选项为释义
+    const defOptions = [...defDistractors, w.definition].sort(() => Math.random() - 0.5)
+    const defCorrect = String.fromCharCode(65 + defOptions.indexOf(w.definition))
+
+    // meaning→word: 展示释义，选项为单词
+    const wordOptions = [...wordDistractors, w.word].sort(() => Math.random() - 0.5)
+    const wordCorrect = String.fromCharCode(65 + wordOptions.indexOf(w.word))
+
+    return [
+      {
+        id: w.id * 2,
+        type: 'word-to-meaning' as const,
+        wordId: w.id,
+        word: w.word,
+        correctAnswer: defCorrect,
+        options: defOptions.map((text, i) => {
+          const optWord = defToWord.get(text) ?? text
+          const wordData = wordDataMap.get(optWord)
+          return {
+            id: (['A', 'B', 'C', 'D'] as const)[i],
+            text,
+            pairText: optWord,
+            word: optWord,
+            phonetic: wordData?.phonetic,
+            definition: wordData?.definition,
+            example: wordData?.example,
+            stage: wordData?.stage,
+          }
+        }),
+        phonetic: w.phonetic,
+        definition: w.definition,
+        example: w.example,
+        stage: w.stage,
+      },
+      {
+        id: w.id * 2 + 1,
+        type: 'meaning-to-word' as const,
+        wordId: w.id,
+        word: w.definition,
+        correctAnswer: wordCorrect,
+        options: wordOptions.map((text, i) => {
+          const wordData = wordDataMap.get(text)
+          return {
+            id: (['A', 'B', 'C', 'D'] as const)[i],
+            text,
+            pairText: wordToDef.get(text) ?? text,
+            word: text,
+            phonetic: wordData?.phonetic,
+            definition: wordData?.definition,
+            example: wordData?.example,
+            stage: wordData?.stage,
+          }
+        }),
+        phonetic: w.phonetic,
+        definition: w.definition,
+        example: w.example,
+        stage: w.stage,
+      },
+    ]
+  })
+
+  // 打乱题目顺序，避免同一单词的两道题连续出现
+  return questions.flat().sort(() => Math.random() - 0.5)
+}
+
+// 生成拼写题：每个单词 1 题（音标+释义+遮蔽例句 → 拼写英文）
+function buildSpellingQuestions(selectedWords: WordDisplay[]): QuizQuestion[] {
+  return selectedWords.map((w) => ({
+    id: w.id,
+    type: 'spelling' as const,
+    wordId: w.id,
+    word: w.word,
+    correctAnswer: w.word,
+    options: [],
+    phonetic: w.phonetic,
+    definition: w.definition,
+    example: w.example,
+    stage: w.stage,
+  }))
+}
+
 export function BookManagerPanel() {
   const { t } = useTranslation()
   const { colors } = useTheme()
@@ -62,11 +169,14 @@ export function BookManagerPanel() {
   const setSidebarData = useRecitationStore((s) => s.setSidebarData)
   const startQuiz = useRecitationStore((s) => s.startQuiz)
   const setPhase = useRecitationStore((s) => s.setPhase)
+  const setSidebarMode = useRecitationStore((s) => s.setSidebarMode)
 
   const [books, setBooks] = useState<BookWithProgress[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  // 临时并发守卫：生成文章期间忽略后续点击（后续需正式化，见 doc/TODO.md）
+  const generatingRef = useRef(false)
   const [dailyNew, setDailyNew] = useState(20)
   const [dailyReview, setDailyReview] = useState(50)
   const [dialogBookId, setDialogBookId] = useState<number | null>(null)
@@ -157,64 +267,82 @@ export function BookManagerPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 选择词书 → 推送数据到 WordSidebar
-  const handleSelectBook = useCallback(
-    async (bookId: number, bookName: string) => {
-      selectBook(bookId, bookName)
+  // 构建指定词书的侧边栏数据（仅构建，不改变选中状态 / 不写入 store）
+  const buildSidebarDataForBook = useCallback(
+    async (bookId: number, forceRefresh = false): Promise<WordSidebarData> => {
+      const [todayResult, progress] = await Promise.all([
+        recitationService.getTodayWords(bookId, forceRefresh),
+        recitationService.getBookProgress(bookId),
+      ])
 
-      try {
-        const [todayResult, progress] = await Promise.all([
-          recitationService.getTodayWords(bookId),
-          recitationService.getBookProgress(bookId),
-        ])
+      // Build tested ID sets
+      const testedNewSet = new Set(todayResult.testedNewWordIds || [])
+      const testedReviewSet = new Set(todayResult.testedReviewWordIds || [])
 
-        // Build tested ID sets
-        const testedNewSet = new Set(todayResult.testedNewWordIds || [])
-        const testedReviewSet = new Set(todayResult.testedReviewWordIds || [])
+      const newWords: WordDisplay[] = (todayResult.newWords || []).map((w: any) => ({
+        id: w.id ?? 0,
+        word: w.word ?? '',
+        definition: w.definition ?? '',
+        phonetic: w.phonetic ?? '',
+        example: w.example ?? '',
+        isSelected: !testedNewSet.has(w.id), // 未检测的默认勾选
+      }))
 
-        const newWords: WordDisplay[] = (todayResult.newWords || []).map((w: any) => ({
+      const reviewBatches = computeReviewBatches(
+        (todayResult.reviewWords || []).map((w: any) => ({
           id: w.id ?? 0,
           word: w.word ?? '',
           definition: w.definition ?? '',
           phonetic: w.phonetic ?? '',
           example: w.example ?? '',
-          isSelected: !testedNewSet.has(w.id), // 未检测的默认勾选
-        }))
+          stage: w.stage ?? 0,
+        })),
+        testedReviewSet  // Pass tested set
+      )
 
-        const reviewBatches = computeReviewBatches(
-          (todayResult.reviewWords || []).map((w: any) => ({
-            id: w.id ?? 0,
-            word: w.word ?? '',
-            definition: w.definition ?? '',
-            phonetic: w.phonetic ?? '',
-            example: w.example ?? '',
-            stage: w.stage ?? 0,
-          })),
-          testedReviewSet  // Pass tested set
-        )
-
-        const sidebarData: WordSidebarData = {
-          newWords,
-          reviewWordBatches: reviewBatches,
-          studiedCount: progress.studied,
-          pendingReviewCount: progress.review_due,
-          quizResults: todayResult.quizResults || {},
-        }
-
-        setSidebarData(sidebarData)
-
-        // 同步 current_book_id 到 studywordmode.json
-        recitationService.setConfig('current_book_id', bookId).catch(() => {})
-      } catch {
-        console.error('获取单词数据失败')
+      return {
+        newWords,
+        reviewWordBatches: reviewBatches,
+        studiedCount: progress.studied,
+        pendingReviewCount: progress.review_due,
+        quizResults: todayResult.quizResults || {},
       }
     },
-    [recitationService, selectBook, setSidebarData]
+    [recitationService]
+  )
+
+  // 激活词书：切换选中 + 拉取并推送侧边栏数据（供选择与卡片内操作共用）
+  const activateBook = useCallback(
+    async (bookId: number, bookName: string, forceRefresh = false): Promise<WordSidebarData | null> => {
+      selectBook(bookId, bookName)
+      try {
+        const sd = await buildSidebarDataForBook(bookId, forceRefresh)
+        setSidebarData(sd)
+        // 同步 current_book_id 到 studywordmode.json
+        recitationService.setConfig('current_book_id', bookId).catch(() => {})
+        return sd
+      } catch {
+        console.error('获取单词数据失败')
+        return null
+      }
+    },
+    [recitationService, selectBook, setSidebarData, buildSidebarDataForBook]
+  )
+
+  // 选择词书 → 推送数据到 WordSidebar
+  const handleSelectBook = useCallback(
+    async (bookId: number, bookName: string) => {
+      await activateBook(bookId, bookName)
+    },
+    [activateBook]
   )
 
   // 开始检测
   const handleStartQuiz = useCallback(
-    async (bookId: number) => {
+    async (bookId: number, bookName: string) => {
+      // 先切换到目标词书，并拿到其今日单词数据
+      const sd = await activateBook(bookId, bookName)
+
       const state = useRecitationStore.getState()
       const slots = state.savedQuizProgress
       const currentSlotKey = `book_${bookId}`
@@ -234,8 +362,8 @@ export function BookManagerPanel() {
         )
         if (otherKey) {
           const otherSnapshot = slots[otherKey]
-          const bookName = otherSnapshot?.selectedBookName || ''
-          const switchBook = window.confirm(t('bookManager.switchBookResumeConfirm', { bookName }))
+          const otherBookName = otherSnapshot?.selectedBookName || ''
+          const switchBook = window.confirm(t('bookManager.switchBookResumeConfirm', { bookName: otherBookName }))
           if (switchBook) {
             if (otherSnapshot?.selectedBookId != null) {
               state.selectBook(otherSnapshot.selectedBookId, otherSnapshot.selectedBookName || '')
@@ -247,10 +375,9 @@ export function BookManagerPanel() {
         }
       }
 
-      const sd = state.sidebarData
       if (!sd) return
 
-      // 只使用用户在右侧侧边栏中选中的单词
+      // 使用该词书自身未检测的单词（默认勾选）
       const selectedWords = [
         ...sd.newWords.filter((w) => w.isSelected),
         ...sd.reviewWordBatches.flatMap((b) => b.words.filter((w) => w.isSelected)),
@@ -262,112 +389,66 @@ export function BookManagerPanel() {
         return
       }
 
-      // 构建正向/反向映射，用于填充 pairText
-      const defToWord = new Map(selectedWords.map((w) => [w.definition, w.word]))
-      const wordToDef = new Map(selectedWords.map((w) => [w.word, w.definition]))
-      // 构建单词→完整数据映射，用于选项翻转卡片展示
-      const wordDataMap = new Map(selectedWords.map((w) => [w.word, w]))
-
-      // 生成题目: 每个单词 2 道题 (word→meaning + meaning→word)
-      const questions = selectedWords.flatMap((w) => {
-        const wordDistractors = selectedWords
-          .filter((d) => d.id !== w.id)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3)
-          .map((d) => d.word)
-        const defDistractors = selectedWords
-          .filter((d) => d.id !== w.id)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3)
-          .map((d) => d.definition)
-
-        // 补全干扰项
-        while (wordDistractors.length < 3) wordDistractors.push('(备选单词)')
-        while (defDistractors.length < 3) defDistractors.push('(备选释义)')
-
-        // word→meaning: 展示单词，选项为释义
-        const defOptions = [...defDistractors, w.definition].sort(() => Math.random() - 0.5)
-        const defCorrect = String.fromCharCode(65 + defOptions.indexOf(w.definition))
-
-        // meaning→word: 展示释义，选项为单词
-        const wordOptions = [...wordDistractors, w.word].sort(() => Math.random() - 0.5)
-        const wordCorrect = String.fromCharCode(65 + wordOptions.indexOf(w.word))
-
-        return [
-          {
-            id: w.id * 2,
-            type: 'word-to-meaning' as const,
-            wordId: w.id,
-            word: w.word,
-            correctAnswer: defCorrect,
-            options: defOptions.map((text, i) => {
-              const optWord = defToWord.get(text) ?? text
-              const wordData = wordDataMap.get(optWord)
-              return {
-                id: (['A', 'B', 'C', 'D'] as const)[i],
-                text,
-                pairText: optWord,
-                word: optWord,
-                phonetic: wordData?.phonetic,
-                definition: wordData?.definition,
-                example: wordData?.example,
-                stage: wordData?.stage,
-              }
-            }),
-            phonetic: w.phonetic,
-            definition: w.definition,
-            example: w.example,
-            stage: w.stage,
-          },
-          {
-            id: w.id * 2 + 1,
-            type: 'meaning-to-word' as const,
-            wordId: w.id,
-            word: w.definition,
-            correctAnswer: wordCorrect,
-            options: wordOptions.map((text, i) => {
-              const wordData = wordDataMap.get(text)
-              return {
-                id: (['A', 'B', 'C', 'D'] as const)[i],
-                text,
-                pairText: wordToDef.get(text) ?? text,
-                word: text,
-                phonetic: wordData?.phonetic,
-                definition: wordData?.definition,
-                example: wordData?.example,
-                stage: wordData?.stage,
-              }
-            }),
-            phonetic: w.phonetic,
-            definition: w.definition,
-            example: w.example,
-            stage: w.stage,
-          },
-        ]
-      })
-
-      // 打乱题目顺序，避免同一单词的两道题连续出现
-      const shuffled = questions.flat().sort(() => Math.random() - 0.5)
+      // 生成并打乱题目
+      const shuffled = buildQuizQuestions(selectedWords)
       startQuiz(shuffled)
     },
-    [startQuiz, t]
+    [startQuiz, t, activateBook]
+  )
+
+  // 拼写学习：范围取右侧侧边栏的勾选单词（默认全选）
+  const handleStartLearning = useCallback(
+    async (bookId: number, bookName: string) => {
+      const state = useRecitationStore.getState()
+      let sd: WordSidebarData | null
+      if (state.selectedBookId === bookId && state.sidebarData) {
+        // 已是当前选中书：沿用侧边栏现有的勾选状态
+        sd = state.sidebarData
+      } else {
+        // 切换到目标词书（默认全选）
+        sd = await activateBook(bookId, bookName)
+      }
+      if (!sd) return
+
+      const selectedWords = [
+        ...sd.newWords.filter((w) => w.isSelected),
+        ...sd.reviewWordBatches.flatMap((b) => b.words.filter((w) => w.isSelected)),
+      ]
+      if (selectedWords.length === 0) {
+        alert(t('bookManager.alertNoWords'))
+        return
+      }
+
+      startQuiz(buildSpellingQuestions(selectedWords))
+      // 学习阶段侧边栏显示"单词 + 释义"（review 模式无勾选框，且会显示释义）
+      setSidebarMode('review')
+    },
+    [activateBook, startQuiz, setSidebarMode, t]
   )
 
   // 生成文章
   const handleGenerateArticle = useCallback(
-    async (bookId: number) => {
+    async (bookId: number, bookName: string) => {
+      // 临时并发守卫：前一次生成未完成时，忽略后续点击（仅第一个生效）
+      if (generatingRef.current) {
+        console.debug('已有文章正在生成，忽略本次请求')
+        return
+      }
+      generatingRef.current = true
+
       const addLog = useOutputStore.getState().addLog
       addLog('开始生成文章...', 'info')
 
-      const state = useRecitationStore.getState()
-      const sd = state.sidebarData
+      const sd = await activateBook(bookId, bookName)
       if (!sd) {
         addLog('错误：没有单词数据', 'error')
+        generatingRef.current = false
         return
       }
       const api = window.electronAPI
       if (!api) {
         addLog('错误：electronAPI 不可用', 'error')
+        generatingRef.current = false
         return
       }
 
@@ -396,7 +477,6 @@ export function BookManagerPanel() {
         addLog(`AI 返回文章 (${article.length} 字符)`, 'info')
 
         // 处理文章：标注单词、提取标题、拆分段落
-        const bookName = state.selectedBookName || 'unknown'
         const { title, markedParagraphs, wordMeta } = processArticleText(
           article,
           selectedNewWords,
@@ -457,9 +537,18 @@ export function BookManagerPanel() {
         console.error('生成文章失败', e)
       } finally {
         setGenerating(false)
+        generatingRef.current = false
       }
     },
-    [translationService]
+    [translationService, activateBook]
+  )
+
+  // 刷新指定词书的今日单词：切换到该书并强制刷新（forceRefresh=true）
+  const handleRefreshToday = useCallback(
+    async (bookId: number, bookName: string) => {
+      await activateBook(bookId, bookName, true)
+    },
+    [activateBook]
   )
 
   // 删除词书
@@ -626,75 +715,6 @@ export function BookManagerPanel() {
         )}
         {selectedBookId && (
           <button
-            onClick={async () => {
-              try {
-                const [todayResult, progress] = await Promise.all([
-                  recitationService.refreshTodayWords(selectedBookId),
-                  recitationService.getBookProgress(selectedBookId),
-                ])
-                const testedNewSet = new Set(todayResult.testedNewWordIds || [])
-                const testedReviewSet = new Set(todayResult.testedReviewWordIds || [])
-                const newWords: WordDisplay[] = (todayResult.newWords || []).map((w: any) => ({
-                  id: w.id ?? 0, word: w.word ?? '', definition: w.definition ?? '',
-                  phonetic: w.phonetic ?? '', example: w.example ?? '', isSelected: !testedNewSet.has(w.id),
-                }))
-                const reviewBatches = computeReviewBatches(
-                  (todayResult.reviewWords || []).map((w: any) => ({
-                    id: w.id ?? 0, word: w.word ?? '', definition: w.definition ?? '',
-                    phonetic: w.phonetic ?? '', example: w.example ?? '', stage: w.stage ?? 0,
-                  })),
-                  testedReviewSet
-                )
-                setSidebarData({ newWords, reviewWordBatches: reviewBatches, studiedCount: progress.studied, pendingReviewCount: progress.review_due })
-              } catch { console.error('刷新今日单词失败') }
-            }}
-            style={{
-              padding: '6px 14px',
-              fontSize: 13,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 4,
-              backgroundColor: 'transparent',
-              color: colors.foreground,
-              cursor: 'pointer',
-            }}
-          >
-            {t('bookManager.refreshToday')}
-          </button>
-        )}
-        {selectedBookId && (
-          <button
-            onClick={() => handleStartQuiz(selectedBookId)}
-            style={{
-              padding: '6px 14px',
-              fontSize: 13,
-              border: 'none',
-              borderRadius: 4,
-              backgroundColor: colors.primaryButton,
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            {t('bookManager.startQuiz')}
-          </button>
-        )}
-        {selectedBookId && (
-          <button
-            onClick={() => handleGenerateArticle(selectedBookId)}
-            style={{
-              padding: '6px 14px',
-              fontSize: 13,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 4,
-              backgroundColor: 'transparent',
-              color: colors.foreground,
-              cursor: 'pointer',
-            }}
-          >
-            {t('bookManager.generateArticle')}
-          </button>
-        )}
-        {selectedBookId && (
-          <button
             onClick={() => handleDelete(selectedBookId)}
             style={{
               padding: '6px 14px',
@@ -846,6 +866,11 @@ export function BookManagerPanel() {
               stageSummary={stageSummaryMap[b.book.id!]}
               onDoubleClickSegment={handleDoubleClickSegment}
               onRename={handleRename}
+              onStartQuiz={handleStartQuiz}
+              onStartLearning={handleStartLearning}
+              onGenerateArticle={handleGenerateArticle}
+              onRefreshToday={handleRefreshToday}
+              isGenerating={generating}
             />
           ))
         )}
